@@ -127,3 +127,31 @@ def draw_channel_spikes(file_path,channel_id,n_components,pre,post,dead_time,num
         color = plt.rcParams['axes.prop_cycle'].by_key()['color'][i]
         plot_waveforms(cutouts[idx,:], fs, pre, post, n=number_spikes, color=color, show=False)
     plt.show()
+
+def plot_analog_stream_channel(file_path, channel_id, from_in_s=0, to_in_s=None):
+    try:
+        _file = McsPy.McsData.RawData(file_path)
+    except:
+        return 1, "File path is incorrect"
+    
+    analog_stream = _file.recordings[0].analog_streams[0]
+    if channel_id not in analog_stream.channel_infos:
+        return 1, "Channel ID is incorrect"   
+    ids = [c.channel_id for c in analog_stream.channel_infos.values()]
+    channel_info = analog_stream.channel_infos[channel_id]
+    sampling_frequency = channel_info.sampling_frequency.magnitude  
+    from_idx ,to_idx = check_time_range(analog_stream,sampling_frequency,from_in_s,to_in_s)  # get start and end index       
+    time = analog_stream.get_channel_sample_timestamps(channel_id, from_idx, to_idx)
+
+    scale_factor_for_second = Q_(1,time[1]).to(ureg.s).magnitude
+    time_in_sec = time[0] * scale_factor_for_second
+    signal = analog_stream.get_channel_in_range(channel_id, from_idx, to_idx)
+    scale_factor_for_uV = Q_(1,signal[1]).to(ureg.uV).magnitude
+    signal_in_uV = signal[0] * scale_factor_for_uV
+
+    _ = plt.figure(figsize=(20,6))
+    _ = plt.plot(time_in_sec, signal_in_uV)
+    _ = plt.xlabel('Time (%s)' % ureg.s)
+    _ = plt.ylabel('Voltage (%s)' % ureg.uV)
+    _ = plt.title('Channel %s' % channel_info.info['Label'])
+    return 0,""
