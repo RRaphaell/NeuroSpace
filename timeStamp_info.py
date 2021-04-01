@@ -157,6 +157,5 @@ def plot_analog_stream_channel(file_path, channel_id, from_in_s, to_in_s, canvas
     ax.set_ylabel('Voltage (%s)' % ureg.uV)
     ax.set_title('Channel %s' % channel_info.info['Label'])
 
-
     canvas.draw()
     return 0,""
