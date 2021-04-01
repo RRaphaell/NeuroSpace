@@ -151,7 +151,8 @@ def plot_analog_stream_channel(file_path, channel_id, from_in_s, to_in_s, canvas
 
     figure.clear()
     ax = figure.add_subplot()
-    ax.plot(time_in_sec, signal_in_uV)
+    ax.plot(time_in_sec, signal_in_uV,linewidth=0.5)
+
     ax.set_xlabel('Time (%s)' % ureg.s)
     ax.set_ylabel('Voltage (%s)' % ureg.uV)
     ax.set_title('Channel %s' % channel_info.info['Label'])
