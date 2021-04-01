@@ -71,7 +71,7 @@ def plot_waveforms(cutouts, fs, pre, post, n=100, color='k', show=True):
         _ = plt.xlabel('Time (%s)' % ureg.ms)
         _ = plt.ylabel('Voltage (%s)' % ureg.uV)
         _ = plt.title('Cutouts')
-    
+
     if show:
         plt.show()
 
@@ -128,12 +128,12 @@ def draw_channel_spikes(file_path,channel_id,n_components,pre,post,dead_time,num
         plot_waveforms(cutouts[idx,:], fs, pre, post, n=number_spikes, color=color, show=False)
     plt.show()
 
-def plot_analog_stream_channel(file_path, channel_id, from_in_s=0, to_in_s=None):
+def plot_analog_stream_channel(file_path, channel_id, from_in_s, to_in_s, canvas,figure):
     try:
         _file = McsPy.McsData.RawData(file_path)
     except:
         return 1, "File path is incorrect"
-    
+
     analog_stream = _file.recordings[0].analog_streams[0]
     if channel_id not in analog_stream.channel_infos:
         return 1, "Channel ID is incorrect"   
@@ -149,9 +149,12 @@ def plot_analog_stream_channel(file_path, channel_id, from_in_s=0, to_in_s=None)
     scale_factor_for_uV = Q_(1,signal[1]).to(ureg.uV).magnitude
     signal_in_uV = signal[0] * scale_factor_for_uV
 
-    _ = plt.figure(figsize=(20,6))
-    _ = plt.plot(time_in_sec, signal_in_uV)
-    _ = plt.xlabel('Time (%s)' % ureg.s)
-    _ = plt.ylabel('Voltage (%s)' % ureg.uV)
-    _ = plt.title('Channel %s' % channel_info.info['Label'])
+    figure.clear()
+    ax = figure.add_subplot()
+    ax.plot(time_in_sec, signal_in_uV)
+    ax.set_xlabel('Time (%s)' % ureg.s)
+    ax.set_ylabel('Voltage (%s)' % ureg.uV)
+    ax.set_title('Channel %s' % channel_info.info['Label'])
+
+    canvas.draw()
     return 0,""
