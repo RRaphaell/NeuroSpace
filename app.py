@@ -1,7 +1,7 @@
 import sys
 import os
 from PyQt5 import QtWidgets,QtCore, QtGui
-from timeStamp_info import save_channel_info, plot_analog_stream_channel
+from timeStamp_info import save_channel_info, plot_analog_stream_channel, draw_channel_spikes
 import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib import style
@@ -40,54 +40,14 @@ class all_together(QtWidgets.QMainWindow):
 
         group_box_channel_stream, self.channel_id_tab2, self.stream_id_tab2 = self.create_group_select_id()
 
-        group_box_pre_post = QtWidgets.QGroupBox("Select time range")
-        group_box_pre_post_layout = QtWidgets.QHBoxLayout()
-        self.extract_pre_tab2 = QtWidgets.QLineEdit(self)
-        self.extract_pre_tab2.setFixedWidth(50)
-        extract_pre_label = QtWidgets.QLabel(self)
-        extract_pre_label.setText("Pre: ")
-        self.extract_post_tab2 = QtWidgets.QLineEdit(self)
-        self.extract_post_tab2.setFixedWidth(50)
-        extract_post_label = QtWidgets.QLabel(self)
-        extract_post_label.setText("Post: ")
-        self.dead_time_tab2 = QtWidgets.QLineEdit(self)
-        self.dead_time_tab2.setFixedWidth(50)
-        dead_time_label = QtWidgets.QLabel(self)
-        dead_time_label.setText("Dead time: ")
+        group_box_pre_post, self.extract_pre_tab2, self.extract_post_tab2, self.dead_time_tab2 = self.create_group_select_time_range_tab2()
 
-        group_box_pre_post_layout.addWidget(extract_pre_label)
-        group_box_pre_post_layout.addWidget(self.extract_pre_tab2)
-        group_box_pre_post_layout.addWidget(extract_post_label)
-        group_box_pre_post_layout.addWidget(self.extract_post_tab2)
-        group_box_pre_post_layout.addWidget(dead_time_label)
-        group_box_pre_post_layout.addWidget(self.dead_time_tab2)
-        group_box_pre_post.setLayout(group_box_pre_post_layout)
-        group_box_pre_post.setFixedSize(300,70)
-        group_box_pre_post.setStatusTip("Choose particular time, leave empty for full time")
-
-        group_box_component_spike = QtWidgets.QGroupBox("Select numbers")
-        group_box_component_spike_layout = QtWidgets.QHBoxLayout()
-        componen = QtWidgets.QLineEdit(self)
-        componen.setFixedWidth(40)
-        componen.setStatusTip("Choose component number, leave empty for zero component")
-        componen_label = QtWidgets.QLabel(self)
-        componen_label.setText("Component number:")
-        spike = QtWidgets.QLineEdit(self)
-        spike.setFixedWidth(40)
-        spike.setStatusTip("Choose spike number, leave empty for all spikes")
-        spike_label = QtWidgets.QLabel(self)
-        spike_label.setText("Spike number:")
-        group_box_component_spike_layout.addWidget(componen_label)
-        group_box_component_spike_layout.addWidget(componen)
-        group_box_component_spike_layout.addWidget(spike_label)
-        group_box_component_spike_layout.addWidget(spike)
-        group_box_component_spike.setLayout(group_box_component_spike_layout)
-        group_box_component_spike.setFixedSize(300,70)
+        group_box_component_spike, self.component, self.spike = self.create_group_component_spike()
 
         plot_file_btn = QtWidgets.QPushButton(self)
         plot_file_btn.setFixedSize(300,40)
         plot_file_btn.setText("Plot Spike")
-        plot_file_btn.clicked.connect(self.plot_file)  
+        plot_file_btn.clicked.connect(self.plot_spike)  
 
         plot_group_box, self.tab2_figure,self.tab2_canvas  = self.create_plot_grop_box("Spike") 
 
@@ -98,21 +58,68 @@ class all_together(QtWidgets.QMainWindow):
         tab2_layout.setRowStretch(4,0)
         tab2_layout.addWidget(plot_file_btn,5,0)
         tab2_layout.addWidget(plot_group_box,0,2,6,1)
-        
         self.tab2.setLayout(tab2_layout)
-        
+
+    def create_group_select_time_range_tab2(self):
+        group_box_pre_post = QtWidgets.QGroupBox("Select time range")
+        group_box_pre_post_layout = QtWidgets.QHBoxLayout()
+        extract_pre_tab2 = QtWidgets.QLineEdit(self)
+        extract_pre_tab2.setFixedWidth(50)
+        extract_pre_label = QtWidgets.QLabel(self)
+        extract_pre_label.setText("Pre: ")
+        extract_post_tab2 = QtWidgets.QLineEdit(self)
+        extract_post_tab2.setFixedWidth(50)
+        extract_post_label = QtWidgets.QLabel(self)
+        extract_post_label.setText("Post: ")
+        dead_time_tab2 = QtWidgets.QLineEdit(self)
+        dead_time_tab2.setFixedWidth(50)
+        dead_time_label = QtWidgets.QLabel(self)
+        dead_time_label.setText("Dead time: ")
+
+        group_box_pre_post_layout.addWidget(extract_pre_label)
+        group_box_pre_post_layout.addWidget(extract_pre_tab2)
+        group_box_pre_post_layout.addWidget(extract_post_label)
+        group_box_pre_post_layout.addWidget(extract_post_tab2)
+        group_box_pre_post_layout.addWidget(dead_time_label)
+        group_box_pre_post_layout.addWidget(dead_time_tab2)
+        group_box_pre_post.setLayout(group_box_pre_post_layout)
+        group_box_pre_post.setFixedSize(300,70)
+        group_box_pre_post.setStatusTip("Choose particular time, leave empty for full time")
+        return group_box_pre_post, extract_pre_tab2, extract_post_tab2, dead_time_tab2 
+
+    def create_group_component_spike(self):
+        group_box_component_spike = QtWidgets.QGroupBox("Select numbers")
+        group_box_component_spike_layout = QtWidgets.QHBoxLayout()
+        component = QtWidgets.QLineEdit(self)
+        component.setFixedWidth(40)
+        component.setStatusTip("Choose component number, leave empty for zero component")
+        component_label = QtWidgets.QLabel(self)
+        component_label.setText("Component number:")
+        spike = QtWidgets.QLineEdit(self)
+        spike.setFixedWidth(40)
+        spike.setStatusTip("Choose spike number, leave empty for all spikes")
+        spike_label = QtWidgets.QLabel(self)
+        spike_label.setText("Spike number:")
+        group_box_component_spike_layout.addWidget(component_label)
+        group_box_component_spike_layout.addWidget(component)
+        group_box_component_spike_layout.addWidget(spike_label)
+        group_box_component_spike_layout.addWidget(spike)
+        group_box_component_spike.setLayout(group_box_component_spike_layout)
+        group_box_component_spike.setFixedSize(300,70)   
+        return group_box_component_spike, component, spike
+
     def create_tab1(self):
         tab1_layout = QtWidgets.QGridLayout()
         self.statusBar()
 
         group_box_browse, self.browse_text_box_tab1 = self.create_group_open_from()
         group_box_channel_stream, self.channel_id_tab1, self.stream_id_tab1 = self.create_group_select_id()
-        group_box_from_to, self.extract_from_tab1, self.extract_to_tab1 = self.create_group_select_time_range()
+        group_box_from_to, self.extract_from_tab1, self.extract_to_tab1 = self.create_group_select_time_range_tab1()
 
         plot_file_btn = QtWidgets.QPushButton(self)
         plot_file_btn.setFixedSize(300,40)
         plot_file_btn.setText("Plot Waveform")
-        plot_file_btn.clicked.connect(self.plot_file)   
+        plot_file_btn.clicked.connect(self.plot_waveform)   
 
         space_between_plotbtn_extract = QtWidgets.QWidget()
         space_between_plotbtn_extract.setFixedSize(300,50)             
@@ -140,7 +147,7 @@ class all_together(QtWidgets.QMainWindow):
         browse_text_box.setDisabled(True)
         browse = QtWidgets.QPushButton(self)
         browse.setText("Browse file")
-        browse.clicked.connect(self.getfiles)
+        browse.clicked.connect(lambda x: self.getfiles(browse_text_box))
         group_box_browse_layout.addWidget(browse_text_box)
         group_box_browse_layout.addWidget(browse)
         group_box_browse.setLayout(group_box_browse_layout)
@@ -148,7 +155,7 @@ class all_together(QtWidgets.QMainWindow):
         group_box_browse.setStatusTip("Choose hf5 format file to open")
         return group_box_browse, browse_text_box
     
-    def create_group_select_time_range(self):
+    def create_group_select_time_range_tab1(self):
         group_box_from_to = QtWidgets.QGroupBox("Select time range")
         group_box_from_to_layout = QtWidgets.QHBoxLayout()
         extract_from = QtWidgets.QLineEdit(self)
@@ -227,7 +234,7 @@ class all_together(QtWidgets.QMainWindow):
         plot_group_box.setLayout(layout)
         return plot_group_box, figure, canvas
     
-    def plot_file(self):
+    def plot_waveform(self):
         analog_stream_path = self.browse_text_box_tab1.text()
         stream_id = self._check_value(self.stream_id_tab1.text(),None)
         channel_id = self._check_value(self.channel_id_tab1.text(),None)
@@ -239,10 +246,29 @@ class all_together(QtWidgets.QMainWindow):
         plot_error, value = plot_analog_stream_channel(analog_stream_path,channel_id,from_in_s,to_in_s,self.tab1_canvas,self.tab1_figure)
         if plot_error:
             self.error_popup(value)
+    
+    def plot_spike(self):
+        analog_stream_path = self.browse_text_box_tab2.text()
+        stream_id = self._check_value(self.stream_id_tab2.text(),None)
+        channel_id = self._check_value(self.channel_id_tab2.text(),None)
+        
+        pre = self._check_value(self.extract_pre_tab2.text(),0)
+        post = self._check_value(self.extract_post_tab2.text(),None)
+        dead_time = self._check_value(self.dead_time_tab2.text(),None)
+        comp_number = self._check_value(self.component.text(),None)
+        spike_number = self._check_value(self.spike.text(),None)
+        
+        if -1 in (stream_id,channel_id,pre,post,dead_time,comp_number,spike_number):
+            self.error_popup("Please enter correct values")
+            return
+        plot_error, value = draw_channel_spikes(analog_stream_path,channel_id,comp_number,pre,post,dead_time,spike_number,
+                                                self.tab2_canvas,self.tab2_figure)
+        if plot_error:
+            self.error_popup(value)
 
-    def getfiles(self):
+    def getfiles(self,text_box):
         fileName, _ = QtWidgets.QFileDialog.getOpenFileName(self, 'Open File')
-        self.browse_text_box_tab1.setText(fileName)
+        text_box.setText(fileName)
     
     def extract_file(self):
         analog_stream_path = self.browse_text_box_tab1.text()
