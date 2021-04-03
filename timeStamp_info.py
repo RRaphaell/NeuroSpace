@@ -58,22 +58,18 @@ def extract_waveforms(signal, fs, spikes_idx, pre, post):
             cutouts.append(cutout)
     return np.stack(cutouts)
 
-def plot_waveforms(cutouts, fs, pre, post, n=100, color='k', show=True):
+def plot_waveforms(ax, cutouts, fs, pre, post, n=100, color='k'):
     if n is None:
         n = cutouts.shape[0]
     n = min(n, cutouts.shape[0])
     time_in_us = np.arange(-pre*1000, post*1000, 1e3/fs)
-    if show:
-        _ = plt.figure(figsize=(12,6))
     
     for i in range(n):
-        _ = plt.plot(time_in_us, cutouts[i,]*1e6, color, linewidth=1, alpha=0.3)
-        _ = plt.xlabel('Time (%s)' % ureg.ms)
-        _ = plt.ylabel('Voltage (%s)' % ureg.uV)
-        _ = plt.title('Cutouts')
-
-    if show:
-        plt.show()
+        ax.plot(time_in_us, cutouts[i,]*1e6, color, linewidth=1, alpha=0.3)
+        
+        ax.set_xlabel('Time (%s)' % ureg.ms)
+        ax.set_ylabel('Voltage (%s)' % ureg.uV)
+        ax.set_title('Cutouts')
 
 def detect_threshold_crossings(signal, fs, threshold, dead_time):
     dead_time_idx = dead_time * fs
@@ -95,19 +91,17 @@ def align_to_minimum(signal, fs, threshold_crossings, search_range):
     aligned_spikes = [get_next_minimum(signal, t, search_end) for t in threshold_crossings]
     return np.array(aligned_spikes)
   
-def draw_channel_spikes(file_path,channel_id,n_components,pre,post,dead_time,number_spikes):  
-    
+def draw_channel_spikes(file_path,channel_id,n_components,pre,post,dead_time,number_spikes,canvas,figure):  
     try:
         _file = McsPy.McsData.RawData(file_path)
     except:
         return 1, "File path is incorrect"
     
     electrode_stream = _file.recordings[0].analog_streams[0]
-    if channel_id not in analog_stream.channel_infos:
+    if channel_id not in electrode_stream.channel_infos:
         return 1, "Channel ID is incorrect"
     
     signal = electrode_stream.get_channel_in_range(channel_id, 0, electrode_stream.channel_data.shape[1])[0]
-    noise_std = np.std(signal)
     noise_mad = np.median(np.absolute(signal)) / 0.6745
     spike_threshold = -5 * noise_mad # roughly -30 µV
     fs = int(electrode_stream.channel_infos[channel_id].sampling_frequency.magnitude)
@@ -115,18 +109,21 @@ def draw_channel_spikes(file_path,channel_id,n_components,pre,post,dead_time,num
     spks = align_to_minimum(signal, fs, crossings, 0.002) # search range 2 ms
     cutouts = extract_waveforms(signal, fs, spks, pre, post)
     pca = PCA()
-    pca.n_components = n_components
+    pca.n_components = int(n_components)
     scaler = StandardScaler()
     scaled_cutouts = scaler.fit_transform(cutouts)
     transformed = pca.fit_transform(scaled_cutouts)
-    gmm = GaussianMixture(n_components=n_components, n_init=10)
+    gmm = GaussianMixture(n_components=int(n_components), n_init=10)
     labels = gmm.fit_predict(transformed)
-    _ = plt.figure(figsize=(8,8))
-    for i in range(n_components):
+
+    figure.clear()
+    ax = figure.add_subplot()
+    for i in range(int(n_components)):
         idx = labels == i
         color = plt.rcParams['axes.prop_cycle'].by_key()['color'][i]
-        plot_waveforms(cutouts[idx,:], fs, pre, post, n=number_spikes, color=color, show=False)
-    plt.show()
+        plot_waveforms(ax, cutouts[idx,:], fs, pre, post, n=int(number_spikes), color=color)
+    canvas.draw()
+    return 0, ""
 
 def plot_analog_stream_channel(file_path, channel_id, from_in_s, to_in_s, canvas,figure):
     try:
@@ -137,7 +134,6 @@ def plot_analog_stream_channel(file_path, channel_id, from_in_s, to_in_s, canvas
     analog_stream = _file.recordings[0].analog_streams[0]
     if channel_id not in analog_stream.channel_infos:
         return 1, "Channel ID is incorrect"   
-    ids = [c.channel_id for c in analog_stream.channel_infos.values()]
     channel_info = analog_stream.channel_infos[channel_id]
     sampling_frequency = channel_info.sampling_frequency.magnitude  
     from_idx ,to_idx = check_time_range(analog_stream,sampling_frequency,from_in_s,to_in_s)  # get start and end index       
