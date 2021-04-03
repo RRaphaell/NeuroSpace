@@ -24,11 +24,10 @@ def iterate_per_channel(analog_stream,channel_id,from_idx,to_idx):
     return signal_in_uV
 
 def save_channel_info(analog_stream_path, file_save_path, stream_id = 0, channel_id=None, from_in_s=0, to_in_s=None):   
-    try:
-        file_ = McsPy.McsData.RawData(analog_stream_path)
-    except:
+    _file = path_valid(analog_stream_path)
+    if not _file:
         return 1, "File path is incorrect"
-    analog_stream = file_.recordings[0].analog_streams[stream_id]
+    analog_stream = _file.recordings[0].analog_streams[stream_id]
     _channel_info = analog_stream.channel_infos[0]
     sampling_frequency = _channel_info.sampling_frequency.magnitude
     from_idx ,to_idx = check_time_range(analog_stream,sampling_frequency,from_in_s,to_in_s)  # get start and end index
@@ -92,15 +91,16 @@ def align_to_minimum(signal, fs, threshold_crossings, search_range):
     return np.array(aligned_spikes)
   
 def draw_channel_spikes(file_path,channel_id,n_components,pre,post,dead_time,number_spikes,canvas,figure):  
-    try:
-        _file = McsPy.McsData.RawData(file_path)
-    except:
+    _file = path_valid(file_path)
+    if not _file:
         return 1, "File path is incorrect"
     
     electrode_stream = _file.recordings[0].analog_streams[0]
     if channel_id not in electrode_stream.channel_infos:
         return 1, "Channel ID is incorrect"
-    
+    if n_components == None:
+        n_components = 1
+
     signal = electrode_stream.get_channel_in_range(channel_id, 0, electrode_stream.channel_data.shape[1])[0]
     noise_mad = np.median(np.absolute(signal)) / 0.6745
     spike_threshold = -5 * noise_mad # roughly -30 µV
@@ -122,13 +122,13 @@ def draw_channel_spikes(file_path,channel_id,n_components,pre,post,dead_time,num
         idx = labels == i
         color = plt.rcParams['axes.prop_cycle'].by_key()['color'][i]
         plot_waveforms(ax, cutouts[idx,:], fs, pre, post, n=int(number_spikes), color=color)
+    figure.tight_layout()
     canvas.draw()
     return 0, ""
 
 def plot_analog_stream_channel(file_path, channel_id, from_in_s, to_in_s, canvas,figure):
-    try:
-        _file = McsPy.McsData.RawData(file_path)
-    except:
+    _file = path_valid(file_path)
+    if not _file:
         return 1, "File path is incorrect"
 
     analog_stream = _file.recordings[0].analog_streams[0]
@@ -147,11 +147,27 @@ def plot_analog_stream_channel(file_path, channel_id, from_in_s, to_in_s, canvas
 
     figure.clear()
     ax = figure.add_subplot()
-    ax.plot(time_in_sec, signal_in_uV,linewidth=0.5)
+    ax.plot(time_in_sec, signal_in_uV, linewidth=0.5)
+    ax.tick_params(axis='x', labelsize=8)
+    ax.tick_params(axis='y', labelsize=8)
 
-    ax.set_xlabel('Time (%s)' % ureg.s)
-    ax.set_ylabel('Voltage (%s)' % ureg.uV)
-    ax.set_title('Channel %s' % channel_info.info['Label'])
-
+    ax.set_xlabel('Time (%s)' % ureg.s, fontsize = 10)
+    ax.set_ylabel('Voltage (%s)' % ureg.uV, fontsize = 10)
+    ax.set_title('Channel %s' % channel_info.info['Label'], fontsize = 10)
+    figure.tight_layout()
     canvas.draw()
     return 0,""
+
+def get_channel_ids(file_path):
+    _file = path_valid(file_path)
+    if not _file:
+        return 1, "File path is incorrect"
+    keys = [str(value.channel_id) for key, value in _file.recordings[0].analog_streams[0].channel_infos.items()]
+    return 0, keys
+
+def path_valid(file_path):
+    try:
+        _file = McsPy.McsData.RawData(file_path)
+    except:
+        return 0
+    return _file
