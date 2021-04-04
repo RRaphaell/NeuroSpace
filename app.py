@@ -1,7 +1,7 @@
 import sys
 import os
 from PyQt5 import QtWidgets,QtCore, QtGui
-from timeStamp_info import save_channel_info, plot_analog_stream_channel, draw_channel_spikes, get_channel_ids
+from timeStamp_info import save_channel_info, plot_analog_stream_channel, draw_channel_spikes, get_channel_ids, filter_base_freqeuncy
 import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib import style
@@ -38,14 +38,14 @@ class all_together(QtWidgets.QMainWindow):
         tab2_layout = QtWidgets.QGridLayout()
         self.statusBar()
 
-
         group_box_channel_stream, self.channel_id_tab2, self.stream_id_tab2 = self.create_group_select_id()
         group_box_browse, self.browse_text_box_tab2 = self.create_group_open_from(self.channel_id_tab2,self.stream_id_tab2)
         group_box_pre_post, self.extract_pre_tab2, self.extract_post_tab2, self.dead_time_tab2 = self.create_group_select_time_range_tab2()
         group_box_component_spike, self.component, self.spike = self.create_group_component_spike()
+        group_box_filter, self.filter_low_tab2, self.filter_high_tab2 = self.create_group_filter()  
 
         plot_file_btn = QtWidgets.QPushButton(self)
-        plot_file_btn.setFixedSize(235,40)
+        plot_file_btn.setFixedSize(235,35)
         plot_file_btn.setText("Plot Spike")
         plot_file_btn.clicked.connect(self.plot_spike)  
 
@@ -55,9 +55,10 @@ class all_together(QtWidgets.QMainWindow):
         tab2_layout.addWidget(group_box_channel_stream,1,0)
         tab2_layout.addWidget(group_box_pre_post,2,0)
         tab2_layout.addWidget(group_box_component_spike,3,0)
-        tab2_layout.setRowStretch(4,0)
-        tab2_layout.addWidget(plot_file_btn,5,0)
-        tab2_layout.addWidget(plot_group_box,0,2,6,1)
+        tab2_layout.addWidget(group_box_filter,4,0)
+        tab2_layout.setRowStretch(5,0)
+        tab2_layout.addWidget(plot_file_btn,6,0)
+        tab2_layout.addWidget(plot_group_box,0,2,7,1)
         self.tab2.setLayout(tab2_layout)
 
     def create_group_select_time_range_tab2(self):
@@ -86,7 +87,7 @@ class all_together(QtWidgets.QMainWindow):
         group_box_pre_post_layout.addWidget(dead_time_label)
         group_box_pre_post_layout.addWidget(dead_time_tab2)
         group_box_pre_post.setLayout(group_box_pre_post_layout)
-        group_box_pre_post.setFixedSize(235,70)
+        group_box_pre_post.setFixedSize(235,60)
         group_box_pre_post.setStatusTip("Choose particular time, leave empty for full time")
         return group_box_pre_post, extract_pre_tab2, extract_post_tab2, dead_time_tab2 
 
@@ -108,7 +109,7 @@ class all_together(QtWidgets.QMainWindow):
         group_box_component_spike_layout.addWidget(spike_label)
         group_box_component_spike_layout.addWidget(spike)
         group_box_component_spike.setLayout(group_box_component_spike_layout)
-        group_box_component_spike.setFixedSize(235,70)   
+        group_box_component_spike.setFixedSize(235,60)   
         return group_box_component_spike, component, spike
 
     def create_tab1(self):
@@ -120,24 +121,25 @@ class all_together(QtWidgets.QMainWindow):
         group_box_from_to, self.extract_from_tab1, self.extract_to_tab1 = self.create_group_select_time_range_tab1()
 
         plot_file_btn = QtWidgets.QPushButton(self)
-        plot_file_btn.setFixedSize(235,40)
+        plot_file_btn.setFixedSize(235,35)
         plot_file_btn.setText("Plot Waveform")
         plot_file_btn.clicked.connect(self.plot_waveform)   
 
         space_between_plotbtn_extract = QtWidgets.QWidget()
-        space_between_plotbtn_extract.setFixedSize(235,50)             
+        space_between_plotbtn_extract.setFixedSize(235,50)  
 
+        group_box_filter, self.filter_low_tab1, self.filter_high_tab1 = self.create_group_filter()           
         group_box_extract = self.create_group_extract()
-
         plot_group_box, self.tab1_figure, self.tab1_canvas  = self.create_plot_grop_box("Waveform")
 
         tab1_layout.addWidget(group_box_browse,0,0)
         tab1_layout.addWidget(group_box_channel_stream,1,0)
         tab1_layout.addWidget(group_box_from_to,2,0)
-        tab1_layout.addWidget(plot_file_btn,3,0)
-        tab1_layout.setRowStretch(4,0)
-        tab1_layout.addWidget(group_box_extract,5,0)
-        tab1_layout.addWidget(plot_group_box,0,2,6,1)
+        tab1_layout.addWidget(group_box_filter,3,0)
+        tab1_layout.addWidget(plot_file_btn,4,0)
+        tab1_layout.setRowStretch(5,0)
+        tab1_layout.addWidget(group_box_extract,6,0)
+        tab1_layout.addWidget(plot_group_box,0,2,7,1)
         
         # tab1_layout.setContentsMargins(10,10,100,100)
         # tab1_layout.setSizeConstraint(100)
@@ -154,7 +156,7 @@ class all_together(QtWidgets.QMainWindow):
         group_box_browse_layout.addWidget(browse_text_box)
         group_box_browse_layout.addWidget(browse)
         group_box_browse.setLayout(group_box_browse_layout)
-        group_box_browse.setFixedSize(235,70)
+        group_box_browse.setFixedSize(235,60)
         group_box_browse.setStatusTip("Choose hf5 format file to open")
         return group_box_browse, browse_text_box
     
@@ -174,7 +176,7 @@ class all_together(QtWidgets.QMainWindow):
         group_box_from_to_layout.addWidget(extract_to_label)
         group_box_from_to_layout.addWidget(extract_to)
         group_box_from_to.setLayout(group_box_from_to_layout)
-        group_box_from_to.setFixedSize(235,70)
+        group_box_from_to.setFixedSize(235,60)
         group_box_from_to.setStatusTip("Choose particular time, leave empty for full time")
         return group_box_from_to, extract_from, extract_to
 
@@ -196,9 +198,31 @@ class all_together(QtWidgets.QMainWindow):
         group_box_channel_stream_layout.addWidget(stream_id_label)
         group_box_channel_stream_layout.addWidget(stream_id)
         group_box_channel_stream.setLayout(group_box_channel_stream_layout)
-        group_box_channel_stream.setFixedSize(235,70)
+        group_box_channel_stream.setFixedSize(235,60)
         return group_box_channel_stream, channel_id, stream_id
 
+    def create_group_filter(self):
+        group_box_filter = QtWidgets.QGroupBox("Set filter")
+        group_box_filter_layout = QtWidgets.QHBoxLayout()
+        group_box_filter.setCheckable(True)
+        group_box_filter.setChecked(False)
+        filter_low = QtWidgets.QLineEdit(self)
+        filter_low.setFixedWidth(40)
+        filter_low_label = QtWidgets.QLabel(self)
+        filter_low_label.setText("Low pass")
+        filter_high = QtWidgets.QLineEdit(self)
+        filter_high.setFixedWidth(40)
+        filter_high_label = QtWidgets.QLabel(self)
+        filter_high_label.setText("High pass")
+        group_box_filter_layout.addWidget(filter_high_label)
+        group_box_filter_layout.addWidget(filter_high)
+        group_box_filter_layout.addWidget(filter_low_label)
+        group_box_filter_layout.addWidget(filter_low)
+        group_box_filter.setLayout(group_box_filter_layout)
+        group_box_filter.setFixedSize(235,60)
+        group_box_filter.setStatusTip("Choose filter, low high or band pass")
+        return group_box_filter, filter_low, filter_high
+        
     def create_group_extract(self):
         group_box_extract = QtWidgets.QGroupBox("Save to")
         group_box_extract_layout = QtWidgets.QHBoxLayout()
@@ -210,7 +234,7 @@ class all_together(QtWidgets.QMainWindow):
         group_box_extract_layout.addWidget(self.extract_text_box)
         group_box_extract_layout.addWidget(extract)
         group_box_extract.setLayout(group_box_extract_layout)
-        group_box_extract.setFixedSize(235,70)
+        group_box_extract.setFixedSize(235,60)
         group_box_extract.setStatusTip("Choose path to save csv file")
         return group_box_extract
 
@@ -243,10 +267,14 @@ class all_together(QtWidgets.QMainWindow):
         channel_id = self._check_value(self.channel_id_tab1.currentText(),None)
         from_in_s = self._check_value(self.extract_from_tab1.text(),0)
         to_in_s = self._check_value(self.extract_to_tab1.text(),None)
+        high_pass = self._check_value(self.filter_high_tab1.text(),None)
+        low_pass = self._check_value(self.filter_low_tab1.text(),None)
         if -1 in (stream_id,channel_id,from_in_s,to_in_s):
             self.error_popup("Please enter correct values")
             return
-        plot_error, value = plot_analog_stream_channel(analog_stream_path,channel_id,from_in_s,to_in_s,self.tab1_canvas,self.tab1_figure)
+        
+        plot_error, value = plot_analog_stream_channel(analog_stream_path, channel_id, from_in_s, to_in_s,
+                                                        self.tab1_canvas, self.tab1_figure, high_pass, low_pass)
         if plot_error:
             self.error_popup(value)
     
@@ -260,12 +288,14 @@ class all_together(QtWidgets.QMainWindow):
         dead_time = self._check_value(self.dead_time_tab2.text(),None)
         comp_number = self._check_value(self.component.text(),None)
         spike_number = self._check_value(self.spike.text(),None)
+        high_pass = self._check_value(self.filter_high_tab2.text(),None)
+        low_pass = self._check_value(self.filter_low_tab2.text(),None)
         
         if -1 in (stream_id,channel_id,pre,post,dead_time,comp_number,spike_number):
             self.error_popup("Please enter correct values")
             return
-        plot_error, value = draw_channel_spikes(analog_stream_path,channel_id,comp_number,pre,post,dead_time,spike_number,
-                                                self.tab2_canvas,self.tab2_figure)
+        plot_error, value = draw_channel_spikes(analog_stream_path, channel_id, comp_number, pre, post, dead_time, spike_number,
+                                                self.tab2_canvas, self.tab2_figure, high_pass, low_pass)
         if plot_error:
             self.error_popup(value)
 
