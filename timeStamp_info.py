@@ -56,7 +56,9 @@ def extract_waveforms(signal, fs, spikes_idx, pre, post):
         if index-pre_idx >= 0 and index+post_idx <= signal.shape[0]:
             cutout = signal[(index-pre_idx):(index+post_idx)]
             cutouts.append(cutout)
-    return np.stack(cutouts)
+    if(len(cutouts)>0) :
+        return np.stack(cutouts)
+    return cutouts
 
 def plot_waveforms(ax, cutouts, fs, pre, post, n=100, color='k'):
     if n is None:
@@ -108,14 +110,21 @@ def draw_channel_spikes(file_path, channel_id, n_components, pre, post, dead_tim
     
     signal_in_uV, time_in_sec = get_signal_time(electrode_stream, channel_id, 0, None)
     if (high_pass!=None) or (low_pass!=None):
-        signal = filter_base_freqeuncy(signal_in_uV, time_in_sec, high_pass, low_pass)
+        signal = filter_base_freqeuncy(signal, time_in_sec, high_pass, low_pass)
 
-    noise_mad = np.median(np.absolute(signal)) / 0.6745
-    spike_threshold = -5 * noise_mad 
+    noise_std= np.std(signal)
+    noise_mad = np.median(np.absolute(signal))
+    if noise_mad<= noise_std:
+        spike_threshold = -5 * noise_mad
+    else :
+        spike_threshold = -5 * noise_std
     fs = int(electrode_stream.channel_infos[channel_id].sampling_frequency.magnitude)
     crossings = detect_threshold_crossings(signal, fs, spike_threshold, dead_time) # dead time of 3 ms
     spks = align_to_minimum(signal, fs, crossings, 0.002) # search range 2 ms
     cutouts = extract_waveforms(signal, fs, spks, pre, post)
+    if(len(cutouts)==0):
+        return 1, "spike filter is not correct"
+
     pca = PCA()
     pca.n_components = int(n_components)
     scaler = StandardScaler()
