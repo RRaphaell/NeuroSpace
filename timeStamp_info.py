@@ -119,7 +119,7 @@ def draw_channel_spikes(file_path, channel_id, n_components, pre, post, dead_tim
     pca = PCA()
     pca.n_components = int(n_components)
     scaler = StandardScaler()
-    scaled_cutouts = scaler.fit_transform(cutouts)
+    scaled_cutouts = scaler.fit_transform(abs(cutouts))
     transformed = pca.fit_transform(scaled_cutouts)
     gmm = GaussianMixture(n_components=int(n_components), n_init=10)
     labels = gmm.fit_predict(transformed)
