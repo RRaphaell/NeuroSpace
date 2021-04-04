@@ -26,12 +26,14 @@ class all_together(QtWidgets.QMainWindow):
 
         self.create_tab1()
         self.create_tab2()
+
         self.stream_id_tab1.setDisabled(True)
         self.stream_id_tab2.setDisabled(True)
 
         QtWidgets.QApplication.setStyle(QtWidgets.QStyleFactory.create('Fusion'))  
         
         self.setGeometry(200,200,1000,500)
+        self.setWindowTitle("MEA System Analyzer")
         self.setCentralWidget(self.tabs)
         
     def create_tab2(self):
@@ -48,6 +50,10 @@ class all_together(QtWidgets.QMainWindow):
         plot_file_btn.setFixedSize(235,35)
         plot_file_btn.setText("Plot Spike")
         plot_file_btn.clicked.connect(self.plot_spike)  
+        plot_file_btn.setStyleSheet("QPushButton::hover"
+                                    "{"
+                                    "background-color : lightblue;"
+                                    "}") 
 
         plot_group_box, self.tab2_figure,self.tab2_canvas  = self.create_plot_grop_box("Spike") 
 
@@ -88,7 +94,7 @@ class all_together(QtWidgets.QMainWindow):
         group_box_pre_post_layout.addWidget(dead_time_tab2)
         group_box_pre_post.setLayout(group_box_pre_post_layout)
         group_box_pre_post.setFixedSize(235,60)
-        group_box_pre_post.setStatusTip("Choose particular time, leave empty for full time")
+        group_box_pre_post.setStatusTip("Choose particular time")
         return group_box_pre_post, extract_pre_tab2, extract_post_tab2, dead_time_tab2 
 
     def create_group_component_spike(self):
@@ -123,7 +129,11 @@ class all_together(QtWidgets.QMainWindow):
         plot_file_btn = QtWidgets.QPushButton(self)
         plot_file_btn.setFixedSize(235,35)
         plot_file_btn.setText("Plot Waveform")
-        plot_file_btn.clicked.connect(self.plot_waveform)   
+        plot_file_btn.clicked.connect(self.plot_waveform) 
+        plot_file_btn.setStyleSheet("QPushButton::hover"
+                                    "{"
+                                    "background-color : lightblue;"
+                                    "}")  
 
         space_between_plotbtn_extract = QtWidgets.QWidget()
         space_between_plotbtn_extract.setFixedSize(235,50)  
@@ -153,6 +163,10 @@ class all_together(QtWidgets.QMainWindow):
         browse = QtWidgets.QPushButton(self)
         browse.setText("Browse file")
         browse.clicked.connect(lambda x: self.getfiles(browse_text_box,channel_id,stream_id))
+        browse.setStyleSheet("QPushButton::hover"
+                                    "{"
+                                    "background-color : lightblue;"
+                                    "}") 
         group_box_browse_layout.addWidget(browse_text_box)
         group_box_browse_layout.addWidget(browse)
         group_box_browse.setLayout(group_box_browse_layout)
@@ -178,6 +192,12 @@ class all_together(QtWidgets.QMainWindow):
         group_box_from_to.setLayout(group_box_from_to_layout)
         group_box_from_to.setFixedSize(235,60)
         group_box_from_to.setStatusTip("Choose particular time, leave empty for full time")
+        group_box_from_to.setStyleSheet("QGroupBox {"
+                                        "border: 1px solid gray;"
+                                        "background-color: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,"
+                                        "stop: 0 #E0E0E0, stop: 1 #FFFFFF);"
+                                        "border-radius: 9px;"
+                                        "margin-top: 0.5em;}")
         return group_box_from_to, extract_from, extract_to
 
     def create_group_select_id(self):
@@ -185,7 +205,7 @@ class all_together(QtWidgets.QMainWindow):
         group_box_channel_stream_layout = QtWidgets.QHBoxLayout()
         channel_id = QtWidgets.QComboBox(self)
         channel_id.setFixedWidth(40)
-        channel_id.setStatusTip("Choose particular channel, leave empty for all Channels")
+        channel_id.setStatusTip("Choose particular channel, choose all to extract all Channels")
         channel_id_label = QtWidgets.QLabel(self)
         channel_id_label.setText("Channel_id")
         stream_id = QtWidgets.QLineEdit(self)
@@ -231,6 +251,10 @@ class all_together(QtWidgets.QMainWindow):
         extract = QtWidgets.QPushButton(self)
         extract.setText("Extract")
         extract.clicked.connect(self.extract_file)
+        extract.setStyleSheet("QPushButton::hover"
+                                    "{"
+                                    "background-color : lightblue;"
+                                    "}") 
         group_box_extract_layout.addWidget(self.extract_text_box)
         group_box_extract_layout.addWidget(extract)
         group_box_extract.setLayout(group_box_extract_layout)
@@ -270,13 +294,13 @@ class all_together(QtWidgets.QMainWindow):
         high_pass = self._check_value(self.filter_high_tab1.text(),None)
         low_pass = self._check_value(self.filter_low_tab1.text(),None)
         if -1 in (stream_id,channel_id,from_in_s,to_in_s):
-            self.error_popup("Please enter correct values")
+            self.error_popup("Please enter correct values", "Value Error")
             return
         
         plot_error, value = plot_analog_stream_channel(analog_stream_path, channel_id, from_in_s, to_in_s,
                                                         self.tab1_canvas, self.tab1_figure, high_pass, low_pass)
         if plot_error:
-            self.error_popup(value)
+            self.error_popup(value, "Plot Error")
     
     def plot_spike(self):
         analog_stream_path = self.browse_text_box_tab2.text()
@@ -292,19 +316,19 @@ class all_together(QtWidgets.QMainWindow):
         low_pass = self._check_value(self.filter_low_tab2.text(),None)
         
         if -1 in (stream_id,channel_id,pre,post,dead_time,comp_number,spike_number):
-            self.error_popup("Please enter correct values")
+            self.error_popup("Please enter correct values", "Value Error")
             return
         plot_error, value = draw_channel_spikes(analog_stream_path, channel_id, comp_number, pre, post, dead_time, spike_number,
                                                 self.tab2_canvas, self.tab2_figure, high_pass, low_pass)
         if plot_error:
-            self.error_popup(value)
+            self.error_popup(value, "Plot Error")
 
     def getfiles(self,text_box,channel_id,stream_id):
         fileName, _ = QtWidgets.QFileDialog.getOpenFileName(self, 'Open File')
         text_box.setText(fileName)
         error_message, message = get_channel_ids(fileName)
         if error_message:
-            self.error_popup(message)
+            self.error_popup(message, "File Error")
             return
         message.insert(0,"all")
         channel_id.clear()
@@ -318,14 +342,14 @@ class all_together(QtWidgets.QMainWindow):
         from_in_s = self._check_value(self.extract_from_tab1.text(),0)
         to_in_s = self._check_value(self.extract_to_tab1.text(),None)
         if -1 in (stream_id,channel_id,from_in_s,to_in_s):
-            self.error_popup("Please enter correct values")
+            self.error_popup("Please enter correct values", "Value Error")
             return
         name, _ = QtWidgets.QFileDialog.getSaveFileName(self,'Save File', options=QtWidgets.QFileDialog.DontUseNativeDialog)
         self.extract_text_box.setText(name)
         file_save_path = self.extract_text_box.text()
         save_error, value = save_channel_info(analog_stream_path, file_save_path, channel_id=channel_id, from_in_s=from_in_s, to_in_s=to_in_s)
         if save_error:
-            self.error_popup(value)
+            self.error_popup(value, "Extract Error")
         
     def _check_value(self,value,res):
         if value == "" or value == "all":
@@ -335,8 +359,8 @@ class all_together(QtWidgets.QMainWindow):
         except ValueError:
             return -1
 
-    def error_popup(self,txt):
-        QtWidgets.QMessageBox.critical(self,"Unable to Extract",txt)
+    def error_popup(self, txt, title_text):
+        QtWidgets.QMessageBox.critical(self,title_text,txt)
 
 
 if __name__ == '__main__':
