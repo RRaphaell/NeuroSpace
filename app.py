@@ -31,7 +31,19 @@ class all_together(QtWidgets.QMainWindow):
         self.stream_id_tab2.setDisabled(True)
 
         QtWidgets.QApplication.setStyle(QtWidgets.QStyleFactory.create('Fusion'))  
-        
+
+        self.dir_path = os.path.dirname(os.path.realpath(__file__))
+        self.setWindowIcon(QtGui.QIcon(os.path.join(self.dir_path,"images","app_icon.png")))
+        # როცა აპლიკაციის სახეს მივცემთ ეს 3 ხაზი წესით აღარ დაჭირდება რომ ტასკბარზე აიქონ გამოჩნდეს
+        import ctypes
+        myappid = 'mycompany.myproduct.subproduct.version'                      
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
+
+        File = open(os.path.join(self.dir_path,"styles/style_2.qss"),"r")
+        with File:
+            qss = File.read()
+            self.setStyleSheet(qss)
+
         self.setGeometry(200,200,1000,500)
         self.setWindowTitle("MEA System Analyzer")
         self.setCentralWidget(self.tabs)
@@ -192,12 +204,6 @@ class all_together(QtWidgets.QMainWindow):
         group_box_from_to.setLayout(group_box_from_to_layout)
         group_box_from_to.setFixedSize(235,60)
         group_box_from_to.setStatusTip("Choose particular time, leave empty for full time")
-        group_box_from_to.setStyleSheet("QGroupBox {"
-                                        "border: 1px solid gray;"
-                                        "background-color: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,"
-                                        "stop: 0 #E0E0E0, stop: 1 #FFFFFF);"
-                                        "border-radius: 9px;"
-                                        "margin-top: 0.5em;}")
         return group_box_from_to, extract_from, extract_to
 
     def create_group_select_id(self):
