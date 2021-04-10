@@ -95,7 +95,7 @@ def align_to_minimum(signal, fs, threshold_crossings, search_range):
     aligned_spikes = [get_next_minimum(signal, t, search_end) for t in threshold_crossings]
     return np.array(aligned_spikes)
   
-def draw_channel_spikes(file_path, channel_id, n_components, pre, post, dead_time, number_spikes, canvas, figure, high_pass, low_pass):  
+def draw_channel_spikes(file_path, channel_id, n_components, pre, post, dead_time, number_spikes, canvas, figure, from_in_s, to_in_s ,high_pass, low_pass):  
     _file = path_valid(file_path)
     if not _file:
         return 1, "File path is incorrect"
@@ -106,8 +106,10 @@ def draw_channel_spikes(file_path, channel_id, n_components, pre, post, dead_tim
     if n_components == None:
         n_components = 1
 
-    signal = electrode_stream.get_channel_in_range(channel_id, 0, electrode_stream.channel_data.shape[1])[0]
-    
+    sampling_frequency = electrode_stream.channel_infos[channel_id].sampling_frequency.magnitude  
+    from_idx ,to_idx = check_time_range(electrode_stream,sampling_frequency,from_in_s,to_in_s)
+    signal = electrode_stream.get_channel_in_range(channel_id, from_idx, to_idx)[0]
+
     signal_in_uV, time_in_sec = get_signal_time(electrode_stream, channel_id, 0, None)
     if (high_pass!=None) or (low_pass!=None):
         signal = filter_base_freqeuncy(signal, time_in_sec, high_pass, low_pass)

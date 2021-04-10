@@ -39,7 +39,7 @@ class all_together(QtWidgets.QMainWindow):
         myappid = 'mycompany.myproduct.subproduct.version'                      
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
 
-        File = open(os.path.join(self.dir_path,"styles/style_2.qss"),"r")
+        File = open(os.path.join(self.dir_path,"styles/style_3.qss.txt"),"r")
         with File:
             qss = File.read()
             self.setStyleSheet(qss)
@@ -318,6 +318,8 @@ class all_together(QtWidgets.QMainWindow):
         dead_time = self._check_value(self.dead_time_tab2.text(),None)
         comp_number = self._check_value(self.component.text(),None)
         spike_number = self._check_value(self.spike.text(),None)
+        from_in_s =None #ToDo
+        to_in_s = None  #ToDo
         high_pass = self._check_value(self.filter_high_tab2.text(),None)
         low_pass = self._check_value(self.filter_low_tab2.text(),None)
         
@@ -325,7 +327,7 @@ class all_together(QtWidgets.QMainWindow):
             self.error_popup("Please enter correct values", "Value Error")
             return
         plot_error, value = draw_channel_spikes(analog_stream_path, channel_id, comp_number, pre, post, dead_time, spike_number,
-                                                self.tab2_canvas, self.tab2_figure, high_pass, low_pass)
+                                                self.tab2_canvas, self.tab2_figure, from_in_s, to_in_s, high_pass, low_pass)
         if plot_error:
             self.error_popup(value, "Plot Error")
 
