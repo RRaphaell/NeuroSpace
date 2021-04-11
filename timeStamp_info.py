@@ -61,8 +61,11 @@ def extract_waveforms(signal, fs, spikes_idx, pre, post):
     return cutouts
 
 def plot_waveforms(ax, cutouts, fs, pre, post, n=100, color='k'):
+
     if n is None:
         n = cutouts.shape[0]
+    else:
+        n = int(n)
     n = min(n, cutouts.shape[0])
     time_in_us = np.arange(-pre*1000, post*1000, 1e3/fs)
     
@@ -122,9 +125,9 @@ def draw_channel_spikes(file_path, channel_id, n_components, pre, post, dead_tim
     fs = int(electrode_stream.channel_infos[channel_id].sampling_frequency.magnitude)
     crossings = detect_threshold_crossings(signal, fs, spike_threshold, dead_time) # dead time of 3 ms
     spks = align_to_minimum(signal, fs, crossings, 0.002) # search range 2 ms
-    cutouts = extract_waveforms(signal, fs, spks, pre, post)
-    if(len(cutouts)==0):
+    if (len(spks)<=1):
         return 1, "spike filter is not correct"
+    cutouts = extract_waveforms(signal, fs, spks, pre, post)
 
     pca = PCA()
     pca.n_components = int(n_components)
@@ -139,7 +142,7 @@ def draw_channel_spikes(file_path, channel_id, n_components, pre, post, dead_tim
     for i in range(int(n_components)):
         idx = labels == i
         color = plt.rcParams['axes.prop_cycle'].by_key()['color'][i]
-        plot_waveforms(ax, cutouts[idx,:], fs, pre, post, n=int(number_spikes), color=color)
+        plot_waveforms(ax, cutouts[idx,:], fs, pre, post, n=number_spikes, color=color)
     figure.tight_layout()
     canvas.draw()
     return 0, ""
