@@ -39,12 +39,12 @@ class all_together(QtWidgets.QMainWindow):
         myappid = 'mycompany.myproduct.subproduct.version'                      
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
 
-        File = open(os.path.join(self.dir_path,"styles/style_3.qss.txt"),"r")
-        with File:
-            qss = File.read()
-            self.setStyleSheet(qss)
+        # File = open(os.path.join(self.dir_path,"styles/style_3.qss.txt"),"r")
+        # with File:
+        #     qss = File.read()
+        #     self.setStyleSheet(qss)
 
-        self.setGeometry(200,200,1000,500)
+        self.setGeometry(200,100,1000,550)
         self.setWindowTitle("MEA System Analyzer")
         self.setCentralWidget(self.tabs)
         
@@ -56,7 +56,10 @@ class all_together(QtWidgets.QMainWindow):
         group_box_browse, self.browse_text_box_tab2 = self.create_group_open_from(self.channel_id_tab2,self.stream_id_tab2)
         group_box_pre_post, self.extract_pre_tab2, self.extract_post_tab2, self.dead_time_tab2 = self.create_group_select_time_range_tab2()
         group_box_component_spike, self.component, self.spike = self.create_group_component_spike()
-        group_box_filter, self.filter_low_tab2, self.filter_high_tab2 = self.create_group_filter()  
+        group_box_filter, self.filter_low_tab2, self.filter_high_tab2 = self.create_group_filter() 
+        group_box_from_to, self.extract_from_tab2, self.extract_to_tab2 = self.create_group_select_time_range_tab1()
+        group_box_from_to.setCheckable(True)
+        group_box_from_to.setChecked(False)
 
         plot_file_btn = QtWidgets.QPushButton(self)
         plot_file_btn.setFixedSize(235,35)
@@ -72,11 +75,12 @@ class all_together(QtWidgets.QMainWindow):
         tab2_layout.addWidget(group_box_browse,0,0)
         tab2_layout.addWidget(group_box_channel_stream,1,0)
         tab2_layout.addWidget(group_box_pre_post,2,0)
-        tab2_layout.addWidget(group_box_component_spike,3,0)
-        tab2_layout.addWidget(group_box_filter,4,0)
-        tab2_layout.setRowStretch(5,0)
-        tab2_layout.addWidget(plot_file_btn,6,0)
-        tab2_layout.addWidget(plot_group_box,0,2,7,1)
+        tab2_layout.addWidget(group_box_from_to,3,0)
+        tab2_layout.addWidget(group_box_component_spike,4,0)
+        tab2_layout.addWidget(group_box_filter,5,0)
+        tab2_layout.setRowStretch(6,0)
+        tab2_layout.addWidget(plot_file_btn,7,0)
+        tab2_layout.addWidget(plot_group_box,0,2,8,1)
         self.tab2.setLayout(tab2_layout)
 
     def create_group_select_time_range_tab2(self):
@@ -318,8 +322,8 @@ class all_together(QtWidgets.QMainWindow):
         dead_time = self._check_value(self.dead_time_tab2.text(),None)
         comp_number = self._check_value(self.component.text(),None)
         spike_number = self._check_value(self.spike.text(),None)
-        from_in_s =None #ToDo
-        to_in_s = None  #ToDo
+        from_in_s = self._check_value(self.extract_from_tab2.text(),0)
+        to_in_s = self._check_value(self.extract_to_tab2.text(),None)
         high_pass = self._check_value(self.filter_high_tab2.text(),None)
         low_pass = self._check_value(self.filter_low_tab2.text(),None)
         

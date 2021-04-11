@@ -109,7 +109,6 @@ def draw_channel_spikes(file_path, channel_id, n_components, pre, post, dead_tim
     sampling_frequency = electrode_stream.channel_infos[channel_id].sampling_frequency.magnitude  
     from_idx ,to_idx = check_time_range(electrode_stream,sampling_frequency,from_in_s,to_in_s)
     signal = electrode_stream.get_channel_in_range(channel_id, from_idx, to_idx)[0]
-
     signal_in_uV, time_in_sec = get_signal_time(electrode_stream, channel_id, 0, None)
     if (high_pass!=None) or (low_pass!=None):
         signal = filter_base_freqeuncy(signal, time_in_sec, high_pass, low_pass)
@@ -175,7 +174,6 @@ def plot_analog_stream_channel(file_path, channel_id, from_in_s, to_in_s, canvas
 def filter_base_freqeuncy(signal_in_uV, time_in_sec, High_pass, Low_pass):    
     F = fft(signal_in_uV)
     F[(len(time_in_sec)//2+1):] = 0
-    print(High_pass,Low_pass)
     if High_pass:
         F[:int(High_pass)] = 0
     if Low_pass:
