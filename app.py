@@ -20,15 +20,15 @@ class all_together(QtWidgets.QMainWindow):
         self.tabs = QtWidgets.QTabWidget()
         self.tab1 = QtWidgets.QWidget()
         self.tab2 = QtWidgets.QWidget()
+        self.tab3 = QtWidgets.QWidget()
         
-        self.tabs.addTab(self.tab1,"Extract")
-        self.tabs.addTab(self.tab2,"Plot")
+        self.tabs.addTab(self.tab1,"Waveform")
+        self.tabs.addTab(self.tab2,"Spike")
+        self.tabs.addTab(self.tab3,"Stimulus")
 
         self.create_tab1()
         self.create_tab2()
-
-        self.stream_id_tab1.setDisabled(True)
-        self.stream_id_tab2.setDisabled(True)
+        self.create_tab3()
 
         QtWidgets.QApplication.setStyle(QtWidgets.QStyleFactory.create('Fusion'))  
 
@@ -47,21 +47,34 @@ class all_together(QtWidgets.QMainWindow):
         self.setGeometry(200,100,1000,550)
         self.setWindowTitle("MEA System Analyzer")
         self.setCentralWidget(self.tabs)
+        self.showMaximized()
         
+    def create_tab3(self):
+        pass
+
     def create_tab2(self):
         tab2_layout = QtWidgets.QGridLayout()
         self.statusBar()
 
-        group_box_channel_stream, self.channel_id_tab2, self.stream_id_tab2 = self.create_group_select_id()
-        group_box_browse, self.browse_text_box_tab2 = self.create_group_open_from(self.channel_id_tab2,self.stream_id_tab2)
+        group_box_channel_stream, self.channel_id_tab2, self.component = self.create_group_select_id()
+        group_box_browse, self.browse_text_box_tab2 = self.create_group_open_from(self.channel_id_tab2)
         group_box_pre_post, self.extract_pre_tab2, self.extract_post_tab2, self.dead_time_tab2 = self.create_group_select_time_range_tab2()
-        group_box_component_spike, self.component, self.spike = self.create_group_component_spike()
+        group_box_threshold_tab2, self.threshold_from, self.spike = self.create_group_threshold()
         group_box_filter, self.filter_low_tab2, self.filter_high_tab2 = self.create_group_filter() 
         group_box_filter.toggled.connect(lambda : self.clear_qlines(self.filter_low_tab2, self.filter_high_tab2))
         group_box_from_to, self.extract_from_tab2, self.extract_to_tab2 = self.create_group_select_time_range_tab1()
         group_box_from_to.setCheckable(True)
         group_box_from_to.setChecked(False)
         group_box_from_to.toggled.connect(lambda : self.clear_qlines(self.extract_from_tab2, self.extract_to_tab2))
+
+        extract_btn = QtWidgets.QPushButton(self)
+        extract_btn.setFixedSize(235,35)
+        extract_btn.setText("Extract Spike")
+        extract_btn.clicked.connect(self.plot_spike)  
+        extract_btn.setStyleSheet("QPushButton::hover"
+                                    "{"
+                                    "background-color : lightblue;"
+                                    "}") 
 
         plot_file_btn = QtWidgets.QPushButton(self)
         plot_file_btn.setFixedSize(235,35)
@@ -78,11 +91,12 @@ class all_together(QtWidgets.QMainWindow):
         tab2_layout.addWidget(group_box_channel_stream,1,0)
         tab2_layout.addWidget(group_box_pre_post,2,0)
         tab2_layout.addWidget(group_box_from_to,3,0)
-        tab2_layout.addWidget(group_box_component_spike,4,0)
+        tab2_layout.addWidget(group_box_threshold_tab2,4,0)
         tab2_layout.addWidget(group_box_filter,5,0)
-        tab2_layout.setRowStretch(6,0)
-        tab2_layout.addWidget(plot_file_btn,7,0)
-        tab2_layout.addWidget(plot_group_box,0,2,8,1)
+        tab2_layout.addWidget(plot_file_btn,6,0)
+        tab2_layout.setRowStretch(7,0)
+        tab2_layout.addWidget(extract_btn,8,0)
+        tab2_layout.addWidget(plot_group_box,0,2,9,1)
         self.tab2.setLayout(tab2_layout)
 
     def create_group_select_time_range_tab2(self):
@@ -115,33 +129,35 @@ class all_together(QtWidgets.QMainWindow):
         group_box_pre_post.setStatusTip("Choose particular time (second)")
         return group_box_pre_post, extract_pre_tab2, extract_post_tab2, dead_time_tab2 
 
-    def create_group_component_spike(self):
-        group_box_component_spike = QtWidgets.QGroupBox("Select numbers")
-        group_box_component_spike_layout = QtWidgets.QHBoxLayout()
-        component = QtWidgets.QLineEdit(self)
-        component.setFixedWidth(40)
-        component.setStatusTip("Choose component number, leave empty for one component")
-        component_label = QtWidgets.QLabel(self)
-        component_label.setText("Component")
-        spike = QtWidgets.QLineEdit(self)
-        spike.setFixedWidth(40)
-        spike.setStatusTip("Choose spike number, leave empty for all spikes")
-        spike_label = QtWidgets.QLabel(self)
-        spike_label.setText("Spike")
-        group_box_component_spike_layout.addWidget(component_label)
-        group_box_component_spike_layout.addWidget(component)
-        group_box_component_spike_layout.addWidget(spike_label)
-        group_box_component_spike_layout.addWidget(spike)
-        group_box_component_spike.setLayout(group_box_component_spike_layout)
-        group_box_component_spike.setFixedSize(235,60)   
-        return group_box_component_spike, component, spike
+    def create_group_threshold(self):
+        group_box_threshold = QtWidgets.QGroupBox("Select Threshold")
+        group_box_threshold_layout = QtWidgets.QHBoxLayout()
+        group_box_threshold.setCheckable(True)
+        group_box_threshold.setChecked(False)
+        threshold_from = QtWidgets.QLineEdit(self)
+        threshold_from.setFixedWidth(40)
+        threshold_from.setStatusTip("Choose threshold_from number, leave empty for one threshold_from")
+        threshold_from_label = QtWidgets.QLabel(self)
+        threshold_from_label.setText("Threshold  between:")
+        threshold_to = QtWidgets.QLineEdit(self)
+        threshold_to.setFixedWidth(40)
+        threshold_to.setStatusTip("Choose threshold_to number, leave empty for all threshold_tos")
+        threshold_to_label = QtWidgets.QLabel(self)
+        threshold_to_label.setText("and")
+        group_box_threshold_layout.addWidget(threshold_from_label)
+        group_box_threshold_layout.addWidget(threshold_from)
+        group_box_threshold_layout.addWidget(threshold_to_label)
+        group_box_threshold_layout.addWidget(threshold_to)
+        group_box_threshold.setLayout(group_box_threshold_layout)
+        group_box_threshold.setFixedSize(235,60)   
+        return group_box_threshold, threshold_from, threshold_to
 
     def create_tab1(self):
         tab1_layout = QtWidgets.QGridLayout()
         self.statusBar()
 
         group_box_channel_stream, self.channel_id_tab1, self.stream_id_tab1 = self.create_group_select_id()
-        group_box_browse, self.browse_text_box_tab1 = self.create_group_open_from(self.channel_id_tab1,self.stream_id_tab1)
+        group_box_browse, self.browse_text_box_tab1 = self.create_group_open_from(self.channel_id_tab1)
         group_box_from_to, self.extract_from_tab1, self.extract_to_tab1 = self.create_group_select_time_range_tab1()
 
         plot_file_btn = QtWidgets.QPushButton(self)
@@ -175,14 +191,14 @@ class all_together(QtWidgets.QMainWindow):
         # tab1_layout.setSizeConstraint(100)
         self.tab1.setLayout(tab1_layout)
 
-    def create_group_open_from(self,channel_id,stream_id):
+    def create_group_open_from(self,channel_id):
         group_box_browse = QtWidgets.QGroupBox("Open from")
         group_box_browse_layout = QtWidgets.QHBoxLayout()
         browse_text_box = QtWidgets.QLineEdit(self)
         browse_text_box.setDisabled(True)
         browse = QtWidgets.QPushButton(self)
         browse.setText("Browse file")
-        browse.clicked.connect(lambda x: self.getfiles(browse_text_box,channel_id,stream_id))
+        browse.clicked.connect(lambda x: self.getfiles(browse_text_box,channel_id))
         browse.setStyleSheet("QPushButton::hover"
                                     "{"
                                     "background-color : lightblue;"
@@ -193,7 +209,7 @@ class all_together(QtWidgets.QMainWindow):
         group_box_browse.setFixedSize(235,60)
         group_box_browse.setStatusTip("Choose hf5 format file to open")
         return group_box_browse, browse_text_box
-    
+        
     def create_group_select_time_range_tab1(self):
         group_box_from_to = QtWidgets.QGroupBox("Select time range")
         group_box_from_to_layout = QtWidgets.QHBoxLayout()
@@ -222,18 +238,20 @@ class all_together(QtWidgets.QMainWindow):
         channel_id.setStatusTip("Choose particular channel, choose all to extract all Channels")
         channel_id_label = QtWidgets.QLabel(self)
         channel_id_label.setText("Channel_id")
-        stream_id = QtWidgets.QLineEdit(self)
-        stream_id.setFixedWidth(40)
-        stream_id.setStatusTip("Choose particular stream, leave empty for all Streams")
-        stream_id_label = QtWidgets.QLabel(self)
-        stream_id_label.setText("Stream_id")
+        component = QtWidgets.QLineEdit(self)
+        # component.setFixedWidth(40)
+        # component.setStatusTip("Choose particular stream, leave empty for all Streams")
+        # component_label = QtWidgets.QLabel(self)
+        # component_label.setText("Comp. number")
+        # component_label.setFont(QtGui.QFont('Arial', 7))
         group_box_channel_stream_layout.addWidget(channel_id_label)
         group_box_channel_stream_layout.addWidget(channel_id)
-        group_box_channel_stream_layout.addWidget(stream_id_label)
-        group_box_channel_stream_layout.addWidget(stream_id)
+        group_box_channel_stream_layout.addStretch(1)
+        # group_box_channel_stream_layout.addWidget(component_label)
+        # group_box_channel_stream_layout.addWidget(component)
         group_box_channel_stream.setLayout(group_box_channel_stream_layout)
         group_box_channel_stream.setFixedSize(235,60)
-        return group_box_channel_stream, channel_id, stream_id
+        return group_box_channel_stream, channel_id, component
 
     def create_group_filter(self):
         group_box_filter = QtWidgets.QGroupBox("Set filter")
@@ -290,9 +308,16 @@ class all_together(QtWidgets.QMainWindow):
                                     'margin-top: 27px;'
                                     'font-size: 20px;}')
 
+        self.component = QtWidgets.QLineEdit(self)
+        self.component.setFixedWidth(35)
+        component_label = QtWidgets.QLabel(self)
+        component_label.setText("Component number: ")
+
         figure = plt.figure()
         canvas = FigureCanvas(figure)
         toolbar = NavigationToolbar(canvas, self)
+        toolbar.addWidget(component_label)
+        toolbar.addWidget(self.component)
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(toolbar)
         layout.addWidget(canvas)
@@ -301,7 +326,6 @@ class all_together(QtWidgets.QMainWindow):
     
     def plot_waveform(self):
         analog_stream_path = self.browse_text_box_tab1.text()
-        stream_id = self._check_value(self.stream_id_tab1.text(),None)
         channel_id = self._check_value(self.channel_id_tab1.currentText(),None)
         from_in_s = self._check_value(self.extract_from_tab1.text(),0)
         to_in_s = self._check_value(self.extract_to_tab1.text(),None)
@@ -318,7 +342,6 @@ class all_together(QtWidgets.QMainWindow):
     
     def plot_spike(self):
         analog_stream_path = self.browse_text_box_tab2.text()
-        stream_id = self._check_value(self.stream_id_tab2.text(),None)
         channel_id = self._check_value(self.channel_id_tab2.currentText(),None)
         
         pre = self._check_value(self.extract_pre_tab2.text(),0)
@@ -331,7 +354,7 @@ class all_together(QtWidgets.QMainWindow):
         high_pass = self._check_value(self.filter_high_tab2.text(),None)
         low_pass = self._check_value(self.filter_low_tab2.text(),None)
         
-        if -1 in (stream_id,channel_id,pre,post,dead_time,comp_number,spike_number):
+        if -1 in (channel_id,pre,post,dead_time,comp_number,spike_number):
             self.error_popup("Please enter correct values", "Value Error")
             return
         plot_error, value = draw_channel_spikes(analog_stream_path, channel_id, comp_number, pre, post, dead_time, spike_number,
@@ -339,7 +362,7 @@ class all_together(QtWidgets.QMainWindow):
         if plot_error:
             self.error_popup(value, "Plot Error")
 
-    def getfiles(self,text_box,channel_id,stream_id):
+    def getfiles(self,text_box,channel_id):
         fileName, _ = QtWidgets.QFileDialog.getOpenFileName(self, 'Open File')
         text_box.setText(fileName)
         error_message, message = get_channel_ids(fileName)
@@ -353,11 +376,10 @@ class all_together(QtWidgets.QMainWindow):
         
     def extract_file(self):
         analog_stream_path = self.browse_text_box_tab1.text()
-        stream_id = self._check_value(self.stream_id_tab1.text(),None)
         channel_id = self._check_value(self.channel_id_tab1.currentText(),None)
         from_in_s = self._check_value(self.extract_from_tab1.text(),0)
         to_in_s = self._check_value(self.extract_to_tab1.text(),None)
-        if -1 in (stream_id,channel_id,from_in_s,to_in_s):
+        if -1 in (channel_id,from_in_s,to_in_s):
             self.error_popup("Please enter correct values", "Value Error")
             return
         name, _ = QtWidgets.QFileDialog.getSaveFileName(self,'Save File', options=QtWidgets.QFileDialog.DontUseNativeDialog)
