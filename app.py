@@ -39,7 +39,7 @@ class all_together(QtWidgets.QMainWindow):
         myappid = 'mycompany.myproduct.subproduct.version'                      
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
 
-        # File = open(os.path.join(self.dir_path,"styles/style_3.qss.txt"),"r")
+        # File = open(os.path.join(self.dir_path,"styles/font_style.qss"),"r")
         # with File:
         #     qss = File.read()
         #     self.setStyleSheet(qss)
@@ -57,9 +57,11 @@ class all_together(QtWidgets.QMainWindow):
         group_box_pre_post, self.extract_pre_tab2, self.extract_post_tab2, self.dead_time_tab2 = self.create_group_select_time_range_tab2()
         group_box_component_spike, self.component, self.spike = self.create_group_component_spike()
         group_box_filter, self.filter_low_tab2, self.filter_high_tab2 = self.create_group_filter() 
+        group_box_filter.toggled.connect(lambda : self.clear_qlines(self.filter_low_tab2, self.filter_high_tab2))
         group_box_from_to, self.extract_from_tab2, self.extract_to_tab2 = self.create_group_select_time_range_tab1()
         group_box_from_to.setCheckable(True)
         group_box_from_to.setChecked(False)
+        group_box_from_to.toggled.connect(lambda : self.clear_qlines(self.extract_from_tab2, self.extract_to_tab2))
 
         plot_file_btn = QtWidgets.QPushButton(self)
         plot_file_btn.setFixedSize(235,35)
@@ -110,7 +112,7 @@ class all_together(QtWidgets.QMainWindow):
         group_box_pre_post_layout.addWidget(dead_time_tab2)
         group_box_pre_post.setLayout(group_box_pre_post_layout)
         group_box_pre_post.setFixedSize(235,60)
-        group_box_pre_post.setStatusTip("Choose particular time")
+        group_box_pre_post.setStatusTip("Choose particular time (second)")
         return group_box_pre_post, extract_pre_tab2, extract_post_tab2, dead_time_tab2 
 
     def create_group_component_spike(self):
@@ -154,7 +156,9 @@ class all_together(QtWidgets.QMainWindow):
         space_between_plotbtn_extract = QtWidgets.QWidget()
         space_between_plotbtn_extract.setFixedSize(235,50)  
 
-        group_box_filter, self.filter_low_tab1, self.filter_high_tab1 = self.create_group_filter()           
+        group_box_filter, self.filter_low_tab1, self.filter_high_tab1 = self.create_group_filter()  
+        group_box_filter.toggled.connect(lambda : self.clear_qlines(self.filter_low_tab1,self.filter_high_tab1))
+
         group_box_extract = self.create_group_extract()
         plot_group_box, self.tab1_figure, self.tab1_canvas  = self.create_plot_grop_box("Waveform")
 
@@ -207,7 +211,7 @@ class all_together(QtWidgets.QMainWindow):
         group_box_from_to_layout.addWidget(extract_to)
         group_box_from_to.setLayout(group_box_from_to_layout)
         group_box_from_to.setFixedSize(235,60)
-        group_box_from_to.setStatusTip("Choose particular time, leave empty for full time")
+        group_box_from_to.setStatusTip("Choose particular time (second), leave empty for full time")
         return group_box_from_to, extract_from, extract_to
 
     def create_group_select_id(self):
@@ -250,7 +254,7 @@ class all_together(QtWidgets.QMainWindow):
         group_box_filter_layout.addWidget(filter_low)
         group_box_filter.setLayout(group_box_filter_layout)
         group_box_filter.setFixedSize(235,60)
-        group_box_filter.setStatusTip("Choose filter, low high or band pass")
+        group_box_filter.setStatusTip("Choose filter (Hz), low high or band pass")
         return group_box_filter, filter_low, filter_high
         
     def create_group_extract(self):
@@ -362,6 +366,8 @@ class all_together(QtWidgets.QMainWindow):
         save_error, value = save_channel_info(analog_stream_path, file_save_path, channel_id=channel_id, from_in_s=from_in_s, to_in_s=to_in_s)
         if save_error:
             self.error_popup(value, "Extract Error")
+        else:
+            self.info_popup("Data created successfully","Extract success")
         
     def _check_value(self,value,res):
         if value == "" or value == "all":
@@ -374,6 +380,12 @@ class all_together(QtWidgets.QMainWindow):
     def error_popup(self, txt, title_text):
         QtWidgets.QMessageBox.critical(self,title_text,txt)
 
+    def info_popup(self, txt, title_text):
+        QtWidgets.QMessageBox.information(self,title_text,txt)
+
+    def clear_qlines(self,*args):
+        for item in args:
+            item.setText("")
 
 if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)
