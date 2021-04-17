@@ -78,9 +78,11 @@ def plot_waveforms(ax, cutouts, fs, pre, post, n=100, color='k'):
         ax.tick_params(axis='x', labelsize=8)
         ax.tick_params(axis='y', labelsize=8)
 
-def detect_threshold_crossings(signal, fs, threshold, dead_time):
+def detect_threshold_crossings(signal, fs, threshold_from, threshold_to, dead_time):
     dead_time_idx = dead_time * fs
-    threshold_crossings = np.diff((signal <= threshold).astype(int) > 0).nonzero()[0]
+    if not threshold_to:
+      threshold_to=np.min(signal)
+    threshold_crossings = np.diff(((signal <= threshold_from) & (signal>=threshold_to)).astype(int) > 0).nonzero()[0]
     distance_sufficient = np.insert(np.diff(threshold_crossings) >= dead_time_idx, 0, True)
     while not np.all(distance_sufficient):
         # repeatedly remove all threshold crossings that violate the dead_time
@@ -97,8 +99,9 @@ def align_to_minimum(signal, fs, threshold_crossings, search_range):
     search_end = int(search_range*fs)
     aligned_spikes = [get_next_minimum(signal, t, search_end) for t in threshold_crossings]
     return np.array(aligned_spikes)
-  
-def draw_channel_spikes(file_path, channel_id, n_components, pre, post, dead_time, number_spikes, canvas, figure, from_in_s, to_in_s ,high_pass, low_pass):  
+
+def draw_channel_spikes(file_path, channel_id, n_components, pre, post, dead_time, number_spikes, canvas, figure, 
+                        from_in_s, to_in_s, high_pass, low_pass, threshold_from, threshold_to):  
     _file = path_valid(file_path)
     if not _file:
         return 1, "File path is incorrect"
@@ -118,13 +121,14 @@ def draw_channel_spikes(file_path, channel_id, n_components, pre, post, dead_tim
 
     noise_std= np.std(signal)
     noise_mad = np.median(np.absolute(signal))
-    if noise_mad<= noise_std:
-        spike_threshold = -5 * noise_mad
-    else :
-        spike_threshold = -5 * noise_std
-    fs = int(electrode_stream.channel_infos[channel_id].sampling_frequency.magnitude)
-    crossings = detect_threshold_crossings(signal, fs, spike_threshold, dead_time) # dead time of 3 ms
-    spks = align_to_minimum(signal, fs, crossings, 0.002) # search range 2 ms
+    if not threshold_from:
+      if noise_mad<= noise_std:
+          threshold_from = -5 * noise_mad
+      else :
+          threshold_from = -5 * noise_std
+
+    fs, crossings, spks = get_spike_info(electrode_stream, channel_id, signal, threshold_from, threshold_to, dead_time)
+
     if (len(spks)<=1):
         return 1, "spike filter is not correct"
     cutouts = extract_waveforms(signal, fs, spks, pre, post)
@@ -210,3 +214,70 @@ def get_signal_time(analog_stream, channel_id, from_in_s, to_in_s):
     scale_factor_for_uV = Q_(1,signal[1]).to(ureg.uV).magnitude
     signal_in_uV = signal[0] * scale_factor_for_uV
     return signal_in_uV, time_in_sec
+
+def get_spike_info(electrode_stream, channel_id, signal, threshold_from, threshold_to, dead_time):
+    fs = int(electrode_stream.channel_infos[channel_id].sampling_frequency.magnitude)
+    crossings = detect_threshold_crossings(signal, fs, threshold_from, threshold_to, dead_time) # dead time of 3 ms
+    spks = align_to_minimum(signal, fs, crossings, 0.002) # search range 2 ms
+    return fs, crossings, spks
+
+def extract_spike(analog_stream_path, file_save_path, channel_id, threshold_from, threshold_to, dead_time):
+    _file = path_valid(analog_stream_path)
+    if not _file:
+        return 1, "File path is incorrect"
+
+    analog_stream = _file.recordings[0].analog_streams[0]
+    if channel_id not in analog_stream.channel_infos:
+        return 1, "Channel ID is incorrect"  
+
+    signal = analog_stream.get_channel_in_range(channel_id, 0, analog_stream.channel_data.shape[1])[0]
+    
+    noise_std= np.std(signal)
+    noise_mad = np.median(np.absolute(signal))
+    if not threshold_from:
+      if noise_mad<= noise_std:
+          threshold_from = -5 * noise_mad
+      else :
+          threshold_from = -5 * noise_std
+
+    fs, crossings, spks = get_spike_info(analog_stream, channel_id, signal, threshold_from, threshold_to, dead_time)
+    spikes_in_second=[]
+    for spike in spks:
+        temp_time = analog_stream.get_channel_sample_timestamps(channel_id, spike, spike)[0][0]/1000000
+        spikes_in_second.append(temp_time)
+    spikes_in_second_df = pd.DataFrame(spikes_in_second,columns={"spike_time"})
+    spikes_in_second_df.to_csv(file_save_path, index=False)
+    return 0, ""
+
+def detect_threshold_crossings_stimulus(signal, fs, threshold, dead_time):
+    dead_time_idx = dead_time * fs
+    threshold_crossings = np.diff((signal <= threshold)).nonzero()[0]
+    distance_sufficient = np.insert(np.diff(threshold_crossings) >= dead_time_idx, 0, True)
+    for i in range (1,len(distance_sufficient)-1):
+      if distance_sufficient[i]:
+        distance_sufficient[i-1]=True
+    while not np.all(distance_sufficient):
+        threshold_crossings = threshold_crossings[distance_sufficient]
+        distance_sufficient = np.insert(np.diff(threshold_crossings) >= dead_time_idx, 0, True)
+        for i in range (1,len(distance_sufficient)-1):
+          if distance_sufficient[i]:
+            distance_sufficient[i-1]=True
+    return threshold_crossings
+
+def extract_stimulus(analog_stream_path, file_save_path, channel_id, stimulus_threshold, dead_time):
+    _file = path_valid(analog_stream_path)
+    if not _file:
+        return 1, "File path is incorrect"
+
+    analog_stream = _file.recordings[0].analog_streams[0]
+    _channel_info = analog_stream.channel_infos[0]
+    fs = _channel_info.sampling_frequency.magnitude
+    signal=analog_stream.get_channel_in_range(channel_id, 0, analog_stream.channel_data.shape[1])[0]
+    if not stimulus_threshold:
+        stimulus_threshold = -100/1000000
+    thresholds=detect_threshold_crossings_stimulus(signal, fs, stimulus_threshold, dead_time)/fs
+    stimulus_in_second_df = pd.DataFrame(columns=["start","end"])
+    stimulus_in_second_df["start"] = [thresholds[i] for i in range(0,len(thresholds)) if i%2==0]
+    stimulus_in_second_df["end"] = [thresholds[i] for i in range(0,len(thresholds)) if i%2==1]
+    stimulus_in_second_df.to_csv(file_save_path, index = False)
+    return 0, ""
