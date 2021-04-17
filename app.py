@@ -12,7 +12,7 @@ from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as Navigatio
 from matplotlib.figure import Figure
 import pandas as pd
 
-class all_together(QtWidgets.QMainWindow):
+class MEA_app(QtWidgets.QMainWindow):
 
     def __init__(self):
         super().__init__()
@@ -348,7 +348,7 @@ class all_together(QtWidgets.QMainWindow):
         to_in_s = self._check_value(self.extract_to_tab1.text(),None)
         high_pass = self._check_value(self.filter_high_tab1.text(),None)
         low_pass = self._check_value(self.filter_low_tab1.text(),None)
-        if -1 in (stream_id,channel_id,from_in_s,to_in_s):
+        if -1 in (channel_id,from_in_s,to_in_s):
             self.error_popup("Please enter correct values", "Value Error")
             return
         
@@ -370,12 +370,14 @@ class all_together(QtWidgets.QMainWindow):
         to_in_s = self._check_value(self.extract_to_tab2.text(),None)
         high_pass = self._check_value(self.filter_high_tab2.text(),None)
         low_pass = self._check_value(self.filter_low_tab2.text(),None)
+        threshold_from = self._check_value(self.threshold_from_tab2.text(),None)
+        threshold_to = self._check_value(self.threshold_to_tab2.text(),None)
         
-        if -1 in (channel_id,pre,post,dead_time,comp_number,spike_number):
+        if -1 in (channel_id,pre,post,dead_time,comp_number,spike_number,threshold_from,threshold_to):
             self.error_popup("Please enter correct values", "Value Error")
             return
-        plot_error, value = draw_channel_spikes(analog_stream_path, channel_id, comp_number, pre, post, dead_time, spike_number,
-                                                self.tab2_canvas, self.tab2_figure, from_in_s, to_in_s, high_pass, low_pass)
+        plot_error, value = draw_channel_spikes(analog_stream_path, channel_id, comp_number, pre, post, dead_time, spike_number,self.tab2_canvas, 
+                                                self.tab2_figure, from_in_s, to_in_s, high_pass, low_pass, threshold_from, threshold_to)
         if plot_error:
             self.error_popup(value, "Plot Error")
 
@@ -428,6 +430,6 @@ class all_together(QtWidgets.QMainWindow):
 
 if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)
-    win = all_together()
+    win = MEA_app()
     win.show()
     sys.exit(app.exec_())

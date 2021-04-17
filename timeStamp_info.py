@@ -78,9 +78,11 @@ def plot_waveforms(ax, cutouts, fs, pre, post, n=100, color='k'):
         ax.tick_params(axis='x', labelsize=8)
         ax.tick_params(axis='y', labelsize=8)
 
-def detect_threshold_crossings(signal, fs, threshold, dead_time):
+def detect_threshold_crossings(signal, fs, threshold_from,threshold_to, dead_time):
     dead_time_idx = dead_time * fs
-    threshold_crossings = np.diff((signal <= threshold).astype(int) > 0).nonzero()[0]
+    if not threshold_to:
+      threshold_to=np.min(signal)
+    threshold_crossings = np.diff((signal <= threshold_from & signal>=threshold_to).astype(int) > 0).nonzero()[0]
     distance_sufficient = np.insert(np.diff(threshold_crossings) >= dead_time_idx, 0, True)
     while not np.all(distance_sufficient):
         # repeatedly remove all threshold crossings that violate the dead_time
@@ -97,8 +99,9 @@ def align_to_minimum(signal, fs, threshold_crossings, search_range):
     search_end = int(search_range*fs)
     aligned_spikes = [get_next_minimum(signal, t, search_end) for t in threshold_crossings]
     return np.array(aligned_spikes)
-  
-def draw_channel_spikes(file_path, channel_id, n_components, pre, post, dead_time, number_spikes, canvas, figure, from_in_s, to_in_s ,high_pass, low_pass):  
+
+def draw_channel_spikes(file_path, channel_id, n_components, pre, post, dead_time, number_spikes, canvas, figure, 
+                        from_in_s, to_in_s, high_pass, low_pass, threshold_from, threshold_to):  
     _file = path_valid(file_path)
     if not _file:
         return 1, "File path is incorrect"
@@ -118,12 +121,14 @@ def draw_channel_spikes(file_path, channel_id, n_components, pre, post, dead_tim
 
     noise_std= np.std(signal)
     noise_mad = np.median(np.absolute(signal))
-    if noise_mad<= noise_std:
-        spike_threshold = -5 * noise_mad
-    else :
-        spike_threshold = -5 * noise_std
+    if not threshold_from :
+      if noise_mad<= noise_std:
+          threshold_from = -5 * noise_mad
+      else :
+          threshold_from = -5 * noise_std
+
     fs = int(electrode_stream.channel_infos[channel_id].sampling_frequency.magnitude)
-    crossings = detect_threshold_crossings(signal, fs, spike_threshold, dead_time) # dead time of 3 ms
+    crossings = detect_threshold_crossings(signal, fs, threshold_from,threshold_to, dead_time) # dead time of 3 ms
     spks = align_to_minimum(signal, fs, crossings, 0.002) # search range 2 ms
     if (len(spks)<=1):
         return 1, "spike filter is not correct"
