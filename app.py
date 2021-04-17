@@ -1,7 +1,7 @@
 import sys
 import os
 from PyQt5 import QtWidgets,QtCore, QtGui
-from timeStamp_info import save_channel_info, plot_analog_stream_channel, draw_channel_spikes, get_channel_ids, filter_base_freqeuncy
+from timeStamp_info import *
 import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib import style
@@ -61,6 +61,7 @@ class MEA_app(QtWidgets.QMainWindow):
         group_box_browse, self.browse_text_box_tab3 = self.create_group_open_from(self.channel_id_tab3)
         group_box_pre_post, self.extract_pre_tab3, self.extract_post_tab3, self.dead_time_tab3 = self.create_group_select_time_range_tab2()
         group_box_threshold_tab3, self.threshold_from_tab3, self.threshold_to_tab3 = self.create_group_threshold()
+        self.threshold_to_tab3.setDisabled(True)
         # group_box_filter, self.filter_low_tab3, self.filter_high_tab3 = self.create_group_filter() 
         # group_box_filter.toggled.connect(lambda : self.clear_qlines(self.filter_low_tab3, self.filter_high_tab3))
         group_box_from_to, self.extract_from_tab3, self.extract_to_tab3 = self.create_group_select_time_range_tab1()
@@ -68,11 +69,8 @@ class MEA_app(QtWidgets.QMainWindow):
         group_box_from_to.setChecked(False)
         group_box_from_to.toggled.connect(lambda : self.clear_qlines(self.extract_from_tab3, self.extract_to_tab3))
 
-        # extract_btn = QtWidgets.QPushButton(self)
-        # extract_btn.setFixedSize(235,35)
-        # extract_btn.setText("Extract Stimulus")
-        # extract_btn.clicked.connect(self.plot_spike)
-        group_box_extract, self.extract_text_box_tab3 = self.create_group_extract()   
+        group_box_extract, self.extract_text_box_tab3, self.extract_btn_tab3 = self.create_group_extract()   
+        self.extract_btn_tab3.clicked.connect(self.extract_stimulus)
 
         plot_file_btn = QtWidgets.QPushButton(self)
         plot_file_btn.setFixedSize(235,35)
@@ -108,18 +106,15 @@ class MEA_app(QtWidgets.QMainWindow):
         group_box_from_to.setChecked(False)
         group_box_from_to.toggled.connect(lambda : self.clear_qlines(self.extract_from_tab2, self.extract_to_tab2))
 
-        # extract_btn = QtWidgets.QPushButton(self)
-        # extract_btn.setFixedSize(235,35)
-        # extract_btn.setText("Extract Spike")
-        # extract_btn.clicked.connect(self.plot_spike) 
-        group_box_extract, self.extract_text_box_tab2 = self.create_group_extract() 
+        group_box_extract, self.extract_text_box_tab2, self.extract_btn_tab2 = self.create_group_extract() 
+        self.extract_btn_tab2.clicked.connect(self.extract_spike)
 
         plot_file_btn = QtWidgets.QPushButton(self)
         plot_file_btn.setFixedSize(235,35)
         plot_file_btn.setText("Plot Spike")
         plot_file_btn.clicked.connect(self.plot_spike)  
 
-        plot_group_box, self.tab2_figure,self.tab2_canvas  = self.create_plot_grop_box("Spike",True) 
+        plot_group_box, self.tab2_figure, self.tab2_canvas  = self.create_plot_grop_box("Spike",True) 
 
         tab2_layout.addWidget(group_box_browse,0,0)
         tab2_layout.addWidget(group_box_channel_stream,1,0)
@@ -205,7 +200,8 @@ class MEA_app(QtWidgets.QMainWindow):
         group_box_filter, self.filter_low_tab1, self.filter_high_tab1 = self.create_group_filter()  
         group_box_filter.toggled.connect(lambda : self.clear_qlines(self.filter_low_tab1,self.filter_high_tab1))
 
-        group_box_extract, self.extract_text_box_tab1 = self.create_group_extract()
+        group_box_extract, self.extract_text_box_tab1, self.extract_btn_tab1 = self.create_group_extract()
+        self.extract_btn_tab1.clicked.connect(self.extract_waveform)
         plot_group_box, self.tab1_figure, self.tab1_canvas  = self.create_plot_grop_box("Waveform",False)
 
         tab1_layout.addWidget(group_box_browse,0,0)
@@ -301,14 +297,13 @@ class MEA_app(QtWidgets.QMainWindow):
         extract_text_box.setDisabled(True)
         extract = QtWidgets.QPushButton(self)
         extract.setText("Extract")
-        extract.clicked.connect(self.extract_file)
 
         group_box_extract_layout.addWidget(extract_text_box)
         group_box_extract_layout.addWidget(extract)
         group_box_extract.setLayout(group_box_extract_layout)
         group_box_extract.setFixedSize(235,60)
         group_box_extract.setStatusTip("Choose path to save csv file")
-        return group_box_extract, extract_text_box
+        return group_box_extract, extract_text_box, extract
 
     def create_plot_grop_box(self, title, add_component):
         plot_group_box = QtWidgets.QGroupBox(title)
@@ -365,7 +360,8 @@ class MEA_app(QtWidgets.QMainWindow):
         post = self._check_value(self.extract_post_tab2.text(),None)
         dead_time = self._check_value(self.dead_time_tab2.text(),None)
         comp_number = self._check_value(self.component.text(),None)
-        spike_number = self._check_value(self.spike.text(),None)
+        print(comp_number)
+        spike_number = None # because we want to plot all spikes
         from_in_s = self._check_value(self.extract_from_tab2.text(),0)
         to_in_s = self._check_value(self.extract_to_tab2.text(),None)
         high_pass = self._check_value(self.filter_high_tab2.text(),None)
@@ -373,7 +369,7 @@ class MEA_app(QtWidgets.QMainWindow):
         threshold_from = self._check_value(self.threshold_from_tab2.text(),None)
         threshold_to = self._check_value(self.threshold_to_tab2.text(),None)
         
-        if -1 in (channel_id,pre,post,dead_time,comp_number,spike_number,threshold_from,threshold_to):
+        if -1 in (channel_id,pre,post,dead_time,comp_number,threshold_from,threshold_to):
             self.error_popup("Please enter correct values", "Value Error")
             return
         plot_error, value = draw_channel_spikes(analog_stream_path, channel_id, comp_number, pre, post, dead_time, spike_number,self.tab2_canvas, 
@@ -393,23 +389,59 @@ class MEA_app(QtWidgets.QMainWindow):
         channel_id.addItems(message)
         channel_id.setStyleSheet("combobox-popup: 0")
         
-    def extract_file(self):
+    def extract_waveform(self):
         analog_stream_path = self.browse_text_box_tab1.text()
         channel_id = self._check_value(self.channel_id_tab1.currentText(),None)
         from_in_s = self._check_value(self.extract_from_tab1.text(),0)
         to_in_s = self._check_value(self.extract_to_tab1.text(),None)
-        if -1 in (channel_id,from_in_s,to_in_s):
+        if -1 in (channel_id, from_in_s, to_in_s):
             self.error_popup("Please enter correct values", "Value Error")
             return
         name, _ = QtWidgets.QFileDialog.getSaveFileName(self,'Save File', options=QtWidgets.QFileDialog.DontUseNativeDialog)
-        self.extract_text_box.setText(name)
-        file_save_path = self.extract_text_box.text()
+        self.extract_text_box_tab1.setText(name)
+        file_save_path = self.extract_text_box_tab1.text()
         save_error, value = save_channel_info(analog_stream_path, file_save_path, channel_id=channel_id, from_in_s=from_in_s, to_in_s=to_in_s)
         if save_error:
             self.error_popup(value, "Extract Error")
         else:
             self.info_popup("Data created successfully","Extract success")
-        
+
+    def extract_spike(self):
+        analog_stream_path = self.browse_text_box_tab2.text()
+        channel_id = self._check_value(self.channel_id_tab2.currentText(),None)
+        threshold_from = self._check_value(self.threshold_from_tab2.text(),None)
+        threshold_to = self._check_value(self.threshold_to_tab2.text(),None)
+        dead_time = self._check_value(self.dead_time_tab2.text(),None)
+        if -1 in (channel_id, threshold_from, threshold_to, dead_time):
+            self.error_popup("Please enter correct values", "Value Error")
+            return
+        name, _ = QtWidgets.QFileDialog.getSaveFileName(self,'Save File', options=QtWidgets.QFileDialog.DontUseNativeDialog)
+        self.extract_text_box_tab2.setText(name)
+        file_save_path = self.extract_text_box_tab2.text()
+        save_error, value = extract_spike(analog_stream_path, file_save_path, channel_id, threshold_from, threshold_to, dead_time)
+        if save_error:
+            self.error_popup(value, "Extract Error")
+        else:
+            self.info_popup("Data created successfully", "Extract success")
+
+    def extract_stimulus(self):
+        analog_stream_path = self.browse_text_box_tab3.text()
+        channel_id = self._check_value(self.channel_id_tab3.currentText(),None)
+        threshold_from = self._check_value(self.threshold_from_tab3.text(),None)
+        dead_time = self._check_value(self.dead_time_tab3.text(),None)
+        if -1 in (analog_stream_path, channel_id, threshold_from, dead_time):
+            self.error_popup("Please enter correct values", "Value Error")
+            return
+        name, _ = QtWidgets.QFileDialog.getSaveFileName(self,'Save File', options=QtWidgets.QFileDialog.DontUseNativeDialog)
+        self.extract_text_box_tab3.setText(name)
+        file_save_path = self.extract_text_box_tab3.text()
+
+        save_error, value = extract_stimulus(analog_stream_path, file_save_path, channel_id, threshold_from, dead_time)
+        if save_error:
+            self.error_popup(value, "Extract Error")
+        else:
+            self.info_popup("Data created successfully", "Extract success")
+
     def _check_value(self,value,res):
         if value == "" or value == "all":
             return res
