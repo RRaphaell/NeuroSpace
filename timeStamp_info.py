@@ -224,6 +224,36 @@ def plot_analog_stream_channel_with_spikes(file_path, channel_id, canvas, figure
     canvas.draw()
     return 0,""
 
+def plot_analog_stream_fourier(file_path,channel_id, canvas, figure,from_in_s,to_in_s):
+    _file = path_valid(file_path)
+    if not _file:
+        return 1, "File path is incorrect"
+
+    electrode_stream = _file.recordings[0].analog_streams[0]
+    if channel_id not in analog_stream.channel_infos:
+        return 1, "Channel ID is incorrect"   
+    
+    sampling_frequency = electrode_stream.channel_infos[channel_id].sampling_frequency.magnitude  
+    from_idx ,to_idx = check_time_range(electrode_stream,sampling_frequency,from_in_s,to_in_s)
+    signal = electrode_stream.get_channel_in_range(channel_id, from_idx, to_idx)[0]
+  
+    time = electrode_stream.get_channel_sample_timestamps(channel_id, from_idx, to_idx)
+    scale_factor_for_second = Q_(1,time[1]).to(ureg.s).magnitude
+    time_in_sec = time[0] * scale_factor_for_second
+    signal = electrode_stream.get_channel_in_range(channel_id, from_idx, to_idx)
+    scale_factor_for_uV = Q_(1,signal[1]).to(ureg.uV).magnitude
+    signal_in_uV = signal[0] * scale_factor_for_uV
+    X=fft(signal_in_uV)
+    X[(len(time_in_sec)//2+1):]=0
+
+    plt.show()
+    figure.clear()
+    ax = figure.add_subplot()
+    ax.plot(abs(X[1:]), linewidth=0.5)
+    ax.tick_params(axis='x', labelsize=8)
+    ax.tick_params(axis='y', labelsize=8)
+
+
 def filter_base_freqeuncy(signal_in_uV, time_in_sec, High_pass, Low_pass):    
     F = fft(signal_in_uV)
     F[(len(time_in_sec)//2+1):] = 0
