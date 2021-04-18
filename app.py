@@ -77,7 +77,7 @@ class MEA_app(QtWidgets.QMainWindow):
         plot_file_btn.setText("Plot Stimulus")
         plot_file_btn.clicked.connect(self.plot_spike)  
 
-        plot_group_box, self.tab3_figure, self.tab3_canvas  = self.create_plot_grop_box("Stimulus",False) 
+        plot_group_box, self.tab3_figure_canvas  = self.create_plot_grop_box("Stimulus",False,3) 
 
         tab3_layout.addWidget(group_box_browse,0,0)
         tab3_layout.addWidget(group_box_channel_stream,1,0)
@@ -113,8 +113,10 @@ class MEA_app(QtWidgets.QMainWindow):
         plot_file_btn.setFixedSize(235,35)
         plot_file_btn.setText("Plot Spike")
         plot_file_btn.clicked.connect(self.plot_spike)  
-
-        plot_group_box, self.tab2_figure, self.tab2_canvas  = self.create_plot_grop_box("Spike",True) 
+        
+        plot_group_box, self.tab2_figure_canvas  = self.create_plot_grop_box("Spike",True,3) 
+        self.tab2_is_canvas_clicked = [False]
+        self.tab2_figure_canvas["canvas1"].mpl_connect("button_press_event", lambda event: self.on_press(event,self.tab2_figure_canvas,self.tab2_is_canvas_clicked,1))
 
         tab2_layout.addWidget(group_box_browse,0,0)
         tab2_layout.addWidget(group_box_channel_stream,1,0)
@@ -202,8 +204,10 @@ class MEA_app(QtWidgets.QMainWindow):
 
         group_box_extract, self.extract_text_box_tab1, self.extract_btn_tab1 = self.create_group_extract()
         self.extract_btn_tab1.clicked.connect(self.extract_waveform)
-        plot_group_box, self.tab1_figure, self.tab1_canvas  = self.create_plot_grop_box("Waveform",False)
-
+        plot_group_box, self.tab1_figure_canvas  = self.create_plot_grop_box("Waveform",False,2)
+        self.tab1_is_canvas_clicked = [False]
+        self.tab1_figure_canvas["canvas1"].mpl_connect("button_press_event", lambda event: self.on_press(event,self.tab1_figure_canvas,self.tab1_is_canvas_clicked,1))
+        
         tab1_layout.addWidget(group_box_browse,0,0)
         tab1_layout.addWidget(group_box_channel_stream,1,0)
         tab1_layout.addWidget(group_box_from_to,2,0)
@@ -305,7 +309,7 @@ class MEA_app(QtWidgets.QMainWindow):
         group_box_extract.setStatusTip("Choose path to save csv file")
         return group_box_extract, extract_text_box, extract
 
-    def create_plot_grop_box(self, title, add_component):
+    def create_plot_grop_box(self, title, add_component, num_canvas):
         plot_group_box = QtWidgets.QGroupBox(title)
         plot_group_box.setStyleSheet('QGroupBox:title {'
                                     'subcontrol-origin: margin;'
@@ -324,17 +328,26 @@ class MEA_app(QtWidgets.QMainWindow):
         component_label = QtWidgets.QLabel(self)
         component_label.setText("Component number: ")
 
-        figure = plt.figure()
-        canvas = FigureCanvas(figure)
-        toolbar = NavigationToolbar(canvas, self)
+        all_figures_canvas = {}
+        for i in range(1,num_canvas+1):
+            figure = plt.figure()
+            canvas = FigureCanvas(figure)
+            canvas.setSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Fixed)
+            all_figures_canvas["figure"+str(i)] = figure
+            all_figures_canvas["canvas"+str(i)] = canvas
+
+        toolbar = NavigationToolbar(all_figures_canvas["canvas1"], self)
         if add_component:
             toolbar.addWidget(component_label)
             toolbar.addWidget(self.component)
+
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(toolbar)
-        layout.addWidget(canvas)
+        for i in range(1,num_canvas+1):
+            layout.addWidget(all_figures_canvas["canvas"+str(i)])
         plot_group_box.setLayout(layout)
-        return plot_group_box, figure, canvas
+
+        return plot_group_box, all_figures_canvas
     
     def plot_waveform(self):
         analog_stream_path = self.browse_text_box_tab1.text()
@@ -348,7 +361,7 @@ class MEA_app(QtWidgets.QMainWindow):
             return
         
         plot_error, value = plot_analog_stream_channel(analog_stream_path, channel_id, from_in_s, to_in_s,
-                                                        self.tab1_canvas, self.tab1_figure, high_pass, low_pass)
+                                                        self.tab1_figure_canvas["canvas1"], self.tab1_figure_canvas["figure1"], high_pass, low_pass)
         if plot_error:
             self.error_popup(value, "Plot Error")
     
@@ -372,8 +385,8 @@ class MEA_app(QtWidgets.QMainWindow):
         if -1 in (channel_id,pre,post,dead_time,comp_number,threshold_from,threshold_to):
             self.error_popup("Please enter correct values", "Value Error")
             return
-        plot_error, value = draw_channel_spikes(analog_stream_path, channel_id, comp_number, pre, post, dead_time, spike_number,self.tab2_canvas, 
-                                                self.tab2_figure, from_in_s, to_in_s, high_pass, low_pass, threshold_from, threshold_to)
+        plot_error, value = draw_channel_spikes(analog_stream_path, channel_id, comp_number, pre, post, dead_time, spike_number,self.tab2_figure_canvas["canvas1"], 
+                                                self.tab2_figure_canvas["figure1"], from_in_s, to_in_s, high_pass, low_pass, threshold_from, threshold_to)
         if plot_error:
             self.error_popup(value, "Plot Error")
 
@@ -441,6 +454,21 @@ class MEA_app(QtWidgets.QMainWindow):
             self.error_popup(value, "Extract Error")
         else:
             self.info_popup("Data created successfully", "Extract success")
+
+    def on_press(self, event, figure_canvas, is_canvas_clicked, canvas_number):
+        if not event.dblclick:
+            return
+
+        if is_canvas_clicked[0]:
+            for key, value in figure_canvas.items():
+                if ("canvas" in key):
+                    value.setVisible(True)
+            is_canvas_clicked[0] = False
+        else:
+            for key, value in figure_canvas.items():
+                if ("canvas" in key) and (key != "canvas"+str(canvas_number)):
+                    value.setVisible(False)
+            is_canvas_clicked[0] = True
 
     def _check_value(self,value,res):
         if value == "" or value == "all":
