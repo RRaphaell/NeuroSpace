@@ -178,6 +178,49 @@ def plot_analog_stream_channel(file_path, channel_id, from_in_s, to_in_s, canvas
     canvas.draw()
     return 0,""
 
+def plot_analog_stream_channel_with_spikes(file_path, channel_id, canvas, figure, from_in_s, to_in_s, threshold_from, threshold_to,dead_time):
+    _file = path_valid(file_path)
+    if not _file:
+        return 1, "File path is incorrect"
+
+    electrode_stream = _file.recordings[0].analog_streams[0]
+    if channel_id not in analog_stream.channel_infos:
+        return 1, "Channel ID is incorrect"   
+    
+    from_idx ,to_idx = check_time_range(electrode_stream,sampling_frequency,from_in_s,to_in_s)
+    signal = electrode_stream.get_channel_in_range(channel_id, from_idx, to_idx)[0]
+
+    noise_std= np.std(signal)
+    noise_mad = np.median(np.absolute(signal))
+    if not threshold_from:
+      if noise_mad<= noise_std:
+          threshold_from = -5 * noise_mad
+      else :
+          threshold_from = -5 * noise_std
+          
+    signal_in_uV, time_in_sec = get_signal_time(electrode_stream, channel_id, from_in_s, to_in_s)
+
+    fs, crossings, spks = get_spike_info(electrode_stream, channel_id, signal, threshold_from, threshold_to, dead_time)
+
+    timestamps = spks / fs
+    range_in_s = (from_in_s, to_in_s)
+    spikes_in_range = timestamps[(timestamps >= range_in_s[0]) & (timestamps <= range_in_s[1])]
+
+    plt.show()
+    figure.clear()
+    ax = figure.add_subplot()
+    ax.plot(time_in_sec, signal_in_uV, linewidth=0.5)
+    ax.plot(spikes_in_range, [threshold_from*1e6]*spikes_in_range.shape[0], 'ro', ms=2)
+    ax.tick_params(axis='x', labelsize=8)
+    ax.tick_params(axis='y', labelsize=8)
+
+    ax.set_xlabel('Time (%s)' % ureg.s, fontsize = 8)
+    ax.set_ylabel('Voltage (%s)' % ureg.uV, fontsize = 8)
+    ax.set_title('Channel %s' % channel_id, fontsize = 8)
+    figure.tight_layout()
+    canvas.draw()
+    return 0,""
+
 def filter_base_freqeuncy(signal_in_uV, time_in_sec, High_pass, Low_pass):    
     F = fft(signal_in_uV)
     F[(len(time_in_sec)//2+1):] = 0
