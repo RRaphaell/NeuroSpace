@@ -178,7 +178,7 @@ def plot_analog_stream_channel(file_path, channel_id, from_in_s, to_in_s, canvas
     canvas.draw()
     return 0,""
 
-def plot_analog_stream_channel_with_spikes(file_path, channel_id, canvas, figure, from_in_s, to_in_s, threshold_from, threshold_to,dead_time):
+def plot_analog_stream_channel_with_spikes(file_path, channel_id, canvas, figure,is_spike, from_in_s, to_in_s, threshold_from, threshold_to,dead_time):
     _file = path_valid(file_path)
     if not _file:
         return 1, "File path is incorrect"
@@ -199,8 +199,11 @@ def plot_analog_stream_channel_with_spikes(file_path, channel_id, canvas, figure
           threshold_from = -5 * noise_std
           
     signal_in_uV, time_in_sec = get_signal_time(electrode_stream, channel_id, from_in_s, to_in_s)
-
-    fs, crossings, spks = get_spike_info(electrode_stream, channel_id, signal, threshold_from, threshold_to, dead_time)
+    if is_spike:
+        fs, crossings, spks = get_spike_info(electrode_stream, channel_id, signal, threshold_from, threshold_to, dead_time)
+    else :
+        fs = int(electrode_stream.channel_infos[channel_id].sampling_frequency.magnitude)
+        spks = detect_threshold_crossings_stimulus(signal,fs,threshold_from,dead_time)
 
     timestamps = spks / fs
     range_in_s = (from_in_s, to_in_s)
