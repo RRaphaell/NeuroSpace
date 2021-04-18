@@ -11,7 +11,7 @@ from McsPy import ureg, Q_
 import matplotlib.pyplot as plt
 from scipy.fft import ifft, fft
 
-def check_time_range(analog_stream,sampling_frequency,from_in_s,to_in_s):
+def check_time_range(analog_stream, sampling_frequency, from_in_s, to_in_s):
     from_idx = max(0, int(from_in_s * sampling_frequency))
     if to_in_s is None:
         to_idx = analog_stream.channel_data.shape[1]
@@ -19,7 +19,7 @@ def check_time_range(analog_stream,sampling_frequency,from_in_s,to_in_s):
         to_idx = min(analog_stream.channel_data.shape[1], int(to_in_s * sampling_frequency))
     return from_idx, to_idx
 
-def iterate_per_channel(analog_stream,channel_id,from_idx,to_idx):
+def iterate_per_channel(analog_stream, channel_id, from_idx, to_idx):
     signal = analog_stream.get_channel_in_range(channel_id, from_idx, to_idx) # get the signal 
     signal_in_uV = signal[0] * Q_(1,signal[1]).to(ureg.uV).magnitude # scale signal to µV
     return signal_in_uV
@@ -72,11 +72,9 @@ def plot_waveforms(ax, cutouts, fs, pre, post, n=100, color='k'):
     for i in range(n):
         ax.plot(time_in_us, cutouts[i,]*1e6, color, linewidth=1, alpha=0.3)
         
-        ax.set_xlabel('Time (%s)' % ureg.ms, fontsize = 8)
-        ax.set_ylabel('Voltage (%s)' % ureg.uV, fontsize = 8)
-        ax.set_title('Cutouts', fontsize = 8)
-        ax.tick_params(axis='x', labelsize=8)
-        ax.tick_params(axis='y', labelsize=8)
+        ax.set_xlabel('Time (%s)' % ureg.ms)
+        ax.set_ylabel('Voltage (%s)' % ureg.uV)
+        ax.set_title('Cutouts')
 
 def detect_threshold_crossings(signal, fs, threshold_from, threshold_to, dead_time):
     dead_time_idx = dead_time * fs
@@ -100,7 +98,7 @@ def align_to_minimum(signal, fs, threshold_crossings, search_range):
     aligned_spikes = [get_next_minimum(signal, t, search_end) for t in threshold_crossings]
     return np.array(aligned_spikes)
 
-def draw_channel_spikes(file_path, channel_id, n_components, pre, post, dead_time, number_spikes, canvas, figure, 
+def draw_channel_spikes(file_path, channel_id, n_components, pre, post, dead_time, number_spikes, canvas, suplot_num,
                         from_in_s, to_in_s, high_pass, low_pass, threshold_from, threshold_to):  
     _file = path_valid(file_path)
     if not _file:
@@ -141,17 +139,18 @@ def draw_channel_spikes(file_path, channel_id, n_components, pre, post, dead_tim
     gmm = GaussianMixture(n_components=int(n_components), n_init=10)
     labels = gmm.fit_predict(transformed)
 
-    figure.clear()
-    ax = figure.add_subplot()
+    # canvas.figure.clear()
+    axes = canvas.figure.get_axes()
+    ax = axes[suplot_num]
     for i in range(int(n_components)):
         idx = labels == i
         color = plt.rcParams['axes.prop_cycle'].by_key()['color'][i]
         plot_waveforms(ax, cutouts[idx,:], fs, pre, post, n=number_spikes, color=color)
-    figure.tight_layout()
+    canvas.figure.tight_layout()
     canvas.draw()
     return 0, ""
 
-def plot_analog_stream_channel(file_path, channel_id, from_in_s, to_in_s, canvas, figure, high_pass, low_pass):
+def plot_analog_stream_channel(file_path, channel_id, from_in_s, to_in_s, canvas, suplot_num, high_pass, low_pass):
     _file = path_valid(file_path)
     if not _file:
         return 1, "File path is incorrect"
@@ -164,29 +163,30 @@ def plot_analog_stream_channel(file_path, channel_id, from_in_s, to_in_s, canvas
 
     if (high_pass!=None) or (low_pass!=None):
         signal_in_uV = filter_base_freqeuncy(signal_in_uV, time_in_sec, high_pass, low_pass)
-
-    figure.clear()
-    ax = figure.add_subplot()
+    
+    # canvas.figure.clear()
+    axes = canvas.figure.get_axes()
+    ax = axes[suplot_num]
     ax.plot(time_in_sec, signal_in_uV, linewidth=0.5)
-    ax.tick_params(axis='x', labelsize=8)
-    ax.tick_params(axis='y', labelsize=8)
 
-    ax.set_xlabel('Time (%s)' % ureg.s, fontsize = 8)
-    ax.set_ylabel('Voltage (%s)' % ureg.uV, fontsize = 8)
-    ax.set_title('Channel %s' % channel_id, fontsize = 8)
-    figure.tight_layout()
+    ax.set_xlabel('Time (%s)' % ureg.s)
+    ax.set_ylabel('Voltage (%s)' % ureg.uV)
+    ax.set_title('Channel %s' % channel_id)
+
+    canvas.figure.tight_layout()
     canvas.draw()
     return 0,""
 
-def plot_analog_stream_channel_with_spikes(file_path, channel_id, canvas, figure,is_spike, from_in_s, to_in_s, threshold_from, threshold_to,dead_time):
+def plot_analog_stream_channel_with_spikes(file_path, channel_id, canvas,suplot_num, is_spike, from_in_s, to_in_s, threshold_from, threshold_to,dead_time):
     _file = path_valid(file_path)
     if not _file:
         return 1, "File path is incorrect"
 
     electrode_stream = _file.recordings[0].analog_streams[0]
-    if channel_id not in analog_stream.channel_infos:
+    if channel_id not in electrode_stream.channel_infos:
         return 1, "Channel ID is incorrect"   
     
+    sampling_frequency = electrode_stream.channel_infos[channel_id].sampling_frequency.magnitude  
     from_idx ,to_idx = check_time_range(electrode_stream,sampling_frequency,from_in_s,to_in_s)
     signal = electrode_stream.get_channel_in_range(channel_id, from_idx, to_idx)[0]
 
@@ -206,53 +206,21 @@ def plot_analog_stream_channel_with_spikes(file_path, channel_id, canvas, figure
         spks = detect_threshold_crossings_stimulus(signal,fs,threshold_from,dead_time)
 
     timestamps = spks / fs
-    range_in_s = (from_in_s, to_in_s)
+    range_in_s = (from_idx, to_idx)
     spikes_in_range = timestamps[(timestamps >= range_in_s[0]) & (timestamps <= range_in_s[1])]
-
-    plt.show()
-    figure.clear()
-    ax = figure.add_subplot()
+    
+    # canvas.figure.clear()
+    axes = canvas.figure.get_axes()
+    ax = axes[suplot_num]
     ax.plot(time_in_sec, signal_in_uV, linewidth=0.5)
     ax.plot(spikes_in_range, [threshold_from*1e6]*spikes_in_range.shape[0], 'ro', ms=2)
-    ax.tick_params(axis='x', labelsize=8)
-    ax.tick_params(axis='y', labelsize=8)
 
-    ax.set_xlabel('Time (%s)' % ureg.s, fontsize = 8)
-    ax.set_ylabel('Voltage (%s)' % ureg.uV, fontsize = 8)
-    ax.set_title('Channel %s' % channel_id, fontsize = 8)
-    figure.tight_layout()
+    ax.set_xlabel('Time (%s)' % ureg.s)
+    ax.set_ylabel('Voltage (%s)' % ureg.uV)
+    ax.set_title('Channel %s' % channel_id)
+    canvas.figure.tight_layout()
     canvas.draw()
     return 0,""
-
-def plot_analog_stream_fourier(file_path,channel_id, canvas, figure,from_in_s,to_in_s):
-    _file = path_valid(file_path)
-    if not _file:
-        return 1, "File path is incorrect"
-
-    electrode_stream = _file.recordings[0].analog_streams[0]
-    if channel_id not in analog_stream.channel_infos:
-        return 1, "Channel ID is incorrect"   
-    
-    sampling_frequency = electrode_stream.channel_infos[channel_id].sampling_frequency.magnitude  
-    from_idx ,to_idx = check_time_range(electrode_stream,sampling_frequency,from_in_s,to_in_s)
-    signal = electrode_stream.get_channel_in_range(channel_id, from_idx, to_idx)[0]
-  
-    time = electrode_stream.get_channel_sample_timestamps(channel_id, from_idx, to_idx)
-    scale_factor_for_second = Q_(1,time[1]).to(ureg.s).magnitude
-    time_in_sec = time[0] * scale_factor_for_second
-    signal = electrode_stream.get_channel_in_range(channel_id, from_idx, to_idx)
-    scale_factor_for_uV = Q_(1,signal[1]).to(ureg.uV).magnitude
-    signal_in_uV = signal[0] * scale_factor_for_uV
-    X=fft(signal_in_uV)
-    X[(len(time_in_sec)//2+1):]=0
-
-    plt.show()
-    figure.clear()
-    ax = figure.add_subplot()
-    ax.plot(abs(X[1:]), linewidth=0.5)
-    ax.tick_params(axis='x', labelsize=8)
-    ax.tick_params(axis='y', labelsize=8)
-
 
 def filter_base_freqeuncy(signal_in_uV, time_in_sec, High_pass, Low_pass):    
     F = fft(signal_in_uV)
@@ -357,3 +325,35 @@ def extract_stimulus(analog_stream_path, file_save_path, channel_id, stimulus_th
     stimulus_in_second_df["end"] = [thresholds[i] for i in range(0,len(thresholds)) if i%2==1]
     stimulus_in_second_df.to_csv(file_save_path, index = False)
     return 0, ""
+
+def plot_analog_stream_fourier(file_path, channel_id, canvas, suplot_num, from_in_s, to_in_s):
+    _file = path_valid(file_path)
+    if not _file:
+        return 1, "File path is incorrect"
+
+    electrode_stream = _file.recordings[0].analog_streams[0]
+    if channel_id not in electrode_stream.channel_infos:
+        return 1, "Channel ID is incorrect"   
+
+    sampling_frequency = electrode_stream.channel_infos[channel_id].sampling_frequency.magnitude  
+    from_idx ,to_idx = check_time_range(electrode_stream,sampling_frequency,from_in_s,to_in_s)
+    signal = electrode_stream.get_channel_in_range(channel_id, from_idx, to_idx)[0]
+
+    time = electrode_stream.get_channel_sample_timestamps(channel_id, from_idx, to_idx)
+    scale_factor_for_second = Q_(1,time[1]).to(ureg.s).magnitude
+    time_in_sec = time[0] * scale_factor_for_second
+    signal = electrode_stream.get_channel_in_range(channel_id, from_idx, to_idx)
+    scale_factor_for_uV = Q_(1,signal[1]).to(ureg.uV).magnitude
+    signal_in_uV = signal[0] * scale_factor_for_uV
+    X=fft(signal_in_uV)
+    X[(len(time_in_sec)//2+1):]=0
+
+    # canvas.figure.clear()
+    axes = canvas.figure.get_axes()
+    ax = axes[suplot_num]
+    ax.plot(abs(X[1:]), linewidth=0.5)
+    
+    ax.set_xlabel('Frequency (Hz)')
+    canvas.figure.tight_layout()
+    canvas.draw()
+    return 0,""
