@@ -82,7 +82,7 @@ class MEA_app(QtWidgets.QMainWindow):
         plot_file_btn = QtWidgets.QPushButton(self)
         plot_file_btn.setFixedSize(235,35)
         plot_file_btn.setText("Plot Stimulus")
-        plot_file_btn.clicked.connect(self.plot_spike)  
+        plot_file_btn.clicked.connect(self.plot_stimulus)  
 
         plot_group_box, self.tab3_canvas  = self.create_plot_grop_box("Stimulus", False, 3) 
 
@@ -424,6 +424,40 @@ class MEA_app(QtWidgets.QMainWindow):
         
         if fourier:
             self.error_popup(fourier_error_msg, "Plot Error")
+
+    def plot_stimulus(self):
+        analog_stream_path = self.browse_text_box_tab3.text()
+        channel_id = self._check_value(self.channel_id_tab3.currentText(), None)
+        pre = self._check_value(self.extract_pre_tab3.text(), 0)
+        post = self._check_value(self.extract_post_tab3.text(), None)
+        dead_time = self._check_value(self.dead_time_tab3.text(), None)
+        from_in_s = self._check_value(self.extract_from_tab3.text(), 0)
+        to_in_s = self._check_value(self.extract_to_tab3.text(), None)
+        threshold_from = self._check_value(self.threshold_from_tab3.text(), None)
+        threshold_to = self._check_value(self.threshold_to_tab3.text(), None)
+        
+        if -1 in (channel_id, pre, post, dead_time, from_in_s, to_in_s, threshold_from, threshold_to):
+            self.error_popup("Please enter correct values", "Value Error")
+            return
+
+        # stimule_error, stimule_error_msg = draw_signal_average(analog_stream_path, channel_id, dead_time, threshold_from, 
+        #                                                         pre, post, self.tab3_canvas, 1)
+
+        stimule_dots_error, stimule_dots_error_msg = plot_analog_stream_channel_with_spikes(analog_stream_path, channel_id, self.tab3_canvas, 1, False, 
+                                                                                            from_in_s, to_in_s, threshold_from, threshold_to, dead_time)
+
+        fourier, fourier_error_msg = plot_analog_stream_fourier(analog_stream_path, channel_id, self.tab3_canvas, 2, from_in_s, to_in_s)
+
+        # if stimule_error:
+        #     self.error_popup(stimule_error_msg, "Plot Error")
+
+        if stimule_dots_error:
+            self.error_popup(stimule_dots_error_msg, "Plot Error")
+
+        if fourier:
+            self.error_popup(fourier_error_msg, "Plot Error")
+
+
 
     def getfiles(self, text_box, channel_id):
         fileName, _ = QtWidgets.QFileDialog.getOpenFileName(self, 'Open File')
