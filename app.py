@@ -440,16 +440,16 @@ class MEA_app(QtWidgets.QMainWindow):
             self.error_popup("Please enter correct values", "Value Error")
             return
 
-        # stimule_error, stimule_error_msg = draw_signal_average(analog_stream_path, channel_id, dead_time, threshold_from, 
-        #                                                         pre, post, self.tab3_canvas, 1)
+        stimule_error, stimule_error_msg = draw_signal_average(analog_stream_path, channel_id, dead_time, threshold_from, 
+                                                                 pre, post, self.tab3_canvas, 0)
 
         stimule_dots_error, stimule_dots_error_msg = plot_analog_stream_channel_with_spikes(analog_stream_path, channel_id, self.tab3_canvas, 1, False, 
                                                                                             from_in_s, to_in_s, threshold_from, threshold_to, dead_time)
 
         fourier, fourier_error_msg = plot_analog_stream_fourier(analog_stream_path, channel_id, self.tab3_canvas, 2, from_in_s, to_in_s)
 
-        # if stimule_error:
-        #     self.error_popup(stimule_error_msg, "Plot Error")
+        if stimule_error:
+             self.error_popup(stimule_error_msg, "Plot Error")
 
         if stimule_dots_error:
             self.error_popup(stimule_dots_error_msg, "Plot Error")

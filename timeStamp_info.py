@@ -229,18 +229,22 @@ def draw_signal_average(file_path, channel_id, dead_time, stimulus_threshold, pr
 
     electrode_stream = _file.recordings[0].analog_streams[0]
     if channel_id not in electrode_stream.channel_infos:
-        return 1, "Channel ID is incorrect" 
-        
+        return 1, "Channel ID is incorrect"  
     _channel_info = electrode_stream.channel_infos[0]
     fs = _channel_info.sampling_frequency.magnitude
     signal=electrode_stream.get_channel_in_range(channel_id, 0, electrode_stream.channel_data.shape[1])[0]
+
+    if not stimulus_threshold:
+        stimulus_threshold = -0.0001
     thresholds=detect_threshold_crossings_stimulus(signal, fs, stimulus_threshold, dead_time)
     stimulus_df=pd.DataFrame(columns={"start","end"})
     stimulus_df["start"]=np.round([int(thresholds[i]) for i in range(0,len(thresholds)) if i%2==0],3)
     try:
         stimulus_df["end"]=np.round([int(thresholds[i]) for i in range(0,len(thresholds)) if i%2==1],3)
+        if (len(stimulus_df)==0):
+            return 1, "incorrect filter"
     except:
-        return "incorrect filter"
+        return 1,"incorrect filter"
 
     temp=pd.DataFrame()
     pre_idx = int(pre * fs)
@@ -260,12 +264,11 @@ def draw_signal_average(file_path, channel_id, dead_time, stimulus_threshold, pr
     x=np.linspace(-pre,post,len(df_to_draw))
     xx=[0,0]
     yx=[df_to_draw.max(),df_to_draw.min()]
-
     # canvas.figure.clear()
     axes = canvas.figure.get_axes()
     ax = axes[suplot_num]
-    ax.plot(x, df_to_draw, linewidth=0.5)
-    ax.plot(xx, yx, linewidth=0.5)
+    ax.plot(x, df_to_draw[0], linewidth=1)
+    ax.plot(xx, yx, linewidth=1)
     
     ax.set_xlabel('Time (%s)' % ureg.s)
     ax.set_ylabel('Voltage (%s)' % ureg.uV)
