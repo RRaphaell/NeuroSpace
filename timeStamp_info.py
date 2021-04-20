@@ -222,7 +222,15 @@ def plot_analog_stream_channel_with_spikes(file_path, channel_id, canvas,suplot_
     canvas.draw()
     return 0,""
 
-def draw_signal_average(electrode_stream, channel_id, dead_time ,stimulus_threshold ,pre ,post):
+def draw_signal_average(file_path, channel_id, dead_time, stimulus_threshold, pre, post, canvas, suplot_num):
+    _file = path_valid(file_path)
+    if not _file:
+        return 1, "File path is incorrect"
+
+    electrode_stream = _file.recordings[0].analog_streams[0]
+    if channel_id not in electrode_stream.channel_infos:
+        return 1, "Channel ID is incorrect" 
+        
     _channel_info = electrode_stream.channel_infos[0]
     fs = _channel_info.sampling_frequency.magnitude
     signal=electrode_stream.get_channel_in_range(channel_id, 0, electrode_stream.channel_data.shape[1])[0]
@@ -233,29 +241,37 @@ def draw_signal_average(electrode_stream, channel_id, dead_time ,stimulus_thresh
         stimulus_df["end"]=np.round([int(thresholds[i]) for i in range(0,len(thresholds)) if i%2==1],3)
     except:
         return "incorrect filter"
+
     temp=pd.DataFrame()
     pre_idx = int(pre * fs)
     post_idx = int(post * fs)
     for i in range(0,len(stimulus_df)) :
         index1=stimulus_df["start"][i]
         index2=stimulus_df["end"][i]
-        global waveform
         if index1-pre_idx >= 0 and index2+post_idx <= signal.shape[0]:
-        oneWaveform = np.concatenate((signal[(index1-pre_idx):index1],signal[index2:(index2+post_idx)]),axis=None) 
+            oneWaveform = np.concatenate((signal[(index1-pre_idx):index1],signal[index2:(index2+post_idx)]),axis=None) 
         if i==0:
             waveform_df=pd.DataFrame(oneWaveform)
             temp.append(waveform_df)
-        else :
+        else:
             waveform_df[0]+=oneWaveform
+
     df_to_draw=waveform_df/(len(stimulus_df))*1000000
     x=np.linspace(-pre,post,len(df_to_draw))
     xx=[0,0]
     yx=[df_to_draw.max(),df_to_draw.min()]
-    _ = plt.figure(figsize=(20,6))
-    _ = plt.plot(x,df_to_draw[0])
-    _ = plt.xlabel('Time (%s)' % ureg.s)
-    _ = plt.ylabel('Voltage (%s)' % ureg.uV)
-    _ = plt.plot(xx,yx)
+
+    # canvas.figure.clear()
+    axes = canvas.figure.get_axes()
+    ax = axes[suplot_num]
+    ax.plot(x, df_to_draw, linewidth=0.5)
+    ax.plot(xx, yx, linewidth=0.5)
+    
+    ax.set_xlabel('Time (%s)' % ureg.s)
+    ax.set_ylabel('Voltage (%s)' % ureg.uV)
+    canvas.figure.tight_layout()
+    canvas.draw()
+    return 0,""
 
 def filter_base_freqeuncy(signal_in_uV, time_in_sec, High_pass, Low_pass):    
     F = fft(signal_in_uV)
