@@ -16,6 +16,9 @@ font = {'family' : 'normal',
 matplotlib.rc('font', **font)
 import pandas as pd
 
+
+from functools import partial
+
 class MEA_app(QtWidgets.QMainWindow):
 
     def __init__(self):
@@ -84,7 +87,8 @@ class MEA_app(QtWidgets.QMainWindow):
         plot_file_btn.setText("Plot Stimulus")
         plot_file_btn.clicked.connect(self.plot_stimulus)  
 
-        plot_group_box, self.tab3_canvas  = self.create_plot_grop_box("Stimulus", False, 3) 
+        plots_names = ["Average Stimulus","Stimulus", "Frequency"]
+        plot_group_box, self.tab3_canvas, self.tab3_plot_check_boxes  = self.create_plot_grop_box("Stimulus", False, plots_names) 
 
         tab3_layout.addWidget(group_box_browse,0,0)
         tab3_layout.addWidget(group_box_channel_stream,1,0)
@@ -123,7 +127,8 @@ class MEA_app(QtWidgets.QMainWindow):
         plot_file_btn.setText("Plot Spike")
         plot_file_btn.clicked.connect(self.plot_spike)  
         
-        plot_group_box, self.tab2_canvas  = self.create_plot_grop_box("Spike",True,3)
+        plots_names = ["Spike together","Spikes","Frequency"]
+        plot_group_box, self.tab2_canvas, self.tab2_plot_check_boxes  = self.create_plot_grop_box("Spike", True, plots_names)
         self.tab2_is_canvas_clicked = [False]
 
         tab2_layout.addWidget(group_box_browse,0,0)
@@ -219,8 +224,12 @@ class MEA_app(QtWidgets.QMainWindow):
         group_box_extract, self.extract_text_box_tab1, self.extract_btn_tab1 = self.create_group_extract()
         self.extract_btn_tab1.clicked.connect(self.extract_waveform)
 
-        plot_group_box, self.tab1_canvas  = self.create_plot_grop_box("Waveform",False,2)
+        plots_names = ["Waveform","Frequeny"]
+        self.tab1_is_plot_visible = [2]*len(plots_names)
+        plot_group_box, self.tab1_canvas, self.tab1_plot_check_boxes  = self.create_plot_grop_box("Waveform", False, plots_names)
         self.tab1_is_canvas_clicked = [False]
+        for i in range(len(self.tab1_plot_check_boxes)):
+            self.tab1_plot_check_boxes[i].stateChanged.connect(partial(self.check_plotes_visibility, self.tab1_is_plot_visible, self.tab1_canvas, i))
         
         tab1_layout.addWidget(group_box_browse,0,0)
         tab1_layout.addWidget(group_box_channel_stream,1,0)
@@ -333,7 +342,7 @@ class MEA_app(QtWidgets.QMainWindow):
         group_box_extract.setStatusTip("Choose path to save csv file")
         return group_box_extract, extract_text_box, extract
 
-    def create_plot_grop_box(self, title, add_component, num_canvas):
+    def create_plot_grop_box(self, title, add_component, plots_names):
         plot_group_box = QtWidgets.QGroupBox(title)
         plot_group_box.setStyleSheet('QGroupBox:title {'
                                     'subcontrol-origin: margin;'
@@ -352,20 +361,50 @@ class MEA_app(QtWidgets.QMainWindow):
         component_label = QtWidgets.QLabel(self)
         component_label.setText("Component number: ")
 
-        figure, _ = plt.subplots(nrows=num_canvas, ncols=1)
+        figure, _ = plt.subplots(nrows=len(plots_names), ncols=1)
         figure.tight_layout()
         canvas = FigureCanvas(figure)
         toolbar = NavigationToolbar(canvas, self)
         
+        # spacer = QtWidgets.QWidget(self)
+        # spacer.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         if add_component:
             toolbar.addWidget(component_label)
             toolbar.addWidget(self.component)
+            toolbar.addSeparator()
+            # toolbar.addWidget(spacer)
+        
+        check_boxes = []
+        for plot_name in plots_names:
+            check_box = QtWidgets.QCheckBox(plot_name)
+            check_box.setChecked(True)
+            toolbar.addWidget(check_box)
+            check_boxes.append(check_box)
+        # toolbar.addWidget(spacer)
 
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(toolbar)
         layout.addWidget(canvas)
         plot_group_box.setLayout(layout)
-        return plot_group_box, canvas
+        return plot_group_box, canvas, check_boxes
+
+    def check_plotes_visibility(self, tab_is_plot_visible, tab_canvas, plot_idx, k):
+        axes = tab_canvas.figure.get_axes()
+        tab_is_plot_visible[plot_idx] = k
+        axes[plot_idx].set_visible(k)
+
+
+        num_visible_plots = tab_is_plot_visible.count(2)
+        visible_plots = 0
+        for idx, visible in enumerate(tab_is_plot_visible):
+            if not visible:
+                axes[idx].set_visible(False)
+            else:
+                axes[idx].change_geometry(num_visible_plots,1,visible_plots+1)
+                visible_plots += 1
+
+        tab_canvas.figure.tight_layout()
+        tab_canvas.draw()        
     
     def plot_waveform(self):
         analog_stream_path = self.browse_text_box_tab1.text()
@@ -456,8 +495,6 @@ class MEA_app(QtWidgets.QMainWindow):
 
         if fourier:
             self.error_popup(fourier_error_msg, "Plot Error")
-
-
 
     def getfiles(self, text_box, channel_id):
         fileName, _ = QtWidgets.QFileDialog.getOpenFileName(self, 'Open File')
@@ -568,6 +605,7 @@ class MEA_app(QtWidgets.QMainWindow):
     def clear_qlines(self, *args):
         for item in args:
             item.setText("")
+
 
 if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)
