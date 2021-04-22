@@ -16,6 +16,9 @@ font = {'family' : 'normal',
 matplotlib.rc('font', **font)
 import pandas as pd
 
+
+from functools import partial
+
 class MEA_app(QtWidgets.QMainWindow):
 
     def __init__(self):
@@ -77,14 +80,18 @@ class MEA_app(QtWidgets.QMainWindow):
         group_box_from_to.toggled.connect(lambda : self.clear_qlines(self.extract_from_tab3, self.extract_to_tab3))
 
         group_box_extract, self.extract_text_box_tab3, self.extract_btn_tab3 = self.create_group_extract()   
-        self.extract_btn_tab3.clicked.connect(self.extract_stimulus)
+        self.extract_btn_tab3.clicked.connect(self.save_stimulus)
 
         plot_file_btn = QtWidgets.QPushButton(self)
         plot_file_btn.setFixedSize(235,35)
         plot_file_btn.setText("Plot Stimulus")
         plot_file_btn.clicked.connect(self.plot_stimulus)  
 
-        plot_group_box, self.tab3_canvas  = self.create_plot_grop_box("Stimulus", False, 3) 
+        plots_names = ["Average Stimulus","Stimulus", "Frequency"]
+        self.tab3_is_plot_visible = [2]*len(plots_names)
+        plot_group_box, self.tab3_canvas, self.tab3_plot_check_boxes  = self.create_plot_grop_box("Stimulus", False, plots_names)
+        for i in range(len(self.tab3_plot_check_boxes)):
+            self.tab3_plot_check_boxes[i].stateChanged.connect(partial(self.check_plotes_visibility, self.tab3_is_plot_visible, self.tab3_canvas, i)) 
 
         tab3_layout.addWidget(group_box_browse,0,0)
         tab3_layout.addWidget(group_box_channel_stream,1,0)
@@ -116,15 +123,19 @@ class MEA_app(QtWidgets.QMainWindow):
         group_box_from_to.toggled.connect(lambda : self.clear_qlines(self.extract_from_tab2, self.extract_to_tab2))
 
         group_box_extract, self.extract_text_box_tab2, self.extract_btn_tab2 = self.create_group_extract() 
-        self.extract_btn_tab2.clicked.connect(self.extract_spike)
+        self.extract_btn_tab2.clicked.connect(self.save_spike)
 
         plot_file_btn = QtWidgets.QPushButton(self)
         plot_file_btn.setFixedSize(235,35)
         plot_file_btn.setText("Plot Spike")
         plot_file_btn.clicked.connect(self.plot_spike)  
         
-        plot_group_box, self.tab2_canvas  = self.create_plot_grop_box("Spike",True,3)
+        plots_names = ["Spike together","Spikes","Frequency"]
+        self.tab2_is_plot_visible = [2]*len(plots_names)
+        plot_group_box, self.tab2_canvas, self.tab2_plot_check_boxes  = self.create_plot_grop_box("Spike", True, plots_names)
         self.tab2_is_canvas_clicked = [False]
+        for i in range(len(self.tab2_plot_check_boxes)):
+            self.tab2_plot_check_boxes[i].stateChanged.connect(partial(self.check_plotes_visibility, self.tab2_is_plot_visible, self.tab2_canvas, i))
 
         tab2_layout.addWidget(group_box_browse,0,0)
         tab2_layout.addWidget(group_box_channel_stream,1,0)
@@ -217,10 +228,14 @@ class MEA_app(QtWidgets.QMainWindow):
         group_box_filter.toggled.connect(lambda : self.clear_qlines(self.filter_low_tab1,self.filter_high_tab1))
 
         group_box_extract, self.extract_text_box_tab1, self.extract_btn_tab1 = self.create_group_extract()
-        self.extract_btn_tab1.clicked.connect(self.extract_waveform)
+        self.extract_btn_tab1.clicked.connect(self.save_waveform)
 
-        plot_group_box, self.tab1_canvas  = self.create_plot_grop_box("Waveform",False,2)
+        plots_names = ["Waveform","Frequeny"]
+        self.tab1_is_plot_visible = [2]*len(plots_names)
+        plot_group_box, self.tab1_canvas, self.tab1_plot_check_boxes  = self.create_plot_grop_box("Waveform", False, plots_names)
         self.tab1_is_canvas_clicked = [False]
+        for i in range(len(self.tab1_plot_check_boxes)):
+            self.tab1_plot_check_boxes[i].stateChanged.connect(partial(self.check_plotes_visibility, self.tab1_is_plot_visible, self.tab1_canvas, i))
         
         tab1_layout.addWidget(group_box_browse,0,0)
         tab1_layout.addWidget(group_box_channel_stream,1,0)
@@ -333,7 +348,7 @@ class MEA_app(QtWidgets.QMainWindow):
         group_box_extract.setStatusTip("Choose path to save csv file")
         return group_box_extract, extract_text_box, extract
 
-    def create_plot_grop_box(self, title, add_component, num_canvas):
+    def create_plot_grop_box(self, title, add_component, plots_names):
         plot_group_box = QtWidgets.QGroupBox(title)
         plot_group_box.setStyleSheet('QGroupBox:title {'
                                     'subcontrol-origin: margin;'
@@ -352,21 +367,33 @@ class MEA_app(QtWidgets.QMainWindow):
         component_label = QtWidgets.QLabel(self)
         component_label.setText("Component number: ")
 
-        figure, _ = plt.subplots(nrows=num_canvas, ncols=1)
+        figure, _ = plt.subplots(nrows=len(plots_names), ncols=1)
         figure.tight_layout()
         canvas = FigureCanvas(figure)
         toolbar = NavigationToolbar(canvas, self)
         
+        # spacer = QtWidgets.QWidget(self)
+        # spacer.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         if add_component:
             toolbar.addWidget(component_label)
             toolbar.addWidget(self.component)
+            toolbar.addSeparator()
+            # toolbar.addWidget(spacer)
+        
+        check_boxes = []
+        for plot_name in plots_names:
+            check_box = QtWidgets.QCheckBox(plot_name)
+            check_box.setChecked(True)
+            toolbar.addWidget(check_box)
+            check_boxes.append(check_box)
+        # toolbar.addWidget(spacer)
 
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(toolbar)
         layout.addWidget(canvas)
         plot_group_box.setLayout(layout)
-        return plot_group_box, canvas
-    
+        return plot_group_box, canvas, check_boxes
+  
     def plot_waveform(self):
         analog_stream_path = self.browse_text_box_tab1.text()
         channel_id = self._check_value(self.channel_id_tab1.currentText(), None)
@@ -379,10 +406,10 @@ class MEA_app(QtWidgets.QMainWindow):
             self.error_popup("Please enter correct values", "Value Error")
             return
         
-        waveform_error, waveform_error_msg = plot_analog_stream_channel(analog_stream_path, channel_id, from_in_s, to_in_s,
+        waveform_error, waveform_error_msg = plot_signal(analog_stream_path, channel_id, from_in_s, to_in_s,
                                                         self.tab1_canvas, 0, high_pass, low_pass)
 
-        fourier_error, fourier_error_msg = plot_analog_stream_fourier(analog_stream_path, channel_id, self.tab1_canvas, 1, from_in_s, to_in_s)
+        fourier_error, fourier_error_msg = plot_signal_frequencies(analog_stream_path, channel_id, self.tab1_canvas, 1, from_in_s, to_in_s)
 
         if waveform_error:
             self.error_popup(waveform_error_msg, "Plot Error")
@@ -408,13 +435,13 @@ class MEA_app(QtWidgets.QMainWindow):
             self.error_popup("Please enter correct values", "Value Error")
             return
 
-        spike_plot, spike_plot_error_msg = draw_channel_spikes(analog_stream_path, channel_id, comp_number, pre, post, dead_time, spike_number,
+        spike_plot, spike_plot_error_msg = plot_all_spikes_together(analog_stream_path, channel_id, comp_number, pre, post, dead_time, spike_number,
                                                         self.tab2_canvas,0,from_in_s, to_in_s, high_pass, low_pass, threshold_from, threshold_to,)
         
-        spike_plot_dots, spike_plot_dots_error_msg = plot_analog_stream_channel_with_spikes(analog_stream_path, channel_id, self.tab2_canvas, 1, True, 
+        spike_plot_dots, spike_plot_dots_error_msg = plot_signal_with_spikes_or_stimulus(analog_stream_path, channel_id, self.tab2_canvas, 1, True, 
                                                                                         from_in_s, to_in_s, threshold_from, threshold_to, dead_time)
 
-        fourier, fourier_error_msg = plot_analog_stream_fourier(analog_stream_path, channel_id, self.tab2_canvas, 2, from_in_s, to_in_s)
+        fourier, fourier_error_msg = plot_signal_frequencies(analog_stream_path, channel_id, self.tab2_canvas, 2, from_in_s, to_in_s)
 
         if spike_plot:
             self.error_popup(spike_plot_error_msg, "Plot Error")
@@ -440,13 +467,13 @@ class MEA_app(QtWidgets.QMainWindow):
             self.error_popup("Please enter correct values", "Value Error")
             return
 
-        stimule_error, stimule_error_msg = draw_signal_average(analog_stream_path, channel_id, dead_time, threshold_from, 
+        stimule_error, stimule_error_msg = plot_stimulus_average(analog_stream_path, channel_id, dead_time, threshold_from, 
                                                                  pre, post, self.tab3_canvas, 0)
 
-        stimule_dots_error, stimule_dots_error_msg = plot_analog_stream_channel_with_spikes(analog_stream_path, channel_id, self.tab3_canvas, 1, False, 
+        stimule_dots_error, stimule_dots_error_msg = plot_signal_with_spikes_or_stimulus(analog_stream_path, channel_id, self.tab3_canvas, 1, False, 
                                                                                             from_in_s, to_in_s, threshold_from, threshold_to, dead_time)
 
-        fourier, fourier_error_msg = plot_analog_stream_fourier(analog_stream_path, channel_id, self.tab3_canvas, 2, from_in_s, to_in_s)
+        fourier, fourier_error_msg = plot_signal_frequencies(analog_stream_path, channel_id, self.tab3_canvas, 2, from_in_s, to_in_s)
 
         if stimule_error:
              self.error_popup(stimule_error_msg, "Plot Error")
@@ -456,24 +483,8 @@ class MEA_app(QtWidgets.QMainWindow):
 
         if fourier:
             self.error_popup(fourier_error_msg, "Plot Error")
-
-
-
-    def getfiles(self, text_box, channel_id):
-        fileName, _ = QtWidgets.QFileDialog.getOpenFileName(self, 'Open File')
-        text_box.setText(fileName)
-        error_message, message = get_channel_ids(fileName)
-
-        if error_message:
-            self.error_popup(message, "File Error")
-            return
-
-        message.insert(0,"all")
-        channel_id.clear()
-        channel_id.addItems(message)
-        channel_id.setStyleSheet("combobox-popup: 0")
-        
-    def extract_waveform(self):
+     
+    def save_waveform(self):
         analog_stream_path = self.browse_text_box_tab1.text()
         channel_id = self._check_value(self.channel_id_tab1.currentText(),None)
         from_in_s = self._check_value(self.extract_from_tab1.text(),0)
@@ -487,14 +498,14 @@ class MEA_app(QtWidgets.QMainWindow):
         self.extract_text_box_tab1.setText(name)
         file_save_path = self.extract_text_box_tab1.text()
         
-        save_error, value = save_channel_info(analog_stream_path, file_save_path, channel_id=channel_id, from_in_s=from_in_s, to_in_s=to_in_s)
+        save_error, value = extract_waveform(analog_stream_path, file_save_path, channel_id=channel_id, from_in_s=from_in_s, to_in_s=to_in_s)
         
         if save_error:
             self.error_popup(value, "Extract Error")
         else:
             self.info_popup("Data created successfully","Extract success")
 
-    def extract_spike(self):
+    def save_spike(self):
         analog_stream_path = self.browse_text_box_tab2.text()
         channel_id = self._check_value(self.channel_id_tab2.currentText(), None)
         threshold_from = self._check_value(self.threshold_from_tab2.text(), None)
@@ -516,7 +527,7 @@ class MEA_app(QtWidgets.QMainWindow):
         else:
             self.info_popup("Data created successfully", "Extract success")
 
-    def extract_stimulus(self):
+    def save_stimulus(self):
         analog_stream_path = self.browse_text_box_tab3.text()
         channel_id = self._check_value(self.channel_id_tab3.currentText(), None)
         threshold_from = self._check_value(self.threshold_from_tab3.text(), None)
@@ -536,6 +547,38 @@ class MEA_app(QtWidgets.QMainWindow):
         else:
             self.info_popup("Data created successfully", "Extract success")
 
+    def getfiles(self, text_box, channel_id):
+        fileName, _ = QtWidgets.QFileDialog.getOpenFileName(self, 'Open File')
+        text_box.setText(fileName)
+        error_message, message = get_all_channel_ids(fileName)
+
+        if error_message:
+            self.error_popup(message, "File Error")
+            return
+
+        message.insert(0,"all")
+        channel_id.clear()
+        channel_id.addItems(message)
+        channel_id.setStyleSheet("combobox-popup: 0")
+   
+    def check_plotes_visibility(self, tab_is_plot_visible, tab_canvas, plot_idx, k):
+        axes = tab_canvas.figure.get_axes()
+        tab_is_plot_visible[plot_idx] = k
+        axes[plot_idx].set_visible(k)
+
+
+        num_visible_plots = tab_is_plot_visible.count(2)
+        visible_plots = 0
+        for idx, visible in enumerate(tab_is_plot_visible):
+            if not visible:
+                axes[idx].set_visible(False)
+            else:
+                axes[idx].change_geometry(num_visible_plots,1,visible_plots+1)
+                visible_plots += 1
+
+        tab_canvas.figure.tight_layout()
+        tab_canvas.draw()        
+  
     def on_press(self, event, figure_canvas, is_canvas_clicked, canvas_number):
         if not event.dblclick:
             return
@@ -568,6 +611,7 @@ class MEA_app(QtWidgets.QMainWindow):
     def clear_qlines(self, *args):
         for item in args:
             item.setText("")
+
 
 if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)
