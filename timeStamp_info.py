@@ -128,6 +128,22 @@ def _get_signal_time(analog_stream, channel_id, from_in_s, to_in_s):
     signal_in_uV = signal[0] * scale_factor_for_uV
     return signal_in_uV, time_in_sec
 
+def _signal_average_around_stimulus(signal, stimulus_df, pre, post, fs):
+    temp=pd.DataFrame()
+    pre_idx = int(pre * fs)
+    post_idx = int(post * fs)
+    for i in range(0,len(stimulus_df)) :
+        index1=stimulus_df["start"][i]
+        index2=stimulus_df["end"][i]
+        if index1-pre_idx >= 0 and index2+post_idx <= signal.shape[0]:
+            oneWaveform = np.concatenate((signal[(index1-pre_idx):index1],signal[index2:(index2+post_idx)]),axis=None) 
+        if i==0:
+            waveform_df=pd.DataFrame(oneWaveform)
+            temp.append(waveform_df)
+        else:
+            waveform_df[0]+=oneWaveform
+    return waveform_df/(len(stimulus_df))*1000000
+
 def _get_spike_info(electrode_stream, channel_id, signal, threshold_from, threshold_to, dead_time):
     fs = int(electrode_stream.channel_infos[channel_id].sampling_frequency.magnitude)
     crossings = _detect_threshold_crossings_spikes(signal, fs, threshold_from, threshold_to, dead_time) # dead time of 3 ms
@@ -190,22 +206,16 @@ def plot_all_spikes_together(file_path, channel_id, n_components, pre, post, dea
         return 1, "Channel ID is incorrect"
     if n_components == None:
         n_components = 1
-
-    sampling_frequency = electrode_stream.channel_infos[channel_id].sampling_frequency.magnitude  
-    from_idx ,to_idx = _check_time_range(electrode_stream,sampling_frequency,from_in_s,to_in_s)
-    signal = electrode_stream.get_channel_in_range(channel_id, from_idx, to_idx)[0]
     signal_in_uV, time_in_sec = _get_signal_time(electrode_stream, channel_id, 0, None)
     if (high_pass!=None) or (low_pass!=None):
-        signal = _filter_base_freqeuncy(signal, time_in_sec, high_pass, low_pass)
-
-    threshold_from = _get_proper_threshold(signal, threshold_from,True)
-    fs, crossings, spks = _get_spike_info(electrode_stream, channel_id, signal, threshold_from, threshold_to, dead_time)
-
+        signal_in_uV = _filter_base_freqeuncy(signal_in_uV, time_in_sec, high_pass, low_pass)
+    threshold_from = _get_proper_threshold(signal_in_uV, threshold_from,True)
+    fs, crossings, spks = _get_spike_info(electrode_stream, channel_id, signal_in_uV, threshold_from, threshold_to, dead_time)
     if (len(spks)<=1):
         return 1, "spike filter is not correct"
-    cutouts = _get_signal_cutouts(signal, fs, spks, pre, post)
-
+    cutouts = _get_signal_cutouts(signal_in_uV, fs, spks, pre, post)
     labels=_get_pca_labels(cutouts, n_components)
+    
     axes = canvas.figure.get_axes()
     ax = axes[suplot_num]
     ax.clear()
@@ -233,30 +243,15 @@ def plot_stimulus_average(file_path, channel_id, dead_time, stimulus_threshold, 
         stimulus_threshold = -0.0001
     thresholds=_detect_threshold_crossings_stimulus(signal, fs, stimulus_threshold, dead_time)
     stimulus_df=pd.DataFrame(columns={"start","end"})
-    stimulus_df["start"]=np.round([int(thresholds[i]) for i in range(0,len(thresholds)) if i%2==0],3)
+    stimulus_df["start"]=[int(thresholds[i]) for i in range(0,len(thresholds)) if i%2==0]
     try:
-        stimulus_df["end"]=np.round([int(thresholds[i]) for i in range(0,len(thresholds)) if i%2==1],3)
+        stimulus_df["end"]=[int(thresholds[i]) for i in range(0,len(thresholds)) if i%2==1]
         if (len(stimulus_df)==0):
             return 1, "incorrect filter"
     except:
         return 1,"incorrect filter"
 
-    temp=pd.DataFrame()
-    pre_idx = int(pre * fs)
-    post_idx = int(post * fs)
-    for i in range(0,len(stimulus_df)) :
-        index1=stimulus_df["start"][i]
-        index2=stimulus_df["end"][i]
-        if index1-pre_idx >= 0 and index2+post_idx <= signal.shape[0]:
-            oneWaveform = np.concatenate((signal[(index1-pre_idx):index1],signal[index2:(index2+post_idx)]),axis=None) 
-        if i==0:
-            waveform_df=pd.DataFrame(oneWaveform)
-            temp.append(waveform_df)
-        else:
-            waveform_df[0]+=oneWaveform
-    df_to_draw=waveform_df/(len(stimulus_df))*1000000
-
-
+    df_to_draw = _signal_average_around_stimulus(signal, stimulus_df, pre, post, fs)
     x=np.linspace(-pre,post,len(df_to_draw))
     xx=[0,0]
     yx=[df_to_draw.max(),df_to_draw.min()]
@@ -283,9 +278,9 @@ def plot_signal_with_spikes_or_stimulus(file_path, channel_id, canvas,suplot_num
     
     sampling_frequency = electrode_stream.channel_infos[channel_id].sampling_frequency.magnitude  
     from_idx ,to_idx = _check_time_range(electrode_stream,sampling_frequency,from_in_s,to_in_s)
-    signal = electrode_stream.get_channel_in_range(channel_id, from_idx, to_idx)[0]
     
-    signal_in_uV, time_in_sec = _get_signal_time(electrode_stream, channel_id, from_in_s, to_in_s)
+    signal_in_uV, time_in_sec = _get_signal_time(electrode_stream, channel_id, from_in_s, to_in_s) # need this to draw signal
+    signal = signal_in_uV/1000000 # need this to calculate stimulus or spikes
     threshold_from = _get_proper_threshold(signal, threshold_from,is_spike)
     if is_spike:
         fs, crossings, spks = _get_spike_info(electrode_stream, channel_id, signal, threshold_from, threshold_to, dead_time)
