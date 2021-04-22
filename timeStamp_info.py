@@ -94,6 +94,28 @@ def _path_valid(file_path):
         return 0
     return _file
 
+def _get_proper_threshold (signal, threshold_from, is_spike) :
+    if not threshold_from:
+        if is_spike : 
+            noise_std= np.std(signal)
+            noise_mad = np.median(np.absolute(signal))
+            if noise_mad<= noise_std:
+                threshold_from = -5 * noise_mad
+            else :
+                 threshold_from = -5 * noise_std
+        else: 
+            threshold_from=-100/1000000       
+    return threshold_from
+
+def _get_pca_labels(cutouts, n_components):
+    pca = PCA()
+    pca.n_components = int(n_components)
+    scaler = StandardScaler()
+    scaled_cutouts = scaler.fit_transform(abs(cutouts))
+    transformed = pca.fit_transform(scaled_cutouts)
+    gmm = GaussianMixture(n_components=int(n_components), n_init=10)
+    return gmm.fit_predict(transformed)
+
 def _get_signal_time(analog_stream, channel_id, from_in_s, to_in_s):
     channel_info = analog_stream.channel_infos[channel_id]
     sampling_frequency = channel_info.sampling_frequency.magnitude  
@@ -176,28 +198,14 @@ def plot_all_spikes_together(file_path, channel_id, n_components, pre, post, dea
     if (high_pass!=None) or (low_pass!=None):
         signal = _filter_base_freqeuncy(signal, time_in_sec, high_pass, low_pass)
 
-    noise_std= np.std(signal)
-    noise_mad = np.median(np.absolute(signal))
-    if not threshold_from:
-      if noise_mad<= noise_std:
-          threshold_from = -5 * noise_mad
-      else :
-          threshold_from = -5 * noise_std
-
+    threshold_from = _get_proper_threshold(signal, threshold_from,True)
     fs, crossings, spks = _get_spike_info(electrode_stream, channel_id, signal, threshold_from, threshold_to, dead_time)
 
     if (len(spks)<=1):
         return 1, "spike filter is not correct"
     cutouts = _get_signal_cutouts(signal, fs, spks, pre, post)
 
-    pca = PCA()
-    pca.n_components = int(n_components)
-    scaler = StandardScaler()
-    scaled_cutouts = scaler.fit_transform(abs(cutouts))
-    transformed = pca.fit_transform(scaled_cutouts)
-    gmm = GaussianMixture(n_components=int(n_components), n_init=10)
-    labels = gmm.fit_predict(transformed)
-
+    labels=_get_pca_labels(cutouts, n_components)
     axes = canvas.figure.get_axes()
     ax = axes[suplot_num]
     ax.clear()
@@ -246,8 +254,9 @@ def plot_stimulus_average(file_path, channel_id, dead_time, stimulus_threshold, 
             temp.append(waveform_df)
         else:
             waveform_df[0]+=oneWaveform
-
     df_to_draw=waveform_df/(len(stimulus_df))*1000000
+
+
     x=np.linspace(-pre,post,len(df_to_draw))
     xx=[0,0]
     yx=[df_to_draw.max(),df_to_draw.min()]
@@ -275,17 +284,10 @@ def plot_signal_with_spikes_or_stimulus(file_path, channel_id, canvas,suplot_num
     sampling_frequency = electrode_stream.channel_infos[channel_id].sampling_frequency.magnitude  
     from_idx ,to_idx = _check_time_range(electrode_stream,sampling_frequency,from_in_s,to_in_s)
     signal = electrode_stream.get_channel_in_range(channel_id, from_idx, to_idx)[0]
-
-    noise_std= np.std(signal)
-    noise_mad = np.median(np.absolute(signal))
-          
+    
     signal_in_uV, time_in_sec = _get_signal_time(electrode_stream, channel_id, from_in_s, to_in_s)
+    threshold_from = _get_proper_threshold(signal, threshold_from,is_spike)
     if is_spike:
-        if not threshold_from:
-            if noise_mad <= noise_std:
-                threshold_from = -5 * noise_mad
-            else :
-                threshold_from = -5 * noise_std
         fs, crossings, spks = _get_spike_info(electrode_stream, channel_id, signal, threshold_from, threshold_to, dead_time)
     else :
         fs = int(electrode_stream.channel_infos[channel_id].sampling_frequency.magnitude)
@@ -316,17 +318,8 @@ def plot_signal_frequencies(file_path, channel_id, canvas, suplot_num, from_in_s
     electrode_stream = _file.recordings[0].analog_streams[0]
     if channel_id not in electrode_stream.channel_infos:
         return 1, "Channel ID is incorrect"   
-
-    sampling_frequency = electrode_stream.channel_infos[channel_id].sampling_frequency.magnitude  
-    from_idx ,to_idx = _check_time_range(electrode_stream,sampling_frequency,from_in_s,to_in_s)
-    signal = electrode_stream.get_channel_in_range(channel_id, from_idx, to_idx)[0]
-
-    time = electrode_stream.get_channel_sample_timestamps(channel_id, from_idx, to_idx)
-    scale_factor_for_second = Q_(1,time[1]).to(ureg.s).magnitude
-    time_in_sec = time[0] * scale_factor_for_second
-    signal = electrode_stream.get_channel_in_range(channel_id, from_idx, to_idx)
-    scale_factor_for_uV = Q_(1,signal[1]).to(ureg.uV).magnitude
-    signal_in_uV = signal[0] * scale_factor_for_uV
+    
+    signal_in_uV, time_in_sec = _get_signal_time(electrode_stream, channel_id, from_in_s, to_in_s)
     X=fft(signal_in_uV)
     X[(len(time_in_sec)//2+1):]=0
 
@@ -373,8 +366,7 @@ def extract_stimulus(analog_stream_path, file_save_path, channel_id, stimulus_th
     _channel_info = analog_stream.channel_infos[0]
     fs = _channel_info.sampling_frequency.magnitude
     signal=analog_stream.get_channel_in_range(channel_id, 0, analog_stream.channel_data.shape[1])[0]
-    if not stimulus_threshold:
-        stimulus_threshold = -100/1000000
+    threshold_from = _get_proper_threshold(signal, threshold_from,False)
     thresholds=_detect_threshold_crossings_stimulus(signal, fs, stimulus_threshold, dead_time)/fs
     stimulus_in_second_df = pd.DataFrame(columns=["start","end"])
     stimulus_in_second_df["start"] = [thresholds[i] for i in range(0,len(thresholds)) if i%2==0]
@@ -392,15 +384,8 @@ def extract_spike(analog_stream_path, file_save_path, channel_id, threshold_from
         return 1, "Channel ID is incorrect"  
 
     signal = analog_stream.get_channel_in_range(channel_id, 0, analog_stream.channel_data.shape[1])[0]
-    
-    noise_std= np.std(signal)
-    noise_mad = np.median(np.absolute(signal))
-    if not threshold_from:
-      if noise_mad<= noise_std:
-          threshold_from = -5 * noise_mad
-      else :
-          threshold_from = -5 * noise_std
 
+    threshold_from = _get_proper_threshold(signal, threshold_from,True)
     fs, crossings, spks = _get_spike_info(analog_stream, channel_id, signal, threshold_from, threshold_to, dead_time)
     spikes_in_second=[]
     for spike in spks:
