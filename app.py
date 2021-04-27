@@ -66,7 +66,6 @@ class MEA_app(QtWidgets.QMainWindow):
         self.statusBar()
 
         group_box_channel_stream, self.channel_id_tab3 = self.create_group_select_id()
-        group_box_browse, self.browse_text_box_tab3 = self.create_group_open_from(self.channel_id_tab3)
         group_box_pre_post, self.extract_pre_tab3, self.extract_post_tab3, self.dead_time_tab3 = self.create_group_select_time_range_tab2()
 
         group_box_threshold_tab3, self.threshold_from_tab3, self.threshold_to_tab3 = self.create_group_threshold()
@@ -94,16 +93,15 @@ class MEA_app(QtWidgets.QMainWindow):
         for i in range(len(self.tab3_plot_check_boxes)):
             self.tab3_plot_check_boxes[i].stateChanged.connect(partial(self.check_plotes_visibility, self.tab3_is_plot_visible, self.tab3_canvas, i)) 
 
-        tab3_layout.addWidget(group_box_browse,0,0)
-        tab3_layout.addWidget(group_box_channel_stream,1,0)
-        tab3_layout.addWidget(group_box_pre_post,2,0)
-        tab3_layout.addWidget(group_box_from_to,3,0)
-        tab3_layout.addWidget(group_box_threshold_tab3,4,0)
+        tab3_layout.addWidget(group_box_channel_stream,0,0)
+        tab3_layout.addWidget(group_box_pre_post,1,0)
+        tab3_layout.addWidget(group_box_from_to,2,0)
+        tab3_layout.addWidget(group_box_threshold_tab3,3,0)
         # tab3_layout.addWidget(group_box_filter,5,0)
-        tab3_layout.addWidget(plot_file_btn,5,0)
-        tab3_layout.setRowStretch(6,0)
-        tab3_layout.addWidget(group_box_extract,7,0)
-        tab3_layout.addWidget(plot_group_box,0,2,8,1)
+        tab3_layout.addWidget(plot_file_btn,4,0)
+        tab3_layout.setRowStretch(5,0)
+        tab3_layout.addWidget(group_box_extract,6,0)
+        tab3_layout.addWidget(plot_group_box,0,2,7,1)
         self.tab3.setLayout(tab3_layout)
 
     def create_tab2(self):
@@ -111,7 +109,6 @@ class MEA_app(QtWidgets.QMainWindow):
         self.statusBar()
 
         group_box_channel_stream, self.channel_id_tab2 = self.create_group_select_id()
-        group_box_browse, self.browse_text_box_tab2 = self.create_group_open_from(self.channel_id_tab2)
         group_box_pre_post, self.extract_pre_tab2, self.extract_post_tab2, self.dead_time_tab2 = self.create_group_select_time_range_tab2()
         group_box_threshold_tab2, self.threshold_from_tab2, self.threshold_to_tab2 = self.create_group_threshold()
         
@@ -142,18 +139,17 @@ class MEA_app(QtWidgets.QMainWindow):
         for i in range(len(self.tab2_plot_check_boxes)):
             self.tab2_plot_check_boxes[i].stateChanged.connect(partial(self.check_plotes_visibility, self.tab2_is_plot_visible, self.tab2_canvas, i))
 
-        tab2_layout.addWidget(group_box_browse,0,0)
-        tab2_layout.addWidget(group_box_channel_stream,1,0)
-        tab2_layout.addWidget(group_box_pre_post,2,0)
-        tab2_layout.addWidget(group_box_from_to,3,0)
-        tab2_layout.addWidget(group_box_threshold_tab2,4,0)
-        tab2_layout.addWidget(group_box_filter,5,0)
-        tab2_layout.addWidget(plot_file_btn,6,0)
-        tab2_layout.addWidget(group_box_burst,7,0)
-        tab2_layout.addWidget(group_box_bin,8,0)
-        tab2_layout.setRowStretch(9,0)
-        tab2_layout.addWidget(group_box_extract,10,0)
-        tab2_layout.addWidget(plot_group_box,0,2,11,1)
+        tab2_layout.addWidget(group_box_channel_stream,0,0)
+        tab2_layout.addWidget(group_box_pre_post,1,0)
+        tab2_layout.addWidget(group_box_from_to,2,0)
+        tab2_layout.addWidget(group_box_threshold_tab2,3,0)
+        tab2_layout.addWidget(group_box_filter,4,0)
+        tab2_layout.addWidget(plot_file_btn,5,0)
+        tab2_layout.addWidget(group_box_burst,6,0)
+        tab2_layout.addWidget(group_box_bin,7,0)
+        tab2_layout.setRowStretch(8,0)
+        tab2_layout.addWidget(group_box_extract,9,0)
+        tab2_layout.addWidget(plot_group_box,0,2,10,1)
         self.tab2.setLayout(tab2_layout)
 
     def create_group_select_time_range_tab2(self):
@@ -299,7 +295,7 @@ class MEA_app(QtWidgets.QMainWindow):
         self.statusBar()
 
         group_box_channel_stream, self.channel_id_tab1 = self.create_group_select_id()
-        group_box_browse, self.browse_text_box_tab1 = self.create_group_open_from(self.channel_id_tab1)
+        group_box_browse, self.browse_text_box_tab1 = self.create_group_open_from()
         group_box_from_to, self.extract_from_tab1, self.extract_to_tab1 = self.create_group_select_time_range_tab1()
 
         plot_file_btn = QtWidgets.QPushButton(self)
@@ -331,12 +327,9 @@ class MEA_app(QtWidgets.QMainWindow):
         tab1_layout.setRowStretch(5,0)
         tab1_layout.addWidget(group_box_extract,6,0)
         tab1_layout.addWidget(plot_group_box,0,2,7,1)
-        
-        # tab1_layout.setContentsMargins(10,10,100,100)
-        # tab1_layout.setSizeConstraint(100)
         self.tab1.setLayout(tab1_layout)
 
-    def create_group_open_from(self, channel_id):
+    def create_group_open_from(self):
         group_box_browse = QtWidgets.QGroupBox("Open from")
         group_box_browse_layout = QtWidgets.QHBoxLayout()
 
@@ -344,7 +337,7 @@ class MEA_app(QtWidgets.QMainWindow):
         browse_text_box.setDisabled(True)
         browse = QtWidgets.QPushButton(self)
         browse.setText("Browse file")
-        browse.clicked.connect(lambda x: self.getfiles(browse_text_box,channel_id))
+        browse.clicked.connect(lambda x: self.getfiles(browse_text_box))
 
         group_box_browse_layout.addWidget(browse_text_box)
         group_box_browse_layout.addWidget(browse)
@@ -504,7 +497,7 @@ class MEA_app(QtWidgets.QMainWindow):
             self.error_popup(fourier_error_msg, "Plot Error")
     
     def plot_spike(self):
-        analog_stream_path = self.browse_text_box_tab2.text()
+        analog_stream_path = self.browse_text_box_tab1.text()
         channel_id = self._check_value(self.channel_id_tab2.currentText(), None)
         pre = self._check_value(self.extract_pre_tab2.text(), 0)
         post = self._check_value(self.extract_post_tab2.text(), None)
@@ -540,7 +533,7 @@ class MEA_app(QtWidgets.QMainWindow):
             self.error_popup(fourier_error_msg, "Plot Error")
 
     def plot_stimulus(self):
-        analog_stream_path = self.browse_text_box_tab3.text()
+        analog_stream_path = self.browse_text_box_tab1.text()
         channel_id = self._check_value(self.channel_id_tab3.currentText(), None)
         pre = self._check_value(self.extract_pre_tab3.text(), 0)
         post = self._check_value(self.extract_post_tab3.text(), None)
@@ -594,7 +587,7 @@ class MEA_app(QtWidgets.QMainWindow):
             self.info_popup("Data created successfully","Extract success")
 
     def save_spike(self):
-        analog_stream_path = self.browse_text_box_tab2.text()
+        analog_stream_path = self.browse_text_box_tab1.text()
         channel_id = self._check_value(self.channel_id_tab2.currentText(), None)
         threshold_from = self._check_value(self.threshold_from_tab2.text(), None)
         threshold_to = self._check_value(self.threshold_to_tab2.text(), None)
@@ -616,7 +609,7 @@ class MEA_app(QtWidgets.QMainWindow):
             self.info_popup("Data created successfully", "Extract success")
 
     def save_stimulus(self):
-        analog_stream_path = self.browse_text_box_tab3.text()
+        analog_stream_path = self.browse_text_box_tab1.text()
         channel_id = self._check_value(self.channel_id_tab3.currentText(), None)
         threshold_from = self._check_value(self.threshold_from_tab3.text(), None)
         dead_time = self._check_value(self.dead_time_tab3.text(), None)
@@ -636,7 +629,7 @@ class MEA_app(QtWidgets.QMainWindow):
             self.info_popup("Data created successfully", "Extract success")
 
 
-    def getfiles(self, text_box, channel_id):
+    def getfiles(self, text_box):
         fileName, _ = QtWidgets.QFileDialog.getOpenFileName(self, 'Open File')
         text_box.setText(fileName)
         error_message, message = get_all_channel_ids(fileName)
@@ -646,9 +639,10 @@ class MEA_app(QtWidgets.QMainWindow):
             return
 
         message.insert(0,"all")
-        channel_id.clear()
-        channel_id.addItems(message)
-        channel_id.setStyleSheet("combobox-popup: 0")
+        for channel_id in [self.channel_id_tab1, self.channel_id_tab2, self.channel_id_tab3]:
+            channel_id.clear()
+            channel_id.addItems(message)
+            channel_id.setStyleSheet("combobox-popup: 0")
    
     def check_plotes_visibility(self, tab_is_plot_visible, tab_canvas, plot_idx, value):
         axes = tab_canvas.figure.get_axes()
