@@ -15,9 +15,10 @@ font = {'family' : 'normal',
         'size'   : 8}
 matplotlib.rc('font', **font)
 import pandas as pd
-
-
 from functools import partial
+
+GROUP_BOX_HEIGHT = 58
+GROUP_BOX_WIDTH = 250
 
 class MEA_app(QtWidgets.QMainWindow):
 
@@ -83,7 +84,7 @@ class MEA_app(QtWidgets.QMainWindow):
         self.extract_btn_tab3.clicked.connect(self.save_stimulus)
 
         plot_file_btn = QtWidgets.QPushButton(self)
-        plot_file_btn.setFixedSize(235,35)
+        plot_file_btn.setFixedSize(GROUP_BOX_WIDTH,35)
         plot_file_btn.setText("Plot Stimulus")
         plot_file_btn.clicked.connect(self.plot_stimulus)  
 
@@ -122,11 +123,15 @@ class MEA_app(QtWidgets.QMainWindow):
         group_box_from_to.setChecked(False)
         group_box_from_to.toggled.connect(lambda : self.clear_qlines(self.extract_from_tab2, self.extract_to_tab2))
 
+        group_box_burst = self.create_group_burst()
+
+        group_box_bin = self.create_group_bins()
+
         group_box_extract, self.extract_text_box_tab2, self.extract_btn_tab2 = self.create_group_extract() 
         self.extract_btn_tab2.clicked.connect(self.save_spike)
 
         plot_file_btn = QtWidgets.QPushButton(self)
-        plot_file_btn.setFixedSize(235,35)
+        plot_file_btn.setFixedSize(GROUP_BOX_WIDTH,35)
         plot_file_btn.setText("Plot Spike")
         plot_file_btn.clicked.connect(self.plot_spike)  
         
@@ -144,9 +149,11 @@ class MEA_app(QtWidgets.QMainWindow):
         tab2_layout.addWidget(group_box_threshold_tab2,4,0)
         tab2_layout.addWidget(group_box_filter,5,0)
         tab2_layout.addWidget(plot_file_btn,6,0)
-        tab2_layout.setRowStretch(7,0)
-        tab2_layout.addWidget(group_box_extract,8,0)
-        tab2_layout.addWidget(plot_group_box,0,2,9,1)
+        tab2_layout.addWidget(group_box_burst,7,0)
+        tab2_layout.addWidget(group_box_bin,8,0)
+        tab2_layout.setRowStretch(9,0)
+        tab2_layout.addWidget(group_box_extract,10,0)
+        tab2_layout.addWidget(plot_group_box,0,2,11,1)
         self.tab2.setLayout(tab2_layout)
 
     def create_group_select_time_range_tab2(self):
@@ -178,9 +185,88 @@ class MEA_app(QtWidgets.QMainWindow):
         group_box_pre_post_layout.addWidget(dead_time_label)
         group_box_pre_post_layout.addWidget(dead_time_tab2)
         group_box_pre_post.setLayout(group_box_pre_post_layout)
-        group_box_pre_post.setFixedSize(235,60)
+        group_box_pre_post.setFixedSize(GROUP_BOX_WIDTH,GROUP_BOX_HEIGHT)
         group_box_pre_post.setStatusTip("Choose particular time (second)")
         return group_box_pre_post, extract_pre_tab2, extract_post_tab2, dead_time_tab2 
+
+    def create_group_burst(self):
+        group_box_burst = QtWidgets.QGroupBox("Select Burst Parameters")
+        group_box_burst_layout = QtWidgets.QGridLayout()
+        group_box_burst.setCheckable(True)
+        group_box_burst.setChecked(False)
+
+        max_start = QtWidgets.QLineEdit(self)
+        max_start.setFixedWidth(35)
+        max_start.setStatusTip("Max. Interval to start burst (ms)")
+        max_start_label = QtWidgets.QLabel(self)
+        max_start_label.setText("Max: start")
+        max_start_label.setFont(QtGui.QFont('Arial', 7))
+
+        max_interval = QtWidgets.QLineEdit(self)
+        max_interval.setFixedWidth(35)
+        max_interval.setStatusTip("Max. Interval ro end burst (ms)")
+        max_interval_label = QtWidgets.QLabel(self)
+        max_interval_label.setText("end")
+        max_interval_label.setFont(QtGui.QFont('Arial', 7))
+
+        min_interval = QtWidgets.QLineEdit(self)
+        min_interval.setFixedWidth(35)
+        min_interval.setStatusTip("Min. Interval between bursts (ms)")
+        min_interval_label = QtWidgets.QLabel(self)
+        min_interval_label.setText("Min: betw.")
+        min_interval_label.setFont(QtGui.QFont('Arial', 7))
+
+        min_duration = QtWidgets.QLineEdit(self)
+        min_duration.setFixedWidth(35)
+        min_duration.setStatusTip("Min. duration of bursts (ms)")
+        min_duration_label = QtWidgets.QLabel(self)
+        min_duration_label.setText("dur.")
+        min_duration_label.setFont(QtGui.QFont('Arial', 7))
+        
+        min_number = QtWidgets.QLineEdit(self)
+        min_number.setFixedWidth(35)
+        min_number.setStatusTip("Min number of spikes")
+        min_number_label = QtWidgets.QLabel(self)
+        min_number_label.setText("numb.")
+        min_number_label.setFont(QtGui.QFont('Arial', 7))
+
+        group_box_burst_layout.addWidget(max_start_label,0,0)
+        group_box_burst_layout.addWidget(max_start,0,1)
+        group_box_burst_layout.addWidget(max_interval_label,0,2)
+        group_box_burst_layout.addWidget(max_interval,0,3)
+        group_box_burst_layout.addWidget(min_interval_label,1,0)
+        group_box_burst_layout.addWidget(min_interval,1,1)
+        group_box_burst_layout.addWidget(min_duration_label,1,2)
+        group_box_burst_layout.addWidget(min_duration,1,3)
+        group_box_burst_layout.addWidget(min_number_label,1,4)
+        group_box_burst_layout.addWidget(min_number,1,5)
+        group_box_burst.setLayout(group_box_burst_layout)
+        group_box_burst.setFixedSize(GROUP_BOX_WIDTH,80)   
+        return group_box_burst
+
+    def create_group_bins(self):
+        group_box_bin = QtWidgets.QGroupBox("Select Bin")
+        group_box_bin_layout = QtWidgets.QHBoxLayout()
+        group_box_bin.setCheckable(True)
+        group_box_bin.setChecked(False)
+
+        bin_time = QtWidgets.QLineEdit(self)
+        bin_time.setFixedWidth(35)
+        bin_time.setStatusTip("Select Bin time")
+        bin_time_label = QtWidgets.QLabel(self)
+        bin_time_label.setText("Bin time")
+
+        comboBox = QtWidgets.QComboBox(self)
+        comboBox.addItems(["ms","s","min"])
+        comboBox.setCurrentIndex(1) 
+        comboBox.setFixedWidth(40)
+
+        group_box_bin_layout.addWidget(bin_time_label)
+        group_box_bin_layout.addWidget(bin_time)
+        group_box_bin_layout.addWidget(comboBox)
+        group_box_bin.setLayout(group_box_bin_layout)
+        group_box_bin.setFixedSize(GROUP_BOX_WIDTH,GROUP_BOX_HEIGHT)
+        return group_box_bin 
 
     def create_group_threshold(self):
         group_box_threshold = QtWidgets.QGroupBox("Select Threshold")
@@ -205,7 +291,7 @@ class MEA_app(QtWidgets.QMainWindow):
         group_box_threshold_layout.addWidget(threshold_to_label)
         group_box_threshold_layout.addWidget(threshold_to)
         group_box_threshold.setLayout(group_box_threshold_layout)
-        group_box_threshold.setFixedSize(235,60)   
+        group_box_threshold.setFixedSize(GROUP_BOX_WIDTH,GROUP_BOX_HEIGHT)   
         return group_box_threshold, threshold_from, threshold_to
 
     def create_tab1(self):
@@ -217,12 +303,12 @@ class MEA_app(QtWidgets.QMainWindow):
         group_box_from_to, self.extract_from_tab1, self.extract_to_tab1 = self.create_group_select_time_range_tab1()
 
         plot_file_btn = QtWidgets.QPushButton(self)
-        plot_file_btn.setFixedSize(235,35)
+        plot_file_btn.setFixedSize(GROUP_BOX_WIDTH,35)
         plot_file_btn.setText("Plot Waveform")
         plot_file_btn.clicked.connect(self.plot_waveform)  
 
         space_between_plotbtn_extract = QtWidgets.QWidget()
-        space_between_plotbtn_extract.setFixedSize(235,50)  
+        space_between_plotbtn_extract.setFixedSize(GROUP_BOX_WIDTH,50)  
 
         group_box_filter, self.filter_low_tab1, self.filter_high_tab1 = self.create_group_filter()  
         group_box_filter.toggled.connect(lambda : self.clear_qlines(self.filter_low_tab1,self.filter_high_tab1))
@@ -263,7 +349,7 @@ class MEA_app(QtWidgets.QMainWindow):
         group_box_browse_layout.addWidget(browse_text_box)
         group_box_browse_layout.addWidget(browse)
         group_box_browse.setLayout(group_box_browse_layout)
-        group_box_browse.setFixedSize(235,60)
+        group_box_browse.setFixedSize(GROUP_BOX_WIDTH,GROUP_BOX_HEIGHT)
         group_box_browse.setStatusTip("Choose hf5 format file to open")
         return group_box_browse, browse_text_box
         
@@ -286,7 +372,7 @@ class MEA_app(QtWidgets.QMainWindow):
         group_box_from_to_layout.addWidget(extract_to_label)
         group_box_from_to_layout.addWidget(extract_to)
         group_box_from_to.setLayout(group_box_from_to_layout)
-        group_box_from_to.setFixedSize(235,60)
+        group_box_from_to.setFixedSize(GROUP_BOX_WIDTH,GROUP_BOX_HEIGHT)
         group_box_from_to.setStatusTip("Choose particular time (second), leave empty for full time")
         return group_box_from_to, extract_from, extract_to
 
@@ -304,7 +390,7 @@ class MEA_app(QtWidgets.QMainWindow):
         group_box_channel_stream_layout.addWidget(channel_id)
         group_box_channel_stream_layout.addStretch(1)
         group_box_channel_stream.setLayout(group_box_channel_stream_layout)
-        group_box_channel_stream.setFixedSize(235,60)
+        group_box_channel_stream.setFixedSize(GROUP_BOX_WIDTH,GROUP_BOX_HEIGHT)
         return group_box_channel_stream, channel_id
 
     def create_group_filter(self):
@@ -328,7 +414,7 @@ class MEA_app(QtWidgets.QMainWindow):
         group_box_filter_layout.addWidget(filter_low_label)
         group_box_filter_layout.addWidget(filter_low)
         group_box_filter.setLayout(group_box_filter_layout)
-        group_box_filter.setFixedSize(235,60)
+        group_box_filter.setFixedSize(GROUP_BOX_WIDTH,GROUP_BOX_HEIGHT)
         group_box_filter.setStatusTip("Choose filter (Hz), low high or band pass")
         return group_box_filter, filter_low, filter_high
         
@@ -344,7 +430,7 @@ class MEA_app(QtWidgets.QMainWindow):
         group_box_extract_layout.addWidget(extract_text_box)
         group_box_extract_layout.addWidget(extract)
         group_box_extract.setLayout(group_box_extract_layout)
-        group_box_extract.setFixedSize(235,60)
+        group_box_extract.setFixedSize(GROUP_BOX_WIDTH,GROUP_BOX_HEIGHT)
         group_box_extract.setStatusTip("Choose path to save csv file")
         return group_box_extract, extract_text_box, extract
 
@@ -394,6 +480,7 @@ class MEA_app(QtWidgets.QMainWindow):
         plot_group_box.setLayout(layout)
         return plot_group_box, canvas, check_boxes
   
+
     def plot_waveform(self):
         analog_stream_path = self.browse_text_box_tab1.text()
         channel_id = self._check_value(self.channel_id_tab1.currentText(), None)
@@ -483,7 +570,8 @@ class MEA_app(QtWidgets.QMainWindow):
 
         if fourier:
             self.error_popup(fourier_error_msg, "Plot Error")
-     
+
+
     def save_waveform(self):
         analog_stream_path = self.browse_text_box_tab1.text()
         channel_id = self._check_value(self.channel_id_tab1.currentText(),None)
@@ -547,6 +635,7 @@ class MEA_app(QtWidgets.QMainWindow):
         else:
             self.info_popup("Data created successfully", "Extract success")
 
+
     def getfiles(self, text_box, channel_id):
         fileName, _ = QtWidgets.QFileDialog.getOpenFileName(self, 'Open File')
         text_box.setText(fileName)
@@ -561,10 +650,10 @@ class MEA_app(QtWidgets.QMainWindow):
         channel_id.addItems(message)
         channel_id.setStyleSheet("combobox-popup: 0")
    
-    def check_plotes_visibility(self, tab_is_plot_visible, tab_canvas, plot_idx, k):
+    def check_plotes_visibility(self, tab_is_plot_visible, tab_canvas, plot_idx, value):
         axes = tab_canvas.figure.get_axes()
-        tab_is_plot_visible[plot_idx] = k
-        axes[plot_idx].set_visible(k)
+        tab_is_plot_visible[plot_idx] = value
+        axes[plot_idx].set_visible(value)
 
 
         num_visible_plots = tab_is_plot_visible.count(2)
