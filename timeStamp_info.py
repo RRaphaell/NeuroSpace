@@ -34,7 +34,7 @@ def _get_signal_cutouts(signal, fs, spikes_idx, pre, post):
         if index-pre_idx >= 0 and index+post_idx <= signal.shape[0]:
             cutout = signal[(index-pre_idx):(index+post_idx)]
             cutouts.append(cutout)
-    if(len(cutouts)>0) :
+    if (len(cutouts)>0) :
         return np.stack(cutouts)
     return cutouts
 
@@ -60,6 +60,7 @@ def _detect_threshold_crossings_spikes(signal, fs, threshold_from, threshold_to,
       threshold_to=np.min(signal)
     threshold_crossings = np.diff(((signal <= threshold_from) & (signal>=threshold_to)).astype(int) > 0).nonzero()[0]
     distance_sufficient = np.insert(np.diff(threshold_crossings) >= dead_time_idx, 0, True)
+
     while not np.all(distance_sufficient):
         # repeatedly remove all threshold crossings that violate the dead_time
         threshold_crossings = threshold_crossings[distance_sufficient]
@@ -96,12 +97,12 @@ def _path_valid(file_path):
 
 def _get_proper_threshold (signal, threshold_from, is_spike) :
     if not threshold_from:
-        if is_spike : 
+        if is_spike: 
             noise_std= np.std(signal)
             noise_mad = np.median(np.absolute(signal))
-            if noise_mad<= noise_std:
+            if noise_mad <= noise_std:
                 threshold_from = -5 * noise_mad
-            else :
+            else:
                  threshold_from = -5 * noise_std
         else: 
             threshold_from=-100/1000000       
@@ -119,51 +120,77 @@ def _get_pca_labels(cutouts, n_components):
 def _get_signal_time(analog_stream, channel_id, from_in_s, to_in_s):
     channel_info = analog_stream.channel_infos[channel_id]
     sampling_frequency = channel_info.sampling_frequency.magnitude  
-    from_idx ,to_idx = _check_time_range(analog_stream,sampling_frequency,from_in_s,to_in_s)  # get start and end index       
+    from_idx ,to_idx = _check_time_range(analog_stream,sampling_frequency,from_in_s,to_in_s)  # get start and end index    
     time = analog_stream.get_channel_sample_timestamps(channel_id, from_idx, to_idx)
+    signal = analog_stream.get_channel_in_range(channel_id, from_idx, to_idx)
     scale_factor_for_second = Q_(1,time[1]).to(ureg.s).magnitude
     time_in_sec = time[0] * scale_factor_for_second
-    signal = analog_stream.get_channel_in_range(channel_id, from_idx, to_idx)
     scale_factor_for_uV = Q_(1,signal[1]).to(ureg.uV).magnitude
     signal_in_uV = signal[0] * scale_factor_for_uV
     return signal_in_uV, time_in_sec
 
 def _signal_average_around_stimulus(signal, stimulus_df, pre, post, fs):
-    temp=pd.DataFrame()
+    temp = pd.DataFrame()
     pre_idx = int(pre * fs)
     post_idx = int(post * fs)
+
     for i in range(0,len(stimulus_df)) :
-        index1=stimulus_df["start"][i]
-        index2=stimulus_df["end"][i]
+        index1 = stimulus_df["start"][i]
+        index2 = stimulus_df["end"][i]
         if index1-pre_idx >= 0 and index2+post_idx <= signal.shape[0]:
             oneWaveform = np.concatenate((signal[(index1-pre_idx):index1],signal[index2:(index2+post_idx)]),axis=None) 
         if i==0:
             waveform_df=pd.DataFrame(oneWaveform)
             temp.append(waveform_df)
         else:
-            waveform_df[0]+=oneWaveform
+            waveform_df[0] += oneWaveform
     return waveform_df/(len(stimulus_df))*1000000
 
 def _get_spike_info(electrode_stream, channel_id, signal, threshold_from, threshold_to, dead_time):
     fs = int(electrode_stream.channel_infos[channel_id].sampling_frequency.magnitude)
     crossings = _detect_threshold_crossings_spikes(signal, fs, threshold_from, threshold_to, dead_time) # dead time of 3 ms
     spks = _align_to_minimum(signal, fs, crossings, 0.002) # search range 2 ms
-    return fs, crossings, spks
+    return fs, spks
 
 def _detect_threshold_crossings_stimulus(signal, fs, threshold, dead_time):
     dead_time_idx = dead_time * fs
     threshold_crossings = np.diff((signal <= threshold)).nonzero()[0]
     distance_sufficient = np.insert(np.diff(threshold_crossings) >= dead_time_idx, 0, True)
-    for i in range (1,len(distance_sufficient)-1):
+    last_stimulus_index = threshold_crossings[-1]
+    
+    for i in range(1,len(distance_sufficient)):
       if distance_sufficient[i]:
-        distance_sufficient[i-1]=True
+        distance_sufficient[i-1] = True
+
     while not np.all(distance_sufficient):
         threshold_crossings = threshold_crossings[distance_sufficient]
         distance_sufficient = np.insert(np.diff(threshold_crossings) >= dead_time_idx, 0, True)
-        for i in range (1,len(distance_sufficient)-1):
+        for i in range (1,len(distance_sufficient)):
           if distance_sufficient[i]:
-            distance_sufficient[i-1]=True
+            distance_sufficient[i-1] = True
+    
+    if len(threshold_crossings)%2 == 1:
+        threshold_crossings = np.insert(threshold_crossings,len(threshold_crossings),last_stimulus_index)
     return threshold_crossings
+
+def _count_spike_in_bins(spike_in_s, bin_width):
+    temp_bin = bin_width
+    spike_len_in_bins = []
+    
+    spike_idx = 0
+    count_spike = 0
+    while spike_idx < len(spike_in_s):
+        if spike_in_s[spike_idx] < temp_bin:
+            count_spike += 1
+            spike_idx += 1
+        else:
+            spike_len_in_bins.append(count_spike)
+            count_spike = 0
+            temp_bin += bin_width
+
+    if count_spike != 0:
+        spike_len_in_bins.append(count_spike)
+    return spike_len_in_bins
 
 
 # main functions
@@ -204,15 +231,19 @@ def plot_all_spikes_together(file_path, channel_id, n_components, pre, post, dea
     electrode_stream = _file.recordings[0].analog_streams[0]
     if channel_id not in electrode_stream.channel_infos:
         return 1, "Channel ID is incorrect"
+
     if n_components == None:
         n_components = 1
+
     signal_in_uV, time_in_sec = _get_signal_time(electrode_stream, channel_id, 0, None)
     if (high_pass!=None) or (low_pass!=None):
         signal_in_uV = _filter_base_freqeuncy(signal_in_uV, time_in_sec, high_pass, low_pass)
-    threshold_from = _get_proper_threshold(signal_in_uV, threshold_from,True)
-    fs, crossings, spks = _get_spike_info(electrode_stream, channel_id, signal_in_uV, threshold_from, threshold_to, dead_time)
+
+    threshold_from = _get_proper_threshold(signal_in_uV, threshold_from, True)
+    fs, spks = _get_spike_info(electrode_stream, channel_id, signal_in_uV, threshold_from, threshold_to, dead_time)
     if (len(spks)<=1):
         return 1, "spike filter is not correct"
+
     cutouts = _get_signal_cutouts(signal_in_uV, fs, spks, pre, post)
     labels=_get_pca_labels(cutouts, n_components)
     
@@ -235,9 +266,10 @@ def plot_stimulus_average(file_path, channel_id, dead_time, stimulus_threshold, 
     electrode_stream = _file.recordings[0].analog_streams[0]
     if channel_id not in electrode_stream.channel_infos:
         return 1, "Channel ID is incorrect"  
+
     _channel_info = electrode_stream.channel_infos[0]
     fs = _channel_info.sampling_frequency.magnitude
-    signal=electrode_stream.get_channel_in_range(channel_id, 0, electrode_stream.channel_data.shape[1])[0]
+    signal = electrode_stream.get_channel_in_range(channel_id, 0, electrode_stream.channel_data.shape[1])[0]
 
     if not stimulus_threshold:
         stimulus_threshold = -0.0001
@@ -267,7 +299,8 @@ def plot_stimulus_average(file_path, channel_id, dead_time, stimulus_threshold, 
     canvas.draw()
     return 0,""
 
-def plot_signal_with_spikes_or_stimulus(file_path, channel_id, canvas,suplot_num, is_spike, from_in_s, to_in_s, threshold_from, threshold_to,dead_time):
+def plot_signal_with_spikes_or_stimulus(file_path, channel_id, canvas, suplot_num, is_spike, from_in_s, to_in_s, 
+                                        threshold_from, threshold_to, dead_time):
     _file = _path_valid(file_path)
     if not _file:
         return 1, "File path is incorrect"
@@ -283,7 +316,7 @@ def plot_signal_with_spikes_or_stimulus(file_path, channel_id, canvas,suplot_num
     signal = signal_in_uV/1000000 # need this to calculate stimulus or spikes
     threshold_from = _get_proper_threshold(signal, threshold_from,is_spike)
     if is_spike:
-        fs, crossings, spks = _get_spike_info(electrode_stream, channel_id, signal, threshold_from, threshold_to, dead_time)
+        fs, spks = _get_spike_info(electrode_stream, channel_id, signal, threshold_from, threshold_to, dead_time)
     else :
         fs = int(electrode_stream.channel_infos[channel_id].sampling_frequency.magnitude)
         spks = _detect_threshold_crossings_stimulus(signal,fs,threshold_from,dead_time)
@@ -315,7 +348,7 @@ def plot_signal_frequencies(file_path, channel_id, canvas, suplot_num, from_in_s
         return 1, "Channel ID is incorrect"   
     
     signal_in_uV, time_in_sec = _get_signal_time(electrode_stream, channel_id, from_in_s, to_in_s)
-    X=fft(signal_in_uV)
+    X = fft(signal_in_uV)
     X[(len(time_in_sec)//2+1):]=0
 
     axes = canvas.figure.get_axes()
@@ -328,10 +361,12 @@ def plot_signal_frequencies(file_path, channel_id, canvas, suplot_num, from_in_s
     canvas.draw()
     return 0,""
 
-def extract_waveform(analog_stream_path, file_save_path, stream_id = 0, channel_id=None, from_in_s=0, to_in_s=None):   
+def extract_waveform(analog_stream_path, file_save_path, stream_id=0, channel_id=None, from_in_s=0, to_in_s=None):   
     _file = _path_valid(analog_stream_path)
     if not _file:
         return 1, "File path is incorrect"
+
+    # TODO
     analog_stream = _file.recordings[0].analog_streams[stream_id]
     _channel_info = analog_stream.channel_infos[0]
     sampling_frequency = _channel_info.sampling_frequency.magnitude
@@ -340,16 +375,18 @@ def extract_waveform(analog_stream_path, file_save_path, stream_id = 0, channel_
     scale_factor_for_second = Q_(1,time[1]).to(ureg.s).magnitude  # scale time to seconds
     time_in_sec = time[0] * scale_factor_for_second
     df=pd.DataFrame()
-    df["time_in_sec"]=time_in_sec
-    if(channel_id==None):
+    df["time_in_sec"] = time_in_sec
+
+    if (channel_id==None):
         for channel in analog_stream.channel_infos:       
-            df["signal for "+str(channel)]=_get_specific_channel_signal(analog_stream,channel,from_idx,to_idx)
+            df["signal for "+str(channel)] = _get_specific_channel_signal(analog_stream,channel,from_idx,to_idx)
     else:
         if channel_id in analog_stream.channel_infos:
-            df["signal for "+str(channel_id)]=_get_specific_channel_signal(analog_stream,channel_id,from_idx,to_idx)
+            df["signal for "+str(channel_id)] = _get_specific_channel_signal(analog_stream,channel_id,from_idx,to_idx)
         else:
             return 1, "Wrong channel_id !"
-    df.to_csv(file_save_path,index=False)
+
+    df.to_csv(file_save_path+".csv", index=False)
     return 0, ""
 
 def extract_stimulus(analog_stream_path, file_save_path, channel_id, stimulus_threshold, dead_time):
@@ -360,19 +397,25 @@ def extract_stimulus(analog_stream_path, file_save_path, channel_id, stimulus_th
     analog_stream = _file.recordings[0].analog_streams[0]
     _channel_info = analog_stream.channel_infos[0]
     fs = _channel_info.sampling_frequency.magnitude
-    signal=analog_stream.get_channel_in_range(channel_id, 0, analog_stream.channel_data.shape[1])[0]
-    threshold_from = _get_proper_threshold(signal, threshold_from,False)
-    thresholds=_detect_threshold_crossings_stimulus(signal, fs, stimulus_threshold, dead_time)/fs
+    signal = analog_stream.get_channel_in_range(channel_id, 0, analog_stream.channel_data.shape[1])[0]
+    threshold_from = _get_proper_threshold(signal, stimulus_threshold, False)
+    thresholds = _detect_threshold_crossings_stimulus(signal, fs, threshold_from, dead_time)/fs
     stimulus_in_second_df = pd.DataFrame(columns=["start","end"])
-    stimulus_in_second_df["start"] = [thresholds[i] for i in range(0,len(thresholds)) if i%2==0]
-    stimulus_in_second_df["end"] = [thresholds[i] for i in range(0,len(thresholds)) if i%2==1]
-    stimulus_in_second_df.to_csv(file_save_path, index = False)
+    stimulus_in_second_df["start"] = [thresholds[i] for i in range(0,len(thresholds),2)]
+    stimulus_in_second_df["end"] = [thresholds[i] for i in range(1,len(thresholds),2)]
+    stimulus_in_second_df["stimulus_time"] = (stimulus_in_second_df["end"] - stimulus_in_second_df["start"])
+    stimulus_in_second_df["stimulus_number"] = np.ceil(stimulus_in_second_df["stimulus_time"] / 0.02)
+    stimulus_in_second_df["frequency"] = stimulus_in_second_df["stimulus_number"] / stimulus_in_second_df["stimulus_time"]
+    stimulus_in_second_df.to_csv(file_save_path+".csv", index = False)
     return 0, ""
 
-def extract_spike(analog_stream_path, file_save_path, channel_id, threshold_from, threshold_to, dead_time):
+def extract_spike(analog_stream_path, file_save_path, channel_id, threshold_from, threshold_to, dead_time, bin_width):
     _file = _path_valid(analog_stream_path)
     if not _file:
         return 1, "File path is incorrect"
+    
+    if not  isinstance(bin_width, (int, float)):
+        return 1, "bin width is incorrect"
 
     analog_stream = _file.recordings[0].analog_streams[0]
     if channel_id not in analog_stream.channel_infos:
@@ -380,14 +423,20 @@ def extract_spike(analog_stream_path, file_save_path, channel_id, threshold_from
 
     signal = analog_stream.get_channel_in_range(channel_id, 0, analog_stream.channel_data.shape[1])[0]
 
-    threshold_from = _get_proper_threshold(signal, threshold_from,True)
-    fs, crossings, spks = _get_spike_info(analog_stream, channel_id, signal, threshold_from, threshold_to, dead_time)
+    threshold_from = _get_proper_threshold(signal, threshold_from, True)
+    fs, spks = _get_spike_info(analog_stream, channel_id, signal, threshold_from, threshold_to, dead_time)
     spikes_in_second=[]
     for spike in spks:
         temp_time = analog_stream.get_channel_sample_timestamps(channel_id, spike, spike)[0][0]/1000000
         spikes_in_second.append(temp_time)
-    spikes_in_second_df = pd.DataFrame(spikes_in_second,columns={"spike_time"})
-    spikes_in_second_df.to_csv(file_save_path, index=False)
+
+    spike_in_bins = _count_spike_in_bins(spikes_in_second, bin_width)
+    bin_ranges = [bin_width*i for i in list(range(len(spike_in_bins)))]
+    spikes_in_bin_df = pd.DataFrame({"bin": bin_ranges, "spike_num": spike_in_bins})
+    spikes_in_bin_df.to_csv(file_save_path+"_bin.csv", index=False)
+
+    spikes_in_second_df = pd.DataFrame(spikes_in_second, columns={"spike_time"})
+    spikes_in_second_df.to_csv(file_save_path+".csv", index=False)
     return 0, ""
 
 def get_all_channel_ids(file_path):
