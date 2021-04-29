@@ -173,6 +173,25 @@ def _detect_threshold_crossings_stimulus(signal, fs, threshold, dead_time):
         threshold_crossings = np.insert(threshold_crossings,len(threshold_crossings),last_stimulus_index)
     return threshold_crossings
 
+def _count_spike_in_bins(spike_in_s, bin_width):
+    temp_bin = bin_width
+    spike_len_in_bins = []
+    
+    spike_idx = 0
+    count_spike = 0
+    while spike_idx < len(spike_in_s):
+        if spike_in_s[spike_idx] < temp_bin:
+            count_spike += 1
+            spike_idx += 1
+        else:
+            spike_len_in_bins.append(count_spike)
+            count_spike = 0
+            temp_bin += bin_width
+
+    if count_spike != 0:
+        spike_len_in_bins.append(count_spike)
+    return spike_len_in_bins
+
 
 # main functions
 
@@ -367,7 +386,7 @@ def extract_waveform(analog_stream_path, file_save_path, stream_id=0, channel_id
         else:
             return 1, "Wrong channel_id !"
 
-    df.to_csv(file_save_path,index=False)
+    df.to_csv(file_save_path+".csv", index=False)
     return 0, ""
 
 def extract_stimulus(analog_stream_path, file_save_path, channel_id, stimulus_threshold, dead_time):
@@ -387,13 +406,16 @@ def extract_stimulus(analog_stream_path, file_save_path, channel_id, stimulus_th
     stimulus_in_second_df["stimulus_time"] = (stimulus_in_second_df["end"] - stimulus_in_second_df["start"])
     stimulus_in_second_df["stimulus_number"] = np.ceil(stimulus_in_second_df["stimulus_time"] / 0.02)
     stimulus_in_second_df["frequency"] = stimulus_in_second_df["stimulus_number"] / stimulus_in_second_df["stimulus_time"]
-    stimulus_in_second_df.to_csv(file_save_path, index = False)
+    stimulus_in_second_df.to_csv(file_save_path+".csv", index = False)
     return 0, ""
 
-def extract_spike(analog_stream_path, file_save_path, channel_id, threshold_from, threshold_to, dead_time):
+def extract_spike(analog_stream_path, file_save_path, channel_id, threshold_from, threshold_to, dead_time, bin_width):
     _file = _path_valid(analog_stream_path)
     if not _file:
         return 1, "File path is incorrect"
+    
+    if not  isinstance(bin_width, (int, float)):
+        return 1, "bin width is incorrect"
 
     analog_stream = _file.recordings[0].analog_streams[0]
     if channel_id not in analog_stream.channel_infos:
@@ -407,8 +429,14 @@ def extract_spike(analog_stream_path, file_save_path, channel_id, threshold_from
     for spike in spks:
         temp_time = analog_stream.get_channel_sample_timestamps(channel_id, spike, spike)[0][0]/1000000
         spikes_in_second.append(temp_time)
+
+    spike_in_bins = _count_spike_in_bins(spikes_in_second, bin_width)
+    bin_ranges = [bin_width*i for i in list(range(len(spike_in_bins)))]
+    spikes_in_bin_df = pd.DataFrame({"bin": bin_ranges, "spike_num": spike_in_bins})
+    spikes_in_bin_df.to_csv(file_save_path+"_bin.csv", index=False)
+
     spikes_in_second_df = pd.DataFrame(spikes_in_second, columns={"spike_time"})
-    spikes_in_second_df.to_csv(file_save_path, index=False)
+    spikes_in_second_df.to_csv(file_save_path+".csv", index=False)
     return 0, ""
 
 def get_all_channel_ids(file_path):

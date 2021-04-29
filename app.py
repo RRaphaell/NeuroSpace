@@ -5,17 +5,19 @@ from timeStamp_info import *
 import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib import style
-style.use('fivethirtyeight')
-matplotlib.use('Qt5Agg')
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.figure import Figure
-font = {'family' : 'normal',
+import pandas as pd
+from functools import partial
+
+style.use('fivethirtyeight')
+matplotlib.use('Qt5Agg')
+font = {'family' : 'Arial',
         'weight' : 'bold',
         'size'   : 8}
 matplotlib.rc('font', **font)
-import pandas as pd
-from functools import partial
+
 
 GROUP_BOX_HEIGHT = 58
 GROUP_BOX_WIDTH = 250
@@ -122,7 +124,7 @@ class MEA_app(QtWidgets.QMainWindow):
 
         group_box_burst = self.create_group_burst()
 
-        group_box_bin = self.create_group_bins()
+        group_box_bin, self.tab2_bin = self.create_group_bins()
 
         group_box_extract, self.extract_text_box_tab2, self.extract_btn_tab2 = self.create_group_extract() 
         self.extract_btn_tab2.clicked.connect(self.save_spike)
@@ -256,13 +258,14 @@ class MEA_app(QtWidgets.QMainWindow):
         comboBox.addItems(["ms","s","min"])
         comboBox.setCurrentIndex(1) 
         comboBox.setFixedWidth(40)
+        # comboBox.activated[str].connect(self.change_bin_time)
 
         group_box_bin_layout.addWidget(bin_time_label)
         group_box_bin_layout.addWidget(bin_time)
         group_box_bin_layout.addWidget(comboBox)
         group_box_bin.setLayout(group_box_bin_layout)
         group_box_bin.setFixedSize(GROUP_BOX_WIDTH,GROUP_BOX_HEIGHT)
-        return group_box_bin 
+        return group_box_bin, bin_time
 
     def create_group_threshold(self):
         group_box_threshold = QtWidgets.QGroupBox("Select Threshold")
@@ -592,6 +595,7 @@ class MEA_app(QtWidgets.QMainWindow):
         threshold_from = self._check_value(self.threshold_from_tab2.text(), None)
         threshold_to = self._check_value(self.threshold_to_tab2.text(), None)
         dead_time = self._check_value(self.dead_time_tab2.text(), None)
+        bin_width = self._check_value(self.tab2_bin.text(), None)
         
         if -1 in (channel_id, threshold_from, threshold_to, dead_time):
             self.error_popup("Please enter correct values", "Value Error")
@@ -601,7 +605,7 @@ class MEA_app(QtWidgets.QMainWindow):
         self.extract_text_box_tab2.setText(name)
         file_save_path = self.extract_text_box_tab2.text()
         
-        save_error, value = extract_spike(analog_stream_path, file_save_path, channel_id, threshold_from, threshold_to, dead_time)
+        save_error, value = extract_spike(analog_stream_path, file_save_path, channel_id, threshold_from, threshold_to, dead_time, bin_width)
         
         if save_error:
             self.error_popup(value, "Extract Error")
@@ -690,6 +694,9 @@ class MEA_app(QtWidgets.QMainWindow):
 
     def info_popup(self, txt, title_text):
         QtWidgets.QMessageBox.information(self,title_text,txt)
+
+    def change_style(self,text):
+        pass
 
     def clear_qlines(self, *args):
         for item in args:
