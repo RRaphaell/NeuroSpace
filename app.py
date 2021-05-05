@@ -71,6 +71,7 @@ class MEA_app(QtWidgets.QMainWindow):
         group_box_pre_post, self.extract_pre_tab3, self.extract_post_tab3, self.dead_time_tab3 = self.create_group_select_time_range_tab2()
 
         group_box_threshold_tab3, self.threshold_from_tab3, self.threshold_to_tab3 = self.create_group_threshold()
+        group_box_threshold_tab3.toggled.connect(lambda : self.clear_qlines(self.threshold_from_tab3, self.threshold_to_tab3))
         self.threshold_to_tab3.setDisabled(True)
 
         # group_box_filter, self.filter_low_tab3, self.filter_high_tab3 = self.create_group_filter() 
@@ -112,19 +113,22 @@ class MEA_app(QtWidgets.QMainWindow):
 
         group_box_channel_stream, self.channel_id_tab2 = self.create_group_select_id()
         group_box_pre_post, self.extract_pre_tab2, self.extract_post_tab2, self.dead_time_tab2 = self.create_group_select_time_range_tab2()
+        
         group_box_threshold_tab2, self.threshold_from_tab2, self.threshold_to_tab2 = self.create_group_threshold()
+        group_box_threshold_tab2.toggled.connect(lambda : self.clear_qlines(self.threshold_from_tab2, self.threshold_to_tab2))
         
         group_box_filter, self.filter_low_tab2, self.filter_high_tab2 = self.create_group_filter() 
         group_box_filter.toggled.connect(lambda : self.clear_qlines(self.filter_low_tab2, self.filter_high_tab2))
         
         group_box_from_to, self.extract_from_tab2, self.extract_to_tab2 = self.create_group_select_time_range_tab1()
-        group_box_from_to.setCheckable(True)
-        group_box_from_to.setChecked(False)
         group_box_from_to.toggled.connect(lambda : self.clear_qlines(self.extract_from_tab2, self.extract_to_tab2))
 
-        group_box_burst = self.create_group_burst()
+        group_box_burst, self.tab2_max_start, self.tab2_max_end, self.tab2_min_interval, self.tab2_min_duration, self.tab2_min_number = self.create_group_burst()
+        group_box_burst.toggled.connect(lambda : self.clear_qlines(self.tab2_max_start, self.tab2_max_end, self.tab2_min_interval, 
+                                                                    self.tab2_min_duration, self.tab2_min_number))
 
         group_box_bin, self.tab2_bin = self.create_group_bins()
+        group_box_bin.toggled.connect(lambda : self.clear_qlines(self.tab2_bin))
 
         group_box_extract, self.extract_text_box_tab2, self.extract_btn_tab2 = self.create_group_extract() 
         self.extract_btn_tab2.clicked.connect(self.save_spike)
@@ -200,12 +204,12 @@ class MEA_app(QtWidgets.QMainWindow):
         max_start_label.setText("Max: start")
         max_start_label.setFont(QtGui.QFont('Arial', 7))
 
-        max_interval = QtWidgets.QLineEdit(self)
-        max_interval.setFixedWidth(35)
-        max_interval.setStatusTip("Max. Interval ro end burst (ms)")
-        max_interval_label = QtWidgets.QLabel(self)
-        max_interval_label.setText("end")
-        max_interval_label.setFont(QtGui.QFont('Arial', 7))
+        max_end = QtWidgets.QLineEdit(self)
+        max_end.setFixedWidth(35)
+        max_end.setStatusTip("Max. Interval ro end burst (ms)")
+        max_end_label = QtWidgets.QLabel(self)
+        max_end_label.setText("end")
+        max_end_label.setFont(QtGui.QFont('Arial', 7))
 
         min_interval = QtWidgets.QLineEdit(self)
         min_interval.setFixedWidth(35)
@@ -230,8 +234,8 @@ class MEA_app(QtWidgets.QMainWindow):
 
         group_box_burst_layout.addWidget(max_start_label,0,0)
         group_box_burst_layout.addWidget(max_start,0,1)
-        group_box_burst_layout.addWidget(max_interval_label,0,2)
-        group_box_burst_layout.addWidget(max_interval,0,3)
+        group_box_burst_layout.addWidget(max_end_label,0,2)
+        group_box_burst_layout.addWidget(max_end,0,3)
         group_box_burst_layout.addWidget(min_interval_label,1,0)
         group_box_burst_layout.addWidget(min_interval,1,1)
         group_box_burst_layout.addWidget(min_duration_label,1,2)
@@ -240,7 +244,7 @@ class MEA_app(QtWidgets.QMainWindow):
         group_box_burst_layout.addWidget(min_number,1,5)
         group_box_burst.setLayout(group_box_burst_layout)
         group_box_burst.setFixedSize(GROUP_BOX_WIDTH,80)   
-        return group_box_burst
+        return group_box_burst, max_start, max_end, min_interval, min_duration, min_number
 
     def create_group_bins(self):
         group_box_bin = QtWidgets.QGroupBox("Select Bin")
@@ -352,6 +356,8 @@ class MEA_app(QtWidgets.QMainWindow):
     def create_group_select_time_range_tab1(self):
         group_box_from_to = QtWidgets.QGroupBox("Select time range")
         group_box_from_to_layout = QtWidgets.QHBoxLayout()
+        group_box_from_to.setCheckable(True)
+        group_box_from_to.setChecked(False)
 
         extract_from = QtWidgets.QLineEdit(self)
         extract_from.setFixedWidth(40)
@@ -513,16 +519,21 @@ class MEA_app(QtWidgets.QMainWindow):
         low_pass = self._check_value(self.filter_low_tab2.text(), None)
         threshold_from = self._check_value(self.threshold_from_tab2.text(), None)
         threshold_to = self._check_value(self.threshold_to_tab2.text(), None)
+        max_start = self._check_value(self.tab2_max_start.text(), None)
+        max_end = self._check_value(self.tab2_max_end.text(), None)
+        min_between = self._check_value(self.tab2_min_interval.text(), None)
+        min_duration = self._check_value(self.tab2_min_duration.text(), None)
+        min_number_spike = self._check_value(self.tab2_min_number.text(), None)
         
-        if -1 in (channel_id,pre,post,dead_time,comp_number,threshold_from,threshold_to):
+        if -1 in (channel_id,pre,post,dead_time,comp_number,threshold_from,threshold_to,max_start,max_end,min_between,min_duration,min_number_spike):
             self.error_popup("Please enter correct values", "Value Error")
             return
 
         spike_plot, spike_plot_error_msg = plot_all_spikes_together(analog_stream_path, channel_id, comp_number, pre, post, dead_time, spike_number,
                                                         self.tab2_canvas,0,from_in_s, to_in_s, high_pass, low_pass, threshold_from, threshold_to,)
         
-        spike_plot_dots, spike_plot_dots_error_msg = plot_signal_with_spikes_or_stimulus(analog_stream_path, channel_id, self.tab2_canvas, 1, True, 
-                                                                                        from_in_s, to_in_s, threshold_from, threshold_to, dead_time)
+        spike_plot_dots, spike_plot_dots_error_msg = plot_signal_with_spikes_or_stimulus(analog_stream_path, channel_id, self.tab2_canvas, 1, True, from_in_s, to_in_s, threshold_from, threshold_to, dead_time,
+                                                                                        max_start, max_end, min_between, min_duration, min_number_spike)
 
         fourier, fourier_error_msg = plot_signal_frequencies(analog_stream_path, channel_id, self.tab2_canvas, 2, from_in_s, to_in_s)
 
@@ -596,8 +607,14 @@ class MEA_app(QtWidgets.QMainWindow):
         threshold_to = self._check_value(self.threshold_to_tab2.text(), None)
         dead_time = self._check_value(self.dead_time_tab2.text(), None)
         bin_width = self._check_value(self.tab2_bin.text(), None)
+
+        max_start = self._check_value(self.tab2_max_start.text(), None)
+        max_end = self._check_value(self.tab2_max_end.text(), None)
+        min_between = self._check_value(self.tab2_min_interval.text(), None)
+        min_duration = self._check_value(self.tab2_min_duration.text(), None)
+        min_number_spike = self._check_value(self.tab2_min_number.text(), None)
         
-        if -1 in (channel_id, threshold_from, threshold_to, dead_time):
+        if -1 in (channel_id, threshold_from, threshold_to, dead_time, max_start, max_end, min_between, min_duration, min_number_spike):
             self.error_popup("Please enter correct values", "Value Error")
             return
         
@@ -605,8 +622,9 @@ class MEA_app(QtWidgets.QMainWindow):
         self.extract_text_box_tab2.setText(name)
         file_save_path = self.extract_text_box_tab2.text()
         
-        save_error, value = extract_spike(analog_stream_path, file_save_path, channel_id, threshold_from, threshold_to, dead_time, bin_width)
-        
+        save_error, value = extract_spike(analog_stream_path, file_save_path, channel_id, threshold_from, threshold_to, dead_time, bin_width,
+                                            max_start, max_end, min_between, min_duration, min_number_spike)
+
         if save_error:
             self.error_popup(value, "Extract Error")
         else:
@@ -617,8 +635,10 @@ class MEA_app(QtWidgets.QMainWindow):
         channel_id = self._check_value(self.channel_id_tab3.currentText(), None)
         threshold_from = self._check_value(self.threshold_from_tab3.text(), None)
         dead_time = self._check_value(self.dead_time_tab3.text(), None)
+        pre = self._check_value(self.extract_pre_tab3.text(), None)
+        post = self._check_value(self.extract_post_tab3.text(), None)
         
-        if -1 in (analog_stream_path, channel_id, threshold_from, dead_time):
+        if -1 in (analog_stream_path, channel_id, threshold_from, dead_time, pre, post):
             self.error_popup("Please enter correct values", "Value Error")
             return
         
@@ -626,7 +646,7 @@ class MEA_app(QtWidgets.QMainWindow):
         self.extract_text_box_tab3.setText(name)
         file_save_path = self.extract_text_box_tab3.text()
 
-        save_error, value = extract_stimulus(analog_stream_path, file_save_path, channel_id, threshold_from, dead_time)
+        save_error, value = extract_stimulus(analog_stream_path, file_save_path, channel_id, threshold_from, dead_time, pre, post)
         if save_error:
             self.error_popup(value, "Extract Error")
         else:
