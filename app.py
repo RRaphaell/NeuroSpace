@@ -69,8 +69,15 @@ class MEA_app(QtWidgets.QMainWindow):
 
         group_box_channel_stream, self.channel_id_tab3 = self.create_group_select_id()
         group_box_pre_post, self.extract_pre_tab3, self.extract_post_tab3, self.dead_time_tab3 = self.create_group_select_time_range_tab2()
+        self.extract_pre_tab3.setText("0.001")
+        self.extract_post_tab3.setText("0.001")
+        self.dead_time_tab3.setText("0.02")
+        self.extract_pre_tab3.setStatusTip("Recommended: 0.001 (s)")
+        self.extract_post_tab3.setStatusTip("Recommended: 0.001 (s)")
+        self.dead_time_tab3.setStatusTip("Recommended: 0.02 (s)")
 
         group_box_threshold_tab3, self.threshold_from_tab3, self.threshold_to_tab3 = self.create_group_threshold()
+        self.threshold_from_tab3.setStatusTip("Default: -0.00012 (V)")
         group_box_threshold_tab3.toggled.connect(lambda : self.clear_qlines(self.threshold_from_tab3, self.threshold_to_tab3))
         self.threshold_to_tab3.setDisabled(True)
 
@@ -78,8 +85,6 @@ class MEA_app(QtWidgets.QMainWindow):
         # group_box_filter.toggled.connect(lambda : self.clear_qlines(self.filter_low_tab3, self.filter_high_tab3))
         
         group_box_from_to, self.extract_from_tab3, self.extract_to_tab3 = self.create_group_select_time_range_tab1()
-        group_box_from_to.setCheckable(True)
-        group_box_from_to.setChecked(False)
         group_box_from_to.toggled.connect(lambda : self.clear_qlines(self.extract_from_tab3, self.extract_to_tab3))
 
         group_box_extract, self.extract_text_box_tab3, self.extract_btn_tab3 = self.create_group_extract()   
@@ -113,8 +118,15 @@ class MEA_app(QtWidgets.QMainWindow):
 
         group_box_channel_stream, self.channel_id_tab2 = self.create_group_select_id()
         group_box_pre_post, self.extract_pre_tab2, self.extract_post_tab2, self.dead_time_tab2 = self.create_group_select_time_range_tab2()
-        
+        self.extract_pre_tab2.setText("0.001")
+        self.extract_post_tab2.setText("0.001")
+        self.dead_time_tab2.setText("0.003")
+        self.extract_pre_tab2.setStatusTip("Recommended: 0.001 (s)")
+        self.extract_post_tab2.setStatusTip("Recommended: 0.001 (s)")
+        self.dead_time_tab2.setStatusTip("Recommended: 0.003 (s)")
+
         group_box_threshold_tab2, self.threshold_from_tab2, self.threshold_to_tab2 = self.create_group_threshold()
+        self.threshold_from_tab2.setStatusTip("Default: -0.00012 (V)")
         group_box_threshold_tab2.toggled.connect(lambda : self.clear_qlines(self.threshold_from_tab2, self.threshold_to_tab2))
         
         group_box_filter, self.filter_low_tab2, self.filter_high_tab2 = self.create_group_filter() 
@@ -124,10 +136,16 @@ class MEA_app(QtWidgets.QMainWindow):
         group_box_from_to.toggled.connect(lambda : self.clear_qlines(self.extract_from_tab2, self.extract_to_tab2))
 
         group_box_burst, self.tab2_max_start, self.tab2_max_end, self.tab2_min_interval, self.tab2_min_duration, self.tab2_min_number = self.create_group_burst()
+        self.tab2_max_start.setStatusTip("Recommended: 0.01 (s)")
+        self.tab2_max_end.setStatusTip("Recommended: 0.01 (s)")
+        self.tab2_min_interval.setStatusTip("Recommended: 0.01 (s)")
+        self.tab2_min_duration.setStatusTip("Recommended: 0.02 (s)")
+        self.tab2_min_number.setStatusTip("Recommended: 4")
         group_box_burst.toggled.connect(lambda : self.clear_qlines(self.tab2_max_start, self.tab2_max_end, self.tab2_min_interval, 
                                                                     self.tab2_min_duration, self.tab2_min_number))
 
         group_box_bin, self.tab2_bin = self.create_group_bins()
+        self.tab2_bin.setStatusTip("Recommended: 10 (s)")
         group_box_bin.toggled.connect(lambda : self.clear_qlines(self.tab2_bin))
 
         group_box_extract, self.extract_text_box_tab2, self.extract_btn_tab2 = self.create_group_extract() 
@@ -159,7 +177,7 @@ class MEA_app(QtWidgets.QMainWindow):
         self.tab2.setLayout(tab2_layout)
 
     def create_group_select_time_range_tab2(self):
-        group_box_pre_post = QtWidgets.QGroupBox("Select time range")
+        group_box_pre_post = QtWidgets.QGroupBox("Select time parameters")
         group_box_pre_post_layout = QtWidgets.QHBoxLayout()
 
         extract_pre_tab2 = QtWidgets.QLineEdit(self)
@@ -211,6 +229,10 @@ class MEA_app(QtWidgets.QMainWindow):
         max_end_label.setText("end")
         max_end_label.setFont(QtGui.QFont('Arial', 7))
 
+        time_unit = QtWidgets.QLabel(self)
+        time_unit.setText("ms")
+        time_unit.setFont(QtGui.QFont('Arial', 7))
+
         min_interval = QtWidgets.QLineEdit(self)
         min_interval.setFixedWidth(35)
         min_interval.setStatusTip("Min. Interval between bursts (ms)")
@@ -236,6 +258,7 @@ class MEA_app(QtWidgets.QMainWindow):
         group_box_burst_layout.addWidget(max_start,0,1)
         group_box_burst_layout.addWidget(max_end_label,0,2)
         group_box_burst_layout.addWidget(max_end,0,3)
+        group_box_burst_layout.addWidget(time_unit,0,4)
         group_box_burst_layout.addWidget(min_interval_label,1,0)
         group_box_burst_layout.addWidget(min_interval,1,1)
         group_box_burst_layout.addWidget(min_duration_label,1,2)
@@ -258,15 +281,13 @@ class MEA_app(QtWidgets.QMainWindow):
         bin_time_label = QtWidgets.QLabel(self)
         bin_time_label.setText("Bin time")
 
-        comboBox = QtWidgets.QComboBox(self)
-        comboBox.addItems(["ms","s","min"])
-        comboBox.setCurrentIndex(1) 
-        comboBox.setFixedWidth(40)
-        # comboBox.activated[str].connect(self.change_bin_time)
+        time_unit_label = QtWidgets.QLabel(self)
+        time_unit_label.setText("s")
 
         group_box_bin_layout.addWidget(bin_time_label)
+        group_box_bin_layout.addStretch(1)
         group_box_bin_layout.addWidget(bin_time)
-        group_box_bin_layout.addWidget(comboBox)
+        group_box_bin_layout.addWidget(time_unit_label)
         group_box_bin.setLayout(group_box_bin_layout)
         group_box_bin.setFixedSize(GROUP_BOX_WIDTH,GROUP_BOX_HEIGHT)
         return group_box_bin, bin_time
@@ -508,10 +529,10 @@ class MEA_app(QtWidgets.QMainWindow):
     def plot_spike(self):
         analog_stream_path = self.browse_text_box_tab1.text()
         channel_id = self._check_value(self.channel_id_tab2.currentText(), None)
-        pre = self._check_value(self.extract_pre_tab2.text(), 0)
+        pre = self._check_value(self.extract_pre_tab2.text(), None)
         post = self._check_value(self.extract_post_tab2.text(), None)
         dead_time = self._check_value(self.dead_time_tab2.text(), None)
-        comp_number = self._check_value(self.component.text(), None)
+        comp_number = self._check_value(self.component.text(), 1)
         spike_number = None # because we want to plot all spikes
         from_in_s = self._check_value(self.extract_from_tab2.text(), 0)
         to_in_s = self._check_value(self.extract_to_tab2.text(), None)
@@ -530,7 +551,7 @@ class MEA_app(QtWidgets.QMainWindow):
             return
 
         spike_plot, spike_plot_error_msg = plot_all_spikes_together(analog_stream_path, channel_id, comp_number, pre, post, dead_time, spike_number,
-                                                        self.tab2_canvas,0,from_in_s, to_in_s, high_pass, low_pass, threshold_from, threshold_to,)
+                                                        self.tab2_canvas, 0, from_in_s, to_in_s, high_pass, low_pass, threshold_from, threshold_to,)
         
         spike_plot_dots, spike_plot_dots_error_msg = plot_signal_with_spikes_or_stimulus(analog_stream_path, channel_id, self.tab2_canvas, 1, True, from_in_s, to_in_s, threshold_from, threshold_to, dead_time,
                                                                                         max_start, max_end, min_between, min_duration, min_number_spike)
@@ -549,12 +570,12 @@ class MEA_app(QtWidgets.QMainWindow):
     def plot_stimulus(self):
         analog_stream_path = self.browse_text_box_tab1.text()
         channel_id = self._check_value(self.channel_id_tab3.currentText(), None)
-        pre = self._check_value(self.extract_pre_tab3.text(), 0)
+        pre = self._check_value(self.extract_pre_tab3.text(), None)
         post = self._check_value(self.extract_post_tab3.text(), None)
         dead_time = self._check_value(self.dead_time_tab3.text(), None)
         from_in_s = self._check_value(self.extract_from_tab3.text(), 0)
         to_in_s = self._check_value(self.extract_to_tab3.text(), None)
-        threshold_from = self._check_value(self.threshold_from_tab3.text(), None)
+        threshold_from = self._check_value(self.threshold_from_tab3.text(), -0.001)
         threshold_to = self._check_value(self.threshold_to_tab3.text(), None)
         
         if -1 in (channel_id, pre, post, dead_time, from_in_s, to_in_s, threshold_from, threshold_to):
@@ -593,7 +614,7 @@ class MEA_app(QtWidgets.QMainWindow):
         self.extract_text_box_tab1.setText(name)
         file_save_path = self.extract_text_box_tab1.text()
         
-        save_error, value = extract_waveform(analog_stream_path, file_save_path, channel_id=channel_id, from_in_s=from_in_s, to_in_s=to_in_s)
+        save_error, value = extract_waveform(analog_stream_path, file_save_path, channel_id, from_in_s, to_in_s)
         
         if save_error:
             self.error_popup(value, "Extract Error")
@@ -633,7 +654,7 @@ class MEA_app(QtWidgets.QMainWindow):
     def save_stimulus(self):
         analog_stream_path = self.browse_text_box_tab1.text()
         channel_id = self._check_value(self.channel_id_tab3.currentText(), None)
-        threshold_from = self._check_value(self.threshold_from_tab3.text(), None)
+        threshold_from = self._check_value(self.threshold_from_tab3.text(), -0.001)
         dead_time = self._check_value(self.dead_time_tab3.text(), None)
         pre = self._check_value(self.extract_pre_tab3.text(), None)
         post = self._check_value(self.extract_post_tab3.text(), None)
@@ -714,9 +735,6 @@ class MEA_app(QtWidgets.QMainWindow):
 
     def info_popup(self, txt, title_text):
         QtWidgets.QMessageBox.information(self,title_text,txt)
-
-    def change_style(self,text):
-        pass
 
     def clear_qlines(self, *args):
         for item in args:
