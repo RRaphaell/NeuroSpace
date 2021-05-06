@@ -220,21 +220,17 @@ def _get_burst(spikes_in_s, max_start, max_end, min_between, min_duration, min_n
 
     return bursts_starts, bursts_ends
 
-def _signal_average_around_stimulus(signal, stimulus_df, channel, pre, post, fs):
-    temp = pd.DataFrame()
+def _signal_average_around_stimulus(signal, stimulus_df, pre, post, fs):
     pre_idx = int(pre * fs)
     post_idx = int(post * fs)
-
+    temp = [0]*(pre_idx+post_idx)
+    waveform_df=pd.DataFrame(temp,columns=["avg_stim_voltage"])
     for i in range(0,len(stimulus_df)) :
-        index1 = stimulus_df["start"+str(channel)][i]
-        index2 = stimulus_df["end"+str(channel)][i]
+        index1=stimulus_df["start"][i]
+        index2=stimulus_df["end"][i]
         if index1-pre_idx >= 0 and index2+post_idx <= signal.shape[0]:
-            oneWaveform = np.concatenate((signal[(index1-pre_idx):index1],signal[index2:(index2+post_idx)]),axis=None) 
-        if i==0:
-            waveform_df=pd.DataFrame(oneWaveform)
-            temp.append(waveform_df)
-        else:
-            waveform_df[0] += oneWaveform
+            oneWaveform = np.concatenate((signal[(index1-pre_idx):index1],signal[index2:(index2+post_idx)]),axis=None)
+            waveform_df["avg_stim_voltage"]+=oneWaveform
     return waveform_df/(len(stimulus_df))*1000000
     
 def _get_spike_in_second(analog_stream, channel, threshold_from, threshold_to, dead_time):
@@ -288,9 +284,9 @@ def plot_signal(file_path, channel_id, from_in_s, to_in_s, canvas, suplot_num, h
         signal_in_uV = _filter_base_freqeuncy(signal_in_uV, time_in_sec, high_pass, low_pass)
     
     axes = canvas.figure.get_axes()
-
+    ax = axes[suplot_num]
     ax.clear()
-    ax.plot(time_in_sec, signal_in_uV, linewidth=0.5, cmap=cmap, norm=norm)
+    ax.plot(time_in_sec, signal_in_uV, linewidth=0.5)
 
     ax.set_xlabel('Time (%s)' % ureg.s)
     ax.set_ylabel('Voltage (%s)' % ureg.uV)
@@ -461,7 +457,7 @@ def plot_signal_frequencies(file_path, channel_id, canvas, suplot_num, from_in_s
     canvas.draw()
     return 0,""
 
-def extract_waveform(analog_stream_path, file_save_path, channel_id, from_in_s, to_in_s, stream_id=0,):   
+def extract_waveform(analog_stream_path, file_save_path, channel_id, from_in_s, to_in_s, stream_id=0):   
     _file = _path_valid(analog_stream_path)
     if not _file:
         return 1, "File path is incorrect"
@@ -481,7 +477,7 @@ def extract_waveform(analog_stream_path, file_save_path, channel_id, from_in_s, 
         for channel in analog_stream.channel_infos:       
             df["signal for "+str(channel)] = _get_specific_channel_signal(analog_stream,channel,from_idx,to_idx)
     else:
-        channel_id = _get_channel_ID(electrode_stream, channel_id)
+        channel_id = _get_channel_ID(analog_stream, channel_id)
         if channel_id in analog_stream.channel_infos:
             df["signal for "+str(channel_id)] = _get_specific_channel_signal(analog_stream,channel_id,from_idx,to_idx)
         else:
