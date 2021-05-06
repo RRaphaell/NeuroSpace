@@ -346,7 +346,7 @@ def plot_stimulus_average(file_path, channel_id, dead_time, stimulus_threshold, 
     return 0,""
 
 def plot_signal_with_spikes_or_stimulus(file_path, channel_id, canvas, suplot_num, is_spike, from_in_s, to_in_s, threshold_from, threshold_to, dead_time,
-                                        max_start, max_end, min_between, min_duration, min_number_spike):
+                                        max_start=None, max_end=None, min_between=None, min_duration=None, min_number_spike=None):
     _file = _path_valid(file_path)
     if not _file:
         return 1, "File path is incorrect"
@@ -359,18 +359,23 @@ def plot_signal_with_spikes_or_stimulus(file_path, channel_id, canvas, suplot_nu
     
     sampling_frequency = electrode_stream.channel_infos[channel_id].sampling_frequency.magnitude  
     from_idx ,to_idx = _check_time_range(electrode_stream,sampling_frequency,from_in_s,to_in_s)
-    
+    print(from_idx,to_idx)
     signal_in_uV, time_in_sec = _get_signal_time(electrode_stream, channel_id, from_in_s, to_in_s) # need this to draw signal
     signal = signal_in_uV/1000000 # need this to calculate stimulus or spikes
+    fs = int(electrode_stream.channel_infos[channel_id].sampling_frequency.magnitude)
     threshold_from = _get_proper_threshold(signal, threshold_from,is_spike)
     if is_spike:
         fs, spks = _get_spike_info(electrode_stream, channel_id, signal, threshold_from, threshold_to, dead_time)
     else :
-        fs = int(electrode_stream.channel_infos[channel_id].sampling_frequency.magnitude)
         spks = _detect_threshold_crossings_stimulus(signal,fs,threshold_from,dead_time)
 
     timestamps = spks / fs
-    range_in_s = (from_idx, to_idx)
+    timestamps += from_in_s
+    if not from_in_s :
+        from_in_s=0
+    if not to_in_s :
+        to_in_s= electrode_stream.channel_data.shape[1]/fs
+    range_in_s = (from_in_s, to_in_s)
     spikes_in_range = timestamps[(timestamps >= range_in_s[0]) & (timestamps <= range_in_s[1])]
     
     axes = canvas.figure.get_axes()
