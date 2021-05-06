@@ -132,20 +132,17 @@ def _get_signal_time(analog_stream, channel_id, from_in_s, to_in_s):
     return signal_in_uV, time_in_sec
 
 def _signal_average_around_stimulus(signal, stimulus_df, pre, post, fs):
-    temp = pd.DataFrame()
+    temp=pd.DataFrame()
     pre_idx = int(pre * fs)
     post_idx = int(post * fs)
-
+    temp = [0]*(pre_idx+post_idx)
+    waveform_df=pd.DataFrame(temp)
     for i in range(0,len(stimulus_df)) :
-        index1 = stimulus_df["start"][i]
-        index2 = stimulus_df["end"][i]
+        index1=stimulus_df["start"][i]
+        index2=stimulus_df["end"][i]
         if index1-pre_idx >= 0 and index2+post_idx <= signal.shape[0]:
-            oneWaveform = np.concatenate((signal[(index1-pre_idx):index1],signal[index2:(index2+post_idx)]),axis=None) 
-        if i==0:
-            waveform_df=pd.DataFrame(oneWaveform)
-            temp.append(waveform_df)
-        else:
-            waveform_df[0] += oneWaveform
+            oneWaveform = np.concatenate((signal[(index1-pre_idx):index1],signal[index2:(index2+post_idx)]),axis=None)
+            waveform_df[0]+=oneWaveform
     return waveform_df/(len(stimulus_df))*1000000
 
 def _get_spike_info(electrode_stream, channel_id, signal, threshold_from, threshold_to, dead_time):
