@@ -77,7 +77,7 @@ class MEA_app(QtWidgets.QMainWindow):
         self.dead_time_tab3.setStatusTip("Recommended: 0.02 (s)")
 
         group_box_threshold_tab3, self.threshold_from_tab3, self.threshold_to_tab3 = self.create_group_threshold()
-        self.threshold_from_tab3.setStatusTip("Default: -0.00012 (V)")
+        self.threshold_from_tab3.setStatusTip("Default: -0.0003 (V)")
         group_box_threshold_tab3.toggled.connect(lambda : self.clear_qlines(self.threshold_from_tab3, self.threshold_to_tab3))
         self.threshold_to_tab3.setDisabled(True)
 
@@ -126,6 +126,7 @@ class MEA_app(QtWidgets.QMainWindow):
         self.dead_time_tab2.setStatusTip("Recommended: 0.003 (s)")
 
         group_box_threshold_tab2, self.threshold_from_tab2, self.threshold_to_tab2 = self.create_group_threshold()
+        group_box_threshold_tab2.setStatusTip("Select Threshold. Default: -0.00012 (V)")
         self.threshold_from_tab2.setStatusTip("Default: -0.00012 (V)")
         group_box_threshold_tab2.toggled.connect(lambda : self.clear_qlines(self.threshold_from_tab2, self.threshold_to_tab2))
         
@@ -523,7 +524,7 @@ class MEA_app(QtWidgets.QMainWindow):
 
         if waveform_error:
             self.error_popup(waveform_error_msg, "Plot Error")
-        if fourier_error:
+        elif fourier_error:
             self.error_popup(fourier_error_msg, "Plot Error")
     
     def plot_spike(self):
@@ -560,11 +561,9 @@ class MEA_app(QtWidgets.QMainWindow):
 
         if spike_plot:
             self.error_popup(spike_plot_error_msg, "Plot Error")
-
-        if spike_plot_dots:
+        elif spike_plot_dots:
             self.error_popup(spike_plot_dots_error_msg, "Plot Error")
-        
-        if fourier:
+        elif fourier:
             self.error_popup(fourier_error_msg, "Plot Error")
 
     def plot_stimulus(self):
@@ -575,7 +574,7 @@ class MEA_app(QtWidgets.QMainWindow):
         dead_time = self._check_value(self.dead_time_tab3.text(), None)
         from_in_s = self._check_value(self.extract_from_tab3.text(), 0)
         to_in_s = self._check_value(self.extract_to_tab3.text(), None)
-        threshold_from = self._check_value(self.threshold_from_tab3.text(), -0.001)
+        threshold_from = self._check_value(self.threshold_from_tab3.text(), -0.0003)
         threshold_to = self._check_value(self.threshold_to_tab3.text(), None)
         
         if -1 in (channel_id, pre, post, dead_time, from_in_s, to_in_s, threshold_from, threshold_to):
@@ -591,12 +590,10 @@ class MEA_app(QtWidgets.QMainWindow):
         fourier, fourier_error_msg = plot_signal_frequencies(analog_stream_path, channel_id, self.tab3_canvas, 2, from_in_s, to_in_s)
 
         if stimule_error:
-             self.error_popup(stimule_error_msg, "Plot Error")
-
-        if stimule_dots_error:
+             self.error_popup(stimule_error_msg, "Plot Error")       
+        elif stimule_dots_error:
             self.error_popup(stimule_dots_error_msg, "Plot Error")
-
-        if fourier:
+        elif fourier:
             self.error_popup(fourier_error_msg, "Plot Error")
 
 
@@ -654,7 +651,7 @@ class MEA_app(QtWidgets.QMainWindow):
     def save_stimulus(self):
         analog_stream_path = self.browse_text_box_tab1.text()
         channel_id = self._check_value(self.channel_id_tab3.currentText(), None)
-        threshold_from = self._check_value(self.threshold_from_tab3.text(), -0.001)
+        threshold_from = self._check_value(self.threshold_from_tab3.text(), -0.0003)
         dead_time = self._check_value(self.dead_time_tab3.text(), None)
         pre = self._check_value(self.extract_pre_tab3.text(), None)
         post = self._check_value(self.extract_post_tab3.text(), None)
