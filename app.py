@@ -560,7 +560,7 @@ class MEA_app(QtWidgets.QMainWindow):
         spike_plot, spike_plot_error_msg = plot_all_spikes_together(analog_stream_path, channel_id, comp_number, pre, post, dead_time, spike_number,
                                                         self.tab2_canvas, 0, from_in_s, to_in_s, high_pass, low_pass, threshold_from, threshold_to,)
         
-        spike_plot_dots, spike_plot_dots_error_msg = plot_signal_with_spikes_or_stimulus(analog_stream_path, channel_id, self.tab2_canvas, 1, True, from_in_s, to_in_s, threshold_from, threshold_to, dead_time,
+        spike_plot_dots, spike_plot_dots_error_msg = plot_signal_with_spikes_or_stimulus(analog_stream_path, channel_id, self.tab2_canvas, 1, True, from_in_s, to_in_s, high_pass, low_pass, threshold_from, threshold_to, dead_time,
                                                                                         max_start, max_end, min_between, min_duration, min_number_spike)
 
         fourier, fourier_error_msg = plot_signal_frequencies(analog_stream_path, channel_id, self.tab2_canvas, 2, from_in_s, to_in_s)
@@ -582,6 +582,8 @@ class MEA_app(QtWidgets.QMainWindow):
         to_in_s = self._check_value(self.extract_to_tab3.text(), None)
         threshold_from = self._check_value(self.threshold_from_tab3.text(), -0.0003)
         threshold_to = self._check_value(self.threshold_to_tab3.text(), None)
+        high_pass = None
+        low_pass = None
         
         if -1 in (channel_id, pre, post, dead_time, from_in_s, to_in_s, threshold_from, threshold_to):
             self.error_popup("Please enter correct values", "Value Error")
@@ -595,7 +597,7 @@ class MEA_app(QtWidgets.QMainWindow):
                                                                  pre, post, self.tab3_canvas, 0)
 
         stimule_dots_error, stimule_dots_error_msg = plot_signal_with_spikes_or_stimulus(analog_stream_path, channel_id, self.tab3_canvas, 1, False, 
-                                                                                            from_in_s, to_in_s, threshold_from, threshold_to, dead_time)
+                                                                                            from_in_s, to_in_s, high_pass, low_pass ,threshold_from, threshold_to, dead_time)
 
         fourier, fourier_error_msg = plot_signal_frequencies(analog_stream_path, channel_id, self.tab3_canvas, 2, from_in_s, to_in_s)
 
@@ -612,6 +614,8 @@ class MEA_app(QtWidgets.QMainWindow):
         channel_id = self._check_value(self.channel_id_tab1.currentText(),None)
         from_in_s = self._check_value(self.extract_from_tab1.text(),0)
         to_in_s = self._check_value(self.extract_to_tab1.text(),None)
+        high_pass = self._check_value(self.filter_high_tab1.text(), None)
+        low_pass = self._check_value(self.filter_low_tab1.text(), None)
         
         if -1 in (channel_id, from_in_s, to_in_s):
             self.error_popup("Please enter correct values", "Value Error")
@@ -621,7 +625,7 @@ class MEA_app(QtWidgets.QMainWindow):
         if not file_save_path:
             return
         
-        save_error, value = extract_waveform(analog_stream_path, file_save_path, channel_id, from_in_s, to_in_s)
+        save_error, value = extract_waveform(analog_stream_path, file_save_path, channel_id, from_in_s, to_in_s, high_pass, low_pass)
         
         if save_error:
             self.error_popup(value, "Extract Error")
@@ -633,6 +637,8 @@ class MEA_app(QtWidgets.QMainWindow):
         channel_id = self._check_value(self.channel_id_tab2.currentText(), None)
         threshold_from = self._check_value(self.threshold_from_tab2.text(), None)
         threshold_to = self._check_value(self.threshold_to_tab2.text(), None)
+        high_pass = self._check_value(self.filter_high_tab2.text(), None)
+        low_pass = self._check_value(self.filter_low_tab2.text(), None)
         dead_time = self._check_value(self.dead_time_tab2.text(), None)
         bin_width = self._check_value(self.tab2_bin.text(), None)
 
@@ -650,7 +656,7 @@ class MEA_app(QtWidgets.QMainWindow):
         if not file_save_path:
             return
         
-        save_error, value = extract_spike(analog_stream_path, file_save_path, channel_id, threshold_from, threshold_to, dead_time, bin_width,
+        save_error, value = extract_spike(analog_stream_path, file_save_path, channel_id, threshold_from, threshold_to, high_pass, low_pass, dead_time, bin_width,
                                             max_start, max_end, min_between, min_duration, min_number_spike)
 
         if save_error:
