@@ -593,7 +593,7 @@ class MEA_app(QtWidgets.QMainWindow):
             self.error_popup("Dead time must be more or equal than (pre + post)", "Intersection Error")
             return 
 
-        stimule_error, stimule_error_msg = plot_stimulus_average(analog_stream_path, channel_id, dead_time, threshold_from, 
+        stimule_error, stimule_error_msg = plot_stimulus_average(analog_stream_path, channel_id, from_in_s, to_in_s, dead_time, threshold_from, 
                                                                  pre, post, self.tab3_canvas, 0)
 
         stimule_dots_error, stimule_dots_error_msg = plot_signal_with_spikes_or_stimulus(analog_stream_path, channel_id, self.tab3_canvas, 1, False, 
@@ -617,7 +617,7 @@ class MEA_app(QtWidgets.QMainWindow):
         high_pass = self._check_value(self.filter_high_tab1.text(), None)
         low_pass = self._check_value(self.filter_low_tab1.text(), None)
         
-        if -1 in (channel_id, from_in_s, to_in_s):
+        if -1 in (channel_id, from_in_s, to_in_s, high_pass, low_pass):
             self.error_popup("Please enter correct values", "Value Error")
             return
         
@@ -650,7 +650,8 @@ class MEA_app(QtWidgets.QMainWindow):
         min_duration = self._check_value(self.tab2_min_duration.text(), None)
         min_number_spike = self._check_value(self.tab2_min_number.text(), None)
         
-        if -1 in (channel_id, threshold_from, threshold_to, dead_time, bin_width, max_start, max_end, min_between, min_duration, min_number_spike):
+        if -1 in (channel_id, from_in_s, to_in_s, threshold_from, threshold_to, high_pass, low_pass, 
+                    dead_time, bin_width, max_start, max_end, min_between, min_duration, min_number_spike):
             self.error_popup("Please enter correct values", "Value Error")
             return
         
@@ -669,12 +670,14 @@ class MEA_app(QtWidgets.QMainWindow):
     def save_stimulus(self):
         analog_stream_path = self.browse_text_box_tab1.text()
         channel_id = self._check_value(self.channel_id_tab3.currentText(), None)
+        from_in_s = self._check_value(self.extract_from_tab3.text(), 0)
+        to_in_s = self._check_value(self.extract_to_tab3.text(), None)
         threshold_from = self._check_value(self.threshold_from_tab3.text(), -0.0003)
         dead_time = self._check_value(self.dead_time_tab3.text(), None)
         pre = self._check_value(self.extract_pre_tab3.text(), None)
         post = self._check_value(self.extract_post_tab3.text(), None)
         
-        if -1 in (analog_stream_path, channel_id, threshold_from, dead_time, pre, post):
+        if -1 in (analog_stream_path, channel_id, from_in_s, to_in_s, threshold_from, dead_time, pre, post):
             self.error_popup("Please enter correct values", "Value Error")
             return
 
@@ -686,7 +689,7 @@ class MEA_app(QtWidgets.QMainWindow):
         if not file_save_path:
             return
 
-        save_error, value = extract_stimulus(analog_stream_path, file_save_path, channel_id, threshold_from, dead_time, pre, post)
+        save_error, value = extract_stimulus(analog_stream_path, file_save_path, channel_id, from_in_s, to_in_s, threshold_from, dead_time, pre, post)
         if save_error:
             self.error_popup(value, "Extract Error")
         else:

@@ -228,7 +228,6 @@ def _signal_average_around_stimulus(signal, stimulus_df, channel, pre, post, fs)
     pre_idx = int(pre * fs)
     post_idx = int(post * fs)
     stimulus_df = stimulus_df.astype('int32')
-
     temp = [0]*(pre_idx+post_idx)
     waveform_df=pd.DataFrame(temp,columns=["avg_stim_voltage"])
     for i in range(0,len(stimulus_df)) :
@@ -258,11 +257,10 @@ def _get_spike_in_second(analog_stream, channel,  from_in_s, to_in_s, threshold_
     
     return spikes_in_second
 
-def _save_stimulus_with_avg(file_save_path, signal, analog_stream, channel_id, stimulus_threshold, fs, pre, post, dead_time):
+def _save_stimulus_with_avg(file_save_path, signal, analog_stream, channel_id, from_in_s, to_in_s, stimulus_threshold, fs, pre, post, dead_time):
     stimulus_in_second_df = pd.DataFrame()
     threshold_from = _get_proper_threshold(signal, stimulus_threshold, False)
     thresholds = _detect_threshold_crossings_stimulus(signal, fs, threshold_from, dead_time)/fs
-    
     stimulus_in_second_df["start"+str(channel_id)] = [thresholds[i] for i in range(0,len(thresholds),2)]
     stimulus_in_second_df["end"+str(channel_id)] = [thresholds[i] for i in range(1,len(thresholds),2)]
     stimulus_in_second_df["stimulus_time"+str(channel_id)] = (stimulus_in_second_df["end"+str(channel_id)] - stimulus_in_second_df["start"+str(channel_id)])
@@ -270,7 +268,7 @@ def _save_stimulus_with_avg(file_save_path, signal, analog_stream, channel_id, s
     stimulus_in_second_df["frequency"+str(channel_id)] = stimulus_in_second_df["stimulus_number"+str(channel_id)] / stimulus_in_second_df["stimulus_time"+str(channel_id)]
 
     df_avg_stimul = _signal_average_around_stimulus(signal, stimulus_in_second_df*fs, channel_id, pre, post, fs)
-
+    stimulus_in_second_df += from_in_s
     stimulus_in_second_df.to_csv(file_save_path+str(channel_id)+".csv", index = False)
     df_avg_stimul.to_csv(file_save_path+str(channel_id)+"_avg_stimulus.csv", index=False)
 
@@ -344,7 +342,7 @@ def plot_all_spikes_together(file_path, channel_id, n_components, pre, post, dea
     canvas.draw()
     return 0, ""
 
-def plot_stimulus_average(file_path, channel_label, dead_time, stimulus_threshold, pre, post, canvas, suplot_num):
+def plot_stimulus_average(file_path, channel_label, from_in_s, to_in_s, dead_time, stimulus_threshold, pre, post, canvas, suplot_num):
     _file = _path_valid(file_path)
     if not _file:
         return 1, "File path is incorrect"
@@ -359,7 +357,8 @@ def plot_stimulus_average(file_path, channel_label, dead_time, stimulus_threshol
 
     _channel_info = electrode_stream.channel_infos[0]
     fs = _channel_info.sampling_frequency.magnitude
-    signal = electrode_stream.get_channel_in_range(channel_id, 0, electrode_stream.channel_data.shape[1])[0]
+    from_idx, to_idx = _check_time_range(electrode_stream, fs, from_in_s, to_in_s)
+    signal = electrode_stream.get_channel_in_range(channel_id, from_idx, to_idx)[0]
 
     thresholds = _detect_threshold_crossings_stimulus(signal, fs, stimulus_threshold, dead_time)
     stimulus_df = pd.DataFrame()
@@ -370,7 +369,6 @@ def plot_stimulus_average(file_path, channel_label, dead_time, stimulus_threshol
             return 1, "Incorrect filter"
     except:
         return 1,"Incorrect filter"
-
     df_to_draw = _signal_average_around_stimulus(signal, stimulus_df, channel_label, pre, post, fs)
     x = np.linspace(-pre, post, len(df_to_draw))
     xx = [0,0]
@@ -378,7 +376,7 @@ def plot_stimulus_average(file_path, channel_label, dead_time, stimulus_threshol
     axes = canvas.figure.get_axes()
     ax = axes[suplot_num]
     ax.clear()
-    ax.plot(x, df_to_draw[0], linewidth=2)
+    ax.plot(x, df_to_draw, linewidth=2)
     ax.plot(xx, yx, linewidth=2)
     
     ax.set_xlabel('Time (%s)' % ureg.s)
@@ -406,7 +404,6 @@ def plot_signal_with_spikes_or_stimulus(file_path, channel_id, canvas, suplot_nu
     from_idx ,to_idx = _check_time_range(electrode_stream, sampling_frequency, from_in_s, to_in_s)
     
     signal_in_uV, time_in_sec = _get_signal_time(electrode_stream, channel_id, from_in_s, to_in_s) # need this to draw signal
-    print(time_in_sec)
     if (high_pass!=None) or (low_pass!=None):
         signal_in_uV = _filter_base_freqeuncy(signal_in_uV, time_in_sec, high_pass, low_pass)
     signal = signal_in_uV/1000000 # need this to calculate stimulus or spikes
@@ -418,8 +415,6 @@ def plot_signal_with_spikes_or_stimulus(file_path, channel_id, canvas, suplot_nu
         spks = _detect_threshold_crossings_stimulus(signal, fs, threshold_from, dead_time)
 
     timestamps = spks / fs
-    range_in_s = (from_idx, to_idx)
-    #spikes_in_range = timestamps[(timestamps >= range_in_s[0]) & (timestamps <= range_in_s[1])]
     spikes_in_range = timestamps
     spikes_in_range = np.array(spikes_in_range)
     spikes_in_range += from_in_s
@@ -502,7 +497,7 @@ def extract_waveform(analog_stream_path, file_save_path, channel_id, from_in_s, 
     df.to_csv(file_save_path+".csv", index=False)
     return 0, ""
 
-def extract_stimulus(analog_stream_path, file_save_path, channel_id, stimulus_threshold, dead_time, pre, post):
+def extract_stimulus(analog_stream_path, file_save_path, channel_id, from_in_s, to_in_s, stimulus_threshold, dead_time, pre, post):
     _file = _path_valid(analog_stream_path)
     if not _file:
         return 1, "File path is incorrect"    
@@ -513,16 +508,16 @@ def extract_stimulus(analog_stream_path, file_save_path, channel_id, stimulus_th
     analog_stream = _file.recordings[0].analog_streams[0]
     _channel_info = analog_stream.channel_infos[0]
     fs = _channel_info.sampling_frequency.magnitude
-
+    from_idx, to_idx = _check_time_range(analog_stream, fs, from_in_s, to_in_s)
     if (channel_id==None):
         for channel in analog_stream.channel_infos:
             channel_id = analog_stream.channel_infos.get(channel).info['Label']
-            signal = analog_stream.get_channel_in_range(channel, 0, analog_stream.channel_data.shape[1])[0]
-            _save_stimulus_with_avg(file_save_path, signal, analog_stream, channel_id, stimulus_threshold, fs, pre, post, dead_time)
+            signal = analog_stream.get_channel_in_range(channel, from_idx, to_idx)[0]
+            _save_stimulus_with_avg(file_save_path, signal, analog_stream, channel_id, from_in_s, to_in_s, stimulus_threshold, fs, pre, post, dead_time)
     else:
         channel = _get_channel_ID(analog_stream, channel_id)
-        signal = analog_stream.get_channel_in_range(channel, 0, analog_stream.channel_data.shape[1])[0]
-        _save_stimulus_with_avg(file_save_path, signal, analog_stream, channel_id, stimulus_threshold, fs, pre, post, dead_time)
+        signal = analog_stream.get_channel_in_range(channel, from_idx, to_idx)[0]
+        _save_stimulus_with_avg(file_save_path, signal, analog_stream, channel_id, from_in_s, to_in_s, stimulus_threshold, fs, pre, post, dead_time)
 
     return 0, ""
 
