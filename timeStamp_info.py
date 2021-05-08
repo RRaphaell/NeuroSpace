@@ -51,23 +51,9 @@ def _plot_each_spike(ax, cutouts, fs, pre, post, n=100, color='k'):
     for i in range(n):
         ax.plot(time_in_us, cutouts[i,]*1e6, color, linewidth=1, alpha=0.3)
         
-        ax.set_xlabel('Time (%s)' % ureg.ms)
-        ax.set_ylabel('Voltage (%s)' % ureg.uV)
-        ax.set_title('Cutouts')
-
-def _detect_threshold_crossings_spikes(signal, fs, threshold_from, threshold_to, dead_time):
-    dead_time_idx = dead_time * fs
-    if not threshold_to:
-      threshold_to = np.min(signal)
-      
-    threshold_crossings = np.diff(((signal <= threshold_from) & (signal>=threshold_to)).astype(int) > 0).nonzero()[0]
-    distance_sufficient = np.insert(np.diff(threshold_crossings) >= dead_time_idx, 0, True)
-
-    while not np.all(distance_sufficient):
-        # repeatedly remove all threshold crossings that violate the dead_time
-        threshold_crossings = threshold_crossings[distance_sufficient]
-        distance_sufficient = np.insert(np.diff(threshold_crossings) >= dead_time_idx, 0, True)
-    return threshold_crossings
+    ax.set_xlabel('Time (%s)' % ureg.ms)
+    ax.set_ylabel('Voltage (%s)' % ureg.uV)
+    ax.set_title('Spike together')
 
 def _get_next_minimum(signal, index, max_samples_to_search):
     search_end_idx = min(index + max_samples_to_search, signal.shape[0])
@@ -77,7 +63,6 @@ def _get_next_minimum(signal, index, max_samples_to_search):
 def _align_to_minimum(signal, fs, threshold_crossings, search_range):
     search_end = int(search_range*fs)
     aligned_spikes = [_get_next_minimum(signal, t, search_end) for t in threshold_crossings]
-    # return np.array(aligned_spikes)
     return threshold_crossings
 
 def _filter_base_freqeuncy(signal_in_uV, time_in_sec, High_pass, Low_pass):    
@@ -132,9 +117,22 @@ def _get_signal_time(analog_stream, channel_id, from_in_s, to_in_s):
     signal_in_uV = signal[0] * scale_factor_for_uV
     return signal_in_uV, time_in_sec
 
+def _detect_threshold_crossings_spikes(signal, fs, threshold_from, threshold_to, dead_time):
+    if not threshold_to:
+      threshold_to = np.min(signal)
+
+    dead_time_idx = dead_time * fs
+    last_idx = -dead_time_idx
+    threshold_crossings = []
+    for idx in range(len(signal)):
+        if idx > 0 and signal[idx-1] > threshold_from and signal[idx] <= threshold_from and signal[idx] >= threshold_to and idx - last_idx > dead_time_idx + 1:
+            threshold_crossings.append(idx)
+            last_idx = idx
+    return np.array(threshold_crossings)
+
 def _get_spike_info(electrode_stream, channel_id, signal, threshold_from, threshold_to, dead_time):
     fs = int(electrode_stream.channel_infos[channel_id].sampling_frequency.magnitude)
-    crossings = _detect_threshold_crossings_spikes(signal, fs, threshold_from, threshold_to, dead_time) # dead time of 3 ms
+    crossings = _detect_threshold_crossings_spikes(signal, fs, threshold_from, threshold_to, dead_time)
     spks = _align_to_minimum(signal, fs, crossings, 0.002) # search range 2 ms
     return fs, spks
 
@@ -142,7 +140,7 @@ def _detect_threshold_crossings_stimulus(signal, fs, threshold, dead_time):
     dead_time_idx = dead_time * fs
     threshold_crossings = np.diff((signal <= threshold)).nonzero()[0]
     if len(threshold_crossings)==0:
-        return np.array([0])
+        return np.array([])
 
     distance_sufficient = np.insert(np.diff(threshold_crossings) >= dead_time_idx, 0, True)
     last_stimulus_index = threshold_crossings[-1]
@@ -225,6 +223,9 @@ def _get_burst(spikes_in_s, max_start, max_end, min_between, min_duration, min_n
     return bursts_starts, bursts_ends
 
 def _signal_average_around_stimulus(signal, stimulus_df, channel, pre, post, fs):
+    if len(stimulus_df)==0:
+        return pd.DataFrame(columns=["avg_stim_voltage"])
+
     pre_idx = int(pre * fs)
     post_idx = int(post * fs)
     stimulus_df = stimulus_df.astype('int32')
@@ -322,18 +323,21 @@ def plot_all_spikes_together(file_path, channel_id, n_components, pre, post, dea
     if (high_pass!=None) or (low_pass!=None):
         signal_in_uV = _filter_base_freqeuncy(signal_in_uV, time_in_sec, high_pass, low_pass)
 
+    signal = signal_in_uV/1000000 # need this to calculate stimulus or spikes
     threshold_from = _get_proper_threshold(signal_in_uV, threshold_from, True)
-    fs, spks = _get_spike_info(electrode_stream, channel_id, signal_in_uV, threshold_from, threshold_to, dead_time)
+    fs, spks = _get_spike_info(electrode_stream, channel_id, signal, threshold_from, threshold_to, dead_time)
     spks += int(from_in_s*fs)
-    if (len(spks)<=1):
-        return 1, "spike filter is not correct"
-
     cutouts = _get_signal_cutouts(signal_in_uV, fs, spks, pre, post)
-    labels=_get_pca_labels(cutouts, n_components)
-    
+
     axes = canvas.figure.get_axes()
     ax = axes[suplot_num]
     ax.clear()
+    
+    if (len(spks) < 1):
+        ax.set_title('No Spike')
+        return 0, ""
+
+    labels = _get_pca_labels(cutouts, n_components)
     for i in range(int(n_components)):
         idx = labels == i
         color = plt.rcParams['axes.prop_cycle'].by_key()['color'][i]
@@ -363,12 +367,8 @@ def plot_stimulus_average(file_path, channel_label, from_in_s, to_in_s, dead_tim
     thresholds = _detect_threshold_crossings_stimulus(signal, fs, stimulus_threshold, dead_time)
     stimulus_df = pd.DataFrame()
     stimulus_df["start"+str(channel_label)] = [int(thresholds[i]) for i in range(0,len(thresholds)) if i%2==0]
-    try:
-        stimulus_df["end"+str(channel_label)] = [int(thresholds[i]) for i in range(0,len(thresholds)) if i%2==1]
-        if (len(stimulus_df)==0):
-            return 1, "Incorrect filter"
-    except:
-        return 1,"Incorrect filter"
+    stimulus_df["end"+str(channel_label)] = [int(thresholds[i]) for i in range(0,len(thresholds)) if i%2==1]
+
     df_to_draw = _signal_average_around_stimulus(signal, stimulus_df, channel_label, pre, post, fs)
     x = np.linspace(-pre, post, len(df_to_draw))
     xx = [0,0]

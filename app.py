@@ -127,7 +127,7 @@ class MEA_app(QtWidgets.QMainWindow):
 
         group_box_threshold_tab2, self.threshold_from_tab2, self.threshold_to_tab2 = self.create_group_threshold()
         group_box_threshold_tab2.setStatusTip("Select Threshold. Default: -0.00012 (V)")
-        self.threshold_from_tab2.setStatusTip("Default: -0.00012 (V)")
+        self.threshold_from_tab2.setStatusTip("Default: calculate std deviation. (V)")
         group_box_threshold_tab2.toggled.connect(lambda : self.clear_qlines(self.threshold_from_tab2, self.threshold_to_tab2))
         
         group_box_filter, self.filter_low_tab2, self.filter_high_tab2 = self.create_group_filter() 
