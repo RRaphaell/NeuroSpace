@@ -21,9 +21,10 @@ def _check_time_range(analog_stream, sampling_frequency, from_in_s, to_in_s):
         to_idx = min(analog_stream.channel_data.shape[1], int(to_in_s * sampling_frequency))
     return from_idx, to_idx
 
-def _get_specific_channel_signal(analog_stream, channel_id, from_idx, to_idx):
-    signal = analog_stream.get_channel_in_range(channel_id, from_idx, to_idx) # get the signal 
-    signal_in_uV = signal[0] * Q_(1,signal[1]).to(ureg.uV).magnitude # scale signal to µV
+def _get_specific_channel_signal(analog_stream, channel_id, from_in_s, to_in_s, high_pass, low_pass):
+    signal_in_uV, time_in_sec = _get_signal_time(analog_stream, channel_id, from_in_s, to_in_s)
+    if (high_pass!=None) or (low_pass!=None):
+        signal_in_uV = _filter_base_freqeuncy(signal_in_uV, time_in_sec, high_pass, low_pass)
     return signal_in_uV
 
 def _get_signal_cutouts(signal, fs, spikes_idx, pre, post):
@@ -88,7 +89,7 @@ def _filter_base_freqeuncy(signal_in_uV, time_in_sec, High_pass, Low_pass):
         F[int(Low_pass):] = 0
  
     x_returned=ifft(F)
-    return x_returned
+    return np.real(x_returned)
 
 def _path_valid(file_path):
     try:
@@ -238,8 +239,18 @@ def _signal_average_around_stimulus(signal, stimulus_df, channel, pre, post, fs)
             waveform_df["avg_stim_voltage"]+=oneWaveform
     return waveform_df/(len(stimulus_df))*1000000
     
-def _get_spike_in_second(analog_stream, channel, threshold_from, threshold_to, dead_time):
-    signal = analog_stream.get_channel_in_range(channel, 0, analog_stream.channel_data.shape[1])[0]
+def _get_spike_in_second(analog_stream, channel, threshold_from, threshold_to, high_pass, low_pass, dead_time):
+    #TODO in case of spike in time range this two lines should be changed
+    channel_info = analog_stream.channel_infos[channel]
+    fs = int(analog_stream.channel_infos[channel].sampling_frequency.magnitude)
+    from_in_s = 0
+    to_in_s = analog_stream.channel_data.shape[1]/fs
+    signal_in_uV, time_in_sec = _get_signal_time(analog_stream, channel, from_in_s, to_in_s)
+
+    if (high_pass!=None) or (low_pass!=None):
+        signal_in_uV = _filter_base_freqeuncy(signal_in_uV, time_in_sec, high_pass, low_pass)
+      
+    signal = signal_in_uV/1000000
     threshold_from = _get_proper_threshold(signal, threshold_from, True)
     fs, spks = _get_spike_info(analog_stream, channel, signal, threshold_from, threshold_to, dead_time)
     spikes_in_second=[]
@@ -284,7 +295,6 @@ def plot_signal(file_path, channel_id, from_in_s, to_in_s, canvas, suplot_num, h
 
     if (high_pass!=None) or (low_pass!=None):
         signal_in_uV = _filter_base_freqeuncy(signal_in_uV, time_in_sec, high_pass, low_pass)
-    
     axes = canvas.figure.get_axes()
     ax = axes[suplot_num]
     ax.clear()
@@ -378,7 +388,7 @@ def plot_stimulus_average(file_path, channel_label, dead_time, stimulus_threshol
     canvas.draw()
     return 0,""
 
-def plot_signal_with_spikes_or_stimulus(file_path, channel_id, canvas, suplot_num, is_spike, from_in_s, to_in_s, threshold_from, threshold_to, dead_time,
+def plot_signal_with_spikes_or_stimulus(file_path, channel_id, canvas, suplot_num, is_spike, from_in_s, to_in_s, high_pass, low_pass, threshold_from, threshold_to, dead_time,
                                         max_start=None, max_end=None, min_between=None, min_duration=None, min_number_spike=None):
     _file = _path_valid(file_path)
     if not _file:
@@ -397,6 +407,8 @@ def plot_signal_with_spikes_or_stimulus(file_path, channel_id, canvas, suplot_nu
     from_idx ,to_idx = _check_time_range(electrode_stream, sampling_frequency, from_in_s, to_in_s)
     
     signal_in_uV, time_in_sec = _get_signal_time(electrode_stream, channel_id, from_in_s, to_in_s) # need this to draw signal
+    if (high_pass!=None) or (low_pass!=None):
+        signal_in_uV = _filter_base_freqeuncy(signal_in_uV, time_in_sec, high_pass, low_pass)
     signal = signal_in_uV/1000000 # need this to calculate stimulus or spikes
     threshold_from = _get_proper_threshold(signal, threshold_from, is_spike)
     if is_spike:
@@ -459,7 +471,7 @@ def plot_signal_frequencies(file_path, channel_id, canvas, suplot_num, from_in_s
     canvas.draw()
     return 0,""
 
-def extract_waveform(analog_stream_path, file_save_path, channel_id, from_in_s, to_in_s, stream_id=0):   
+def extract_waveform(analog_stream_path, file_save_path, channel_id, from_in_s, to_in_s, high_pass, low_pass, stream_id=0):   
     _file = _path_valid(analog_stream_path)
     if not _file:
         return 1, "File path is incorrect"
@@ -477,11 +489,11 @@ def extract_waveform(analog_stream_path, file_save_path, channel_id, from_in_s, 
 
     if (channel_id==None):
         for channel in analog_stream.channel_infos:       
-            df["signal for "+str(channel)] = _get_specific_channel_signal(analog_stream,channel,from_idx,to_idx)
+            df["signal for "+str(channel)] = _get_specific_channel_signal(analog_stream,channel,from_in_s,to_in_s,high_pass,low_pass)
     else:
         channel_id = _get_channel_ID(analog_stream, channel_id)
         if channel_id in analog_stream.channel_infos:
-            df["signal for "+str(channel_id)] = _get_specific_channel_signal(analog_stream,channel_id,from_idx,to_idx)
+            df["signal for "+str(channel_id)] = _get_specific_channel_signal(analog_stream,channel_id,from_in_s,to_in_s,high_pass,low_pass)
         else:
             return 1, "Wrong channel_id !"
 
@@ -512,7 +524,7 @@ def extract_stimulus(analog_stream_path, file_save_path, channel_id, stimulus_th
 
     return 0, ""
 
-def extract_spike(analog_stream_path, file_save_path, channel_label, threshold_from, threshold_to, dead_time, bin_width,
+def extract_spike(analog_stream_path, file_save_path, channel_label, threshold_from, threshold_to, high_pass, low_pass, dead_time, bin_width,
                 max_start, max_end, min_between, min_duration, min_number_spike):
 
     _file = _path_valid(analog_stream_path)
@@ -535,7 +547,7 @@ def extract_spike(analog_stream_path, file_save_path, channel_label, threshold_f
         for channel in analog_stream.channel_infos:
             channel_id = analog_stream.channel_infos.get(channel).info['Label']
             spikes_in_second_df = pd.DataFrame()
-            spikes_in_second = _get_spike_in_second(analog_stream, channel, threshold_from, threshold_to, dead_time)
+            spikes_in_second = _get_spike_in_second(analog_stream, channel, threshold_from, threshold_to, high_pass, low_pass, dead_time)
 
             if bin_width:
                 spike_in_bins = _count_spike_in_bins(spikes_in_second, bin_width)
@@ -562,7 +574,7 @@ def extract_spike(analog_stream_path, file_save_path, channel_label, threshold_f
         spikes_in_second_df = pd.DataFrame()
         bursts_df = pd.DataFrame()
 
-        spikes_in_second = _get_spike_in_second(analog_stream, channel_id, threshold_from, threshold_to, dead_time)
+        spikes_in_second = _get_spike_in_second(analog_stream, channel_id, threshold_from, threshold_to, high_pass, low_pass, dead_time)
         if bin_width:
             spike_in_bins = _count_spike_in_bins(spikes_in_second, bin_width)
             bin_ranges = [bin_width*i for i in list(range(len(spike_in_bins)))]
