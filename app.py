@@ -211,7 +211,7 @@ class MEA_app(QtWidgets.QMainWindow):
         return group_box_pre_post, extract_pre_tab2, extract_post_tab2, dead_time_tab2 
 
     def create_group_burst(self):
-        group_box_burst = QtWidgets.QGroupBox("Select Burst Parameters")
+        group_box_burst = QtWidgets.QGroupBox("Select Burst Parameters (ms)")
         group_box_burst_layout = QtWidgets.QGridLayout()
         group_box_burst.setCheckable(True)
         group_box_burst.setChecked(False)
@@ -271,7 +271,7 @@ class MEA_app(QtWidgets.QMainWindow):
         return group_box_burst, max_start, max_end, min_interval, min_duration, min_number
 
     def create_group_bins(self):
-        group_box_bin = QtWidgets.QGroupBox("Select Bin")
+        group_box_bin = QtWidgets.QGroupBox("Select Bin (s)")
         group_box_bin_layout = QtWidgets.QHBoxLayout()
         group_box_bin.setCheckable(True)
         group_box_bin.setChecked(False)
@@ -294,7 +294,7 @@ class MEA_app(QtWidgets.QMainWindow):
         return group_box_bin, bin_time
 
     def create_group_threshold(self):
-        group_box_threshold = QtWidgets.QGroupBox("Select Threshold")
+        group_box_threshold = QtWidgets.QGroupBox("Select Threshold (V)")
         group_box_threshold_layout = QtWidgets.QHBoxLayout()
         group_box_threshold.setCheckable(True)
         group_box_threshold.setChecked(False)
@@ -326,6 +326,7 @@ class MEA_app(QtWidgets.QMainWindow):
         group_box_channel_stream, self.channel_id_tab1 = self.create_group_select_id()
         group_box_browse, self.browse_text_box_tab1 = self.create_group_open_from()
         group_box_from_to, self.extract_from_tab1, self.extract_to_tab1 = self.create_group_select_time_range_tab1()
+        group_box_from_to.toggled.connect(lambda : self.clear_qlines(self.extract_from_tab1, self.extract_to_tab1))
 
         plot_file_btn = QtWidgets.QPushButton(self)
         plot_file_btn.setFixedSize(GROUP_BOX_WIDTH,35)
@@ -366,7 +367,7 @@ class MEA_app(QtWidgets.QMainWindow):
         browse_text_box.setDisabled(True)
         browse = QtWidgets.QPushButton(self)
         browse.setText("Browse file")
-        browse.clicked.connect(lambda x: self.getfiles(browse_text_box))
+        browse.clicked.connect(lambda x: self.get_file_for_open(browse_text_box))
 
         group_box_browse_layout.addWidget(browse_text_box)
         group_box_browse_layout.addWidget(browse)
@@ -376,7 +377,7 @@ class MEA_app(QtWidgets.QMainWindow):
         return group_box_browse, browse_text_box
         
     def create_group_select_time_range_tab1(self):
-        group_box_from_to = QtWidgets.QGroupBox("Select time range")
+        group_box_from_to = QtWidgets.QGroupBox("Select time range (s)")
         group_box_from_to_layout = QtWidgets.QHBoxLayout()
         group_box_from_to.setCheckable(True)
         group_box_from_to.setChecked(False)
@@ -418,7 +419,7 @@ class MEA_app(QtWidgets.QMainWindow):
         return group_box_channel_stream, channel_id
 
     def create_group_filter(self):
-        group_box_filter = QtWidgets.QGroupBox("Set filter")
+        group_box_filter = QtWidgets.QGroupBox("Set filter (Hz)")
         group_box_filter_layout = QtWidgets.QHBoxLayout()
         group_box_filter.setCheckable(True)
         group_box_filter.setChecked(False)
@@ -513,7 +514,7 @@ class MEA_app(QtWidgets.QMainWindow):
         high_pass = self._check_value(self.filter_high_tab1.text(), None)
         low_pass = self._check_value(self.filter_low_tab1.text(), None)
        
-        if -1 in (channel_id,from_in_s,to_in_s):
+        if -1 in (channel_id,from_in_s,to_in_s,high_pass,low_pass):
             self.error_popup("Please enter correct values", "Value Error")
             return
         
@@ -547,9 +548,14 @@ class MEA_app(QtWidgets.QMainWindow):
         min_duration = self._check_value(self.tab2_min_duration.text(), None)
         min_number_spike = self._check_value(self.tab2_min_number.text(), None)
         
-        if -1 in (channel_id,pre,post,dead_time,comp_number,threshold_from,threshold_to,max_start,max_end,min_between,min_duration,min_number_spike):
+        if -1 in (channel_id,pre,post,dead_time,comp_number,from_in_s,to_in_s,high_pass,low_pass,
+                    threshold_from,threshold_to,max_start,max_end,min_between,min_duration,min_number_spike):
             self.error_popup("Please enter correct values", "Value Error")
             return
+        
+        if (dead_time < (pre+post)):
+            self.error_popup("Dead time must be more or equal than (pre + post)", "Intersection Error")
+            return 
 
         spike_plot, spike_plot_error_msg = plot_all_spikes_together(analog_stream_path, channel_id, comp_number, pre, post, dead_time, spike_number,
                                                         self.tab2_canvas, 0, from_in_s, to_in_s, high_pass, low_pass, threshold_from, threshold_to,)
@@ -580,6 +586,10 @@ class MEA_app(QtWidgets.QMainWindow):
         if -1 in (channel_id, pre, post, dead_time, from_in_s, to_in_s, threshold_from, threshold_to):
             self.error_popup("Please enter correct values", "Value Error")
             return
+        
+        if (dead_time < (pre+post)):
+            self.error_popup("Dead time must be more or equal than (pre + post)", "Intersection Error")
+            return 
 
         stimule_error, stimule_error_msg = plot_stimulus_average(analog_stream_path, channel_id, dead_time, threshold_from, 
                                                                  pre, post, self.tab3_canvas, 0)
@@ -607,9 +617,9 @@ class MEA_app(QtWidgets.QMainWindow):
             self.error_popup("Please enter correct values", "Value Error")
             return
         
-        name, _ = QtWidgets.QFileDialog.getSaveFileName(self,'Save File', options=QtWidgets.QFileDialog.DontUseNativeDialog)
-        self.extract_text_box_tab1.setText(name)
-        file_save_path = self.extract_text_box_tab1.text()
+        file_save_path = self.get_file_for_save(self.extract_text_box_tab1)
+        if not file_save_path:
+            return
         
         save_error, value = extract_waveform(analog_stream_path, file_save_path, channel_id, from_in_s, to_in_s)
         
@@ -632,13 +642,13 @@ class MEA_app(QtWidgets.QMainWindow):
         min_duration = self._check_value(self.tab2_min_duration.text(), None)
         min_number_spike = self._check_value(self.tab2_min_number.text(), None)
         
-        if -1 in (channel_id, threshold_from, threshold_to, dead_time, max_start, max_end, min_between, min_duration, min_number_spike):
+        if -1 in (channel_id, threshold_from, threshold_to, dead_time, bin_width, max_start, max_end, min_between, min_duration, min_number_spike):
             self.error_popup("Please enter correct values", "Value Error")
             return
         
-        name, _ = QtWidgets.QFileDialog.getSaveFileName(self,'Save File', options=QtWidgets.QFileDialog.DontUseNativeDialog)
-        self.extract_text_box_tab2.setText(name)
-        file_save_path = self.extract_text_box_tab2.text()
+        file_save_path = self.get_file_for_save(self.extract_text_box_tab2)
+        if not file_save_path:
+            return
         
         save_error, value = extract_spike(analog_stream_path, file_save_path, channel_id, threshold_from, threshold_to, dead_time, bin_width,
                                             max_start, max_end, min_between, min_duration, min_number_spike)
@@ -659,10 +669,14 @@ class MEA_app(QtWidgets.QMainWindow):
         if -1 in (analog_stream_path, channel_id, threshold_from, dead_time, pre, post):
             self.error_popup("Please enter correct values", "Value Error")
             return
+
+        if (dead_time < (pre+post)):
+            self.error_popup("Dead time must be more or equal than (pre + post)", "Intersection Error")
+            return 
         
-        name, _ = QtWidgets.QFileDialog.getSaveFileName(self,'Save File', options=QtWidgets.QFileDialog.DontUseNativeDialog)
-        self.extract_text_box_tab3.setText(name)
-        file_save_path = self.extract_text_box_tab3.text()
+        file_save_path = self.get_file_for_save(self.extract_text_box_tab3)
+        if not file_save_path:
+            return
 
         save_error, value = extract_stimulus(analog_stream_path, file_save_path, channel_id, threshold_from, dead_time, pre, post)
         if save_error:
@@ -671,21 +685,29 @@ class MEA_app(QtWidgets.QMainWindow):
             self.info_popup("Data created successfully", "Extract success")
 
 
-    def getfiles(self, text_box):
+    def get_file_for_open(self, text_box):
         fileName, _ = QtWidgets.QFileDialog.getOpenFileName(self, 'Open File')
-        text_box.setText(fileName)
-        error_message, message = get_all_channel_ids(fileName)
+        if fileName:
+            text_box.setText(fileName)
+            error_message, message = get_all_channel_ids(fileName)
 
-        if error_message:
-            self.error_popup(message, "File Error")
-            return
+            if error_message:
+                self.error_popup(message, "File Error")
+                return
 
-        message.insert(0,"all")
-        for channel_id in [self.channel_id_tab1, self.channel_id_tab2, self.channel_id_tab3]:
-            channel_id.clear()
-            channel_id.addItems(message)
-            channel_id.setStyleSheet("combobox-popup: 0")
-   
+            message.insert(0,"all")
+            for channel_id in [self.channel_id_tab1, self.channel_id_tab2, self.channel_id_tab3]:
+                channel_id.clear()
+                channel_id.addItems(message)
+                channel_id.setStyleSheet("combobox-popup: 0")
+    
+    def get_file_for_save(self, text_box):
+        name, _ = QtWidgets.QFileDialog.getSaveFileName(self,'Save File', options=QtWidgets.QFileDialog.DontUseNativeDialog)
+        if name:
+            text_box.setText(name)
+            file_save_path = text_box.text()
+            return file_save_path
+
     def check_plotes_visibility(self, tab_is_plot_visible, tab_canvas, plot_idx, value):
         axes = tab_canvas.figure.get_axes()
         tab_is_plot_visible[plot_idx] = value
