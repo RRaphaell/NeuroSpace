@@ -558,7 +558,7 @@ class MEA_app(QtWidgets.QMainWindow):
             return 
 
         spike_plot, spike_plot_error_msg = plot_all_spikes_together(analog_stream_path, channel_id, comp_number, pre, post, dead_time, spike_number,
-                                                        self.tab2_canvas, 0, from_in_s, to_in_s, high_pass, low_pass, threshold_from, threshold_to,)
+                                                        self.tab2_canvas, 0, from_in_s, to_in_s, high_pass, low_pass, threshold_from, threshold_to)
         
         spike_plot_dots, spike_plot_dots_error_msg = plot_signal_with_spikes_or_stimulus(analog_stream_path, channel_id, self.tab2_canvas, 1, True, from_in_s, to_in_s, high_pass, low_pass, threshold_from, threshold_to, dead_time,
                                                                                         max_start, max_end, min_between, min_duration, min_number_spike)
@@ -635,6 +635,8 @@ class MEA_app(QtWidgets.QMainWindow):
     def save_spike(self):
         analog_stream_path = self.browse_text_box_tab1.text()
         channel_id = self._check_value(self.channel_id_tab2.currentText(), None)
+        from_in_s = self._check_value(self.extract_from_tab2.text(), 0)
+        to_in_s = self._check_value(self.extract_to_tab2.text(), None)
         threshold_from = self._check_value(self.threshold_from_tab2.text(), None)
         threshold_to = self._check_value(self.threshold_to_tab2.text(), None)
         high_pass = self._check_value(self.filter_high_tab2.text(), None)
@@ -656,7 +658,7 @@ class MEA_app(QtWidgets.QMainWindow):
         if not file_save_path:
             return
         
-        save_error, value = extract_spike(analog_stream_path, file_save_path, channel_id, threshold_from, threshold_to, high_pass, low_pass, dead_time, bin_width,
+        save_error, value = extract_spike(analog_stream_path, file_save_path, channel_id, from_in_s, to_in_s, threshold_from, threshold_to, high_pass, low_pass, dead_time, bin_width,
                                             max_start, max_end, min_between, min_duration, min_number_spike)
 
         if save_error:
