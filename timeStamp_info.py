@@ -90,8 +90,10 @@ def _get_proper_threshold (signal, threshold_from, is_spike) :
             noise_mad = np.median(np.absolute(signal))
             if noise_mad <= noise_std:
                 threshold_from = -5 * noise_mad
+                # threshold_from/=1000000
             else:
                  threshold_from = -5 * noise_std
+                #  threshold_from/=1000000
         else: 
             threshold_from=-100/1000000       
     return threshold_from
@@ -266,7 +268,6 @@ def _save_stimulus_with_avg(file_save_path, signal, analog_stream, channel_id, f
     stimulus_in_second_df["end"+str(channel_id)] = [thresholds[i] for i in range(1,len(thresholds),2)]
     stimulus_in_second_df["stimulus_time"+str(channel_id)] = (stimulus_in_second_df["end"+str(channel_id)] - stimulus_in_second_df["start"+str(channel_id)])
     stimulus_in_second_df["stimulus_number"+str(channel_id)] = np.ceil(stimulus_in_second_df["stimulus_time"+str(channel_id)] / dead_time)
-    stimulus_in_second_df["frequency"+str(channel_id)] = stimulus_in_second_df["stimulus_number"+str(channel_id)] / stimulus_in_second_df["stimulus_time"+str(channel_id)]
 
     df_avg_stimul = _signal_average_around_stimulus(signal, stimulus_in_second_df*fs, channel_id, pre, post, fs)
     stimulus_in_second_df += from_in_s
@@ -332,7 +333,7 @@ def plot_all_spikes_together(file_path, channel_id, n_components, pre, post, dea
     axes = canvas.figure.get_axes()
     ax = axes[suplot_num]
     ax.clear()
-    
+
     if (len(spks) < 1):
         ax.set_title('No Spike')
         return 0, ""
