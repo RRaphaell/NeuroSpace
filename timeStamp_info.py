@@ -1,10 +1,10 @@
-import os
 import numpy as np
 import pandas as pd
 from sklearn.mixture import GaussianMixture
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 
+import gc
 import McsPy
 import McsPy.McsData
 from McsPy import ureg, Q_
@@ -90,10 +90,8 @@ def _get_proper_threshold (signal, threshold_from, is_spike) :
             noise_mad = np.median(np.absolute(signal))
             if noise_mad <= noise_std:
                 threshold_from = -5 * noise_mad
-                # threshold_from/=1000000
             else:
                  threshold_from = -5 * noise_std
-                #  threshold_from/=1000000
         else: 
             threshold_from=-100/1000000       
     return threshold_from
@@ -192,31 +190,31 @@ def _get_channel_ID(electrode_stream, channel_label):
     return my_dict.get(channel_label)
 
 def _get_burst(spikes_in_s, max_start, max_end, min_between, min_duration, min_number_spike):
-
     spikes_in_s = np.array(spikes_in_s)
     all_burst = []
     i = 0
-
     while i < len(spikes_in_s)-1:
         if (spikes_in_s[i+1]-spikes_in_s[i]) <= max_start:
-            #burst start point
-
             burst_start_in_s = spikes_in_s[i]
             while (i < len(spikes_in_s)-1) and ((spikes_in_s[i+1]-spikes_in_s[i]) < max_end):
                 i += 1
-            burst_end_in_s = spikes_in_s[i]
-            
-            temp_burst_start_in_s = burst_end_in_s + min_between
-            while (i < len(spikes_in_s)-1) and (spikes_in_s[i] < temp_burst_start_in_s):
-                i += 1
-                
+            burst_end_in_s = spikes_in_s[i]   
             all_burst.append((burst_start_in_s, burst_end_in_s))
         else:
             i+=1
+    
+    merged_bursts=[]
+    temp_burst = all_burst[0]
+    for i in range(1, len(all_burst)):
+        if (all_burst[i][0] - temp_burst[1]) < min_between:
+            temp_burst[1] = all_burst[i][1]
+        else:
+            merged_bursts.append(temp_burst)
+            temp_burst = all_burst[i]      
 
     bursts_starts = []
     bursts_ends = []
-    for burst in all_burst:
+    for burst in merged_bursts:
         num_spike_in_burst = len(spikes_in_s[(spikes_in_s>=burst[0]) & (spikes_in_s<=burst[1])])
         if (((burst[1]-burst[0]) >= min_duration) and (num_spike_in_burst >= min_number_spike)):
             bursts_starts.append(burst[0])
@@ -304,6 +302,7 @@ def plot_signal(file_path, channel_id, from_in_s, to_in_s, canvas, suplot_num, h
 
     canvas.figure.tight_layout()
     canvas.draw()
+    gc.collect()
     return 0,""
 
 def plot_all_spikes_together(file_path, channel_id, n_components, pre, post, dead_time, number_spikes, canvas, suplot_num,
@@ -325,7 +324,7 @@ def plot_all_spikes_together(file_path, channel_id, n_components, pre, post, dea
         signal_in_uV = _filter_base_freqeuncy(signal_in_uV, time_in_sec, high_pass, low_pass)
 
     signal = signal_in_uV/1000000 # need this to calculate stimulus or spikes
-    threshold_from = _get_proper_threshold(signal_in_uV, threshold_from, True)
+    threshold_from = _get_proper_threshold(signal, threshold_from, True)
     fs, spks = _get_spike_info(electrode_stream, channel_id, signal, threshold_from, threshold_to, dead_time)
     spks += int(from_in_s*fs)
     cutouts = _get_signal_cutouts(signal_in_uV, fs, spks, pre, post)
@@ -345,6 +344,7 @@ def plot_all_spikes_together(file_path, channel_id, n_components, pre, post, dea
         _plot_each_spike(ax, cutouts[idx,:], fs, pre, post, n=number_spikes, color=color)
     canvas.figure.tight_layout()
     canvas.draw()
+    gc.collect()
     return 0, ""
 
 def plot_stimulus_average(file_path, channel_label, from_in_s, to_in_s, dead_time, stimulus_threshold, pre, post, canvas, suplot_num):
@@ -384,6 +384,7 @@ def plot_stimulus_average(file_path, channel_label, from_in_s, to_in_s, dead_tim
     ax.set_ylabel('Voltage (%s)' % ureg.uV)
     canvas.figure.tight_layout()
     canvas.draw()
+    gc.collect()
     return 0,""
 
 def plot_signal_with_spikes_or_stimulus(file_path, channel_id, canvas, suplot_num, is_spike, from_in_s, to_in_s, high_pass, low_pass, threshold_from, threshold_to, dead_time,
@@ -443,6 +444,7 @@ def plot_signal_with_spikes_or_stimulus(file_path, channel_id, canvas, suplot_nu
     ax.set_title('Channel %s' % channel_label)
     canvas.figure.tight_layout()
     canvas.draw()
+    gc.collect()
     return 0,""
 
 def plot_signal_frequencies(file_path, channel_id, canvas, suplot_num, from_in_s, to_in_s):
@@ -467,6 +469,7 @@ def plot_signal_frequencies(file_path, channel_id, canvas, suplot_num, from_in_s
     ax.set_xlabel('Frequency (Hz)')
     canvas.figure.tight_layout()
     canvas.draw()
+    gc.collect()
     return 0,""
 
 def extract_waveform(analog_stream_path, file_save_path, channel_id, from_in_s, to_in_s, high_pass, low_pass, stream_id=0):   
@@ -474,7 +477,6 @@ def extract_waveform(analog_stream_path, file_save_path, channel_id, from_in_s, 
     if not _file:
         return 1, "File path is incorrect"
 
-    # TODO
     analog_stream = _file.recordings[0].analog_streams[stream_id]
     _channel_info = analog_stream.channel_infos[0]
     sampling_frequency = _channel_info.sampling_frequency.magnitude
@@ -496,6 +498,7 @@ def extract_waveform(analog_stream_path, file_save_path, channel_id, from_in_s, 
             return 1, "Wrong channel_id !"
 
     df.to_csv(file_save_path+".csv", index=False)
+    gc.collect()
     return 0, ""
 
 def extract_stimulus(analog_stream_path, file_save_path, channel_id, from_in_s, to_in_s, stimulus_threshold, dead_time, pre, post):
@@ -519,7 +522,7 @@ def extract_stimulus(analog_stream_path, file_save_path, channel_id, from_in_s, 
         channel = _get_channel_ID(analog_stream, channel_id)
         signal = analog_stream.get_channel_in_range(channel, from_idx, to_idx)[0]
         _save_stimulus_with_avg(file_save_path, signal, analog_stream, channel_id, from_in_s, to_in_s, stimulus_threshold, fs, pre, post, dead_time)
-
+    gc.collect()
     return 0, ""
 
 def extract_spike(analog_stream_path, file_save_path, channel_label, from_in_s, to_in_s, threshold_from, threshold_to, high_pass, low_pass, dead_time, bin_width,
@@ -593,7 +596,7 @@ def extract_spike(analog_stream_path, file_save_path, channel_label, from_in_s, 
         spikes_in_bin_df.to_csv(file_save_path+str(channel_label)+"_bin.csv", index=False)
         bursts_df.to_csv(file_save_path+str(channel_label)+"_burst.csv", index=False)
         spikes_in_second_df.to_csv(file_save_path+str(channel_label)+".csv", index=False)
-
+    gc.collect()
     return 0, ""
 
 def get_all_channel_ids(file_path):
@@ -602,5 +605,7 @@ def get_all_channel_ids(file_path):
         return 1, "File path is incorrect"
 
     keys = [str(value.info['Label']) for key, value in _file.recordings[0].analog_streams[0].channel_infos.items()]
+    gc.collect()
     return 0, keys
+
 
