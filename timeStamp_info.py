@@ -434,6 +434,8 @@ def plot_signal_with_spikes_or_stimulus(file_path, channel_id, canvas, suplot_nu
 
         bursts_starts, bursts_ends = _get_burst(spikes_in_second, max_start, max_end, min_between, min_duration, min_number_spike)
         bursts_df = pd.DataFrame({"burst_start":bursts_starts, "burst_end":bursts_ends})
+        bursts_df += from_in_s
+        
         for idx in range(bursts_df.shape[0]):
             temp_burst_start = bursts_df.iloc[idx].burst_start
             temp_burst_end = bursts_df.iloc[idx].burst_end

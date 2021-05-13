@@ -114,7 +114,7 @@ class MEA_app(QtWidgets.QMainWindow):
 
         plots_names = ["Average Stimulus","Stimulus", "Frequency"]
         self.tab3_is_plot_visible = [2]*len(plots_names)
-        plot_group_box, self.tab3_canvas, self.tab3_plot_check_boxes  = self.create_plot_grop_box("Stimulus", False, plots_names)
+        plot_group_box, self.tab3_canvas, self.tab3_plot_check_boxes, _  = self.create_plot_grop_box("Stimulus", False, plots_names)
         for i in range(len(self.tab3_plot_check_boxes)):
             self.tab3_plot_check_boxes[i].stateChanged.connect(partial(self.check_plotes_visibility, self.tab3_is_plot_visible, self.tab3_canvas, i)) 
 
@@ -142,8 +142,8 @@ class MEA_app(QtWidgets.QMainWindow):
         self.dead_time_tab2.setStatusTip("Recommended: 0.003 (s)")
 
         self.group_box_threshold_tab2, self.threshold_from_tab2, self.threshold_to_tab2 = self.create_group_threshold()
-        self.group_box_threshold_tab2.setStatusTip("Select Threshold. Default: -0.00012 (V)")
-        self.threshold_from_tab2.setStatusTip("Default: calculate std deviation. (V)")
+        self.group_box_threshold_tab2.setStatusTip("Select Threshold. Recommended: -0.00012 (V)")
+        self.threshold_from_tab2.setStatusTip("Default: calculate std deviation. (V)     Recommended: -0.00012 (V)")
         self.group_box_threshold_tab2.toggled.connect(lambda : self.clear_qlines(self.threshold_from_tab2, self.threshold_to_tab2))
         
         self.group_box_filter_tab2, self.filter_low_tab2, self.filter_high_tab2 = self.create_group_filter() 
@@ -174,7 +174,7 @@ class MEA_app(QtWidgets.QMainWindow):
         
         plots_names = ["Spike together","Spikes","Frequency"]
         self.tab2_is_plot_visible = [2]*len(plots_names)
-        plot_group_box, self.tab2_canvas, self.tab2_plot_check_boxes  = self.create_plot_grop_box("Spike", True, plots_names)
+        plot_group_box, self.tab2_canvas, self.tab2_plot_check_boxes, self.component  = self.create_plot_grop_box("Spike", True, plots_names)
         self.tab2_is_canvas_clicked = [False]
         for i in range(len(self.tab2_plot_check_boxes)):
             self.tab2_plot_check_boxes[i].stateChanged.connect(partial(self.check_plotes_visibility, self.tab2_is_plot_visible, self.tab2_canvas, i))
@@ -342,7 +342,7 @@ class MEA_app(QtWidgets.QMainWindow):
 
         plots_names = ["Waveform","Frequeny"]
         self.tab1_is_plot_visible = [2]*len(plots_names)
-        self.plot_group_box_tab1, self.tab1_canvas, self.tab1_plot_check_boxes  = self.create_plot_grop_box("Waveform", False, plots_names)
+        self.plot_group_box_tab1, self.tab1_canvas, self.tab1_plot_check_boxes, _  = self.create_plot_grop_box("Waveform", False, plots_names)
         self.tab1_is_canvas_clicked = [False]
         for i in range(len(self.tab1_plot_check_boxes)):
             self.tab1_plot_check_boxes[i].stateChanged.connect(partial(self.check_plotes_visibility, self.tab1_is_plot_visible, self.tab1_canvas, i))
@@ -461,7 +461,7 @@ class MEA_app(QtWidgets.QMainWindow):
                                     'margin-top: 27px;'
                                     'font-size: 20px;}')
 
-        self.component = QtWidgets.QLineEdit(self)
+        component = QtWidgets.QLineEdit(self)
         component_label = QtWidgets.QLabel(self)
         component_label.setText("Component number: ")
 
@@ -472,7 +472,7 @@ class MEA_app(QtWidgets.QMainWindow):
 
         if add_component:
             toolbar.addWidget(component_label)
-            toolbar.addWidget(self.component)
+            toolbar.addWidget(component)
             toolbar.addSeparator()
         
         check_boxes = []
@@ -486,7 +486,7 @@ class MEA_app(QtWidgets.QMainWindow):
         layout.addWidget(toolbar)
         layout.addWidget(canvas)
         plot_group_box.setLayout(layout)
-        return plot_group_box, canvas, check_boxes
+        return plot_group_box, canvas, check_boxes, component
   
 
     def plot_waveform(self):
