@@ -35,6 +35,7 @@ def _get_signal_cutouts(signal, fs, spikes_idx, pre, post):
         if index-pre_idx >= 0 and index+post_idx <= signal.shape[0]:
             cutout = signal[(index-pre_idx):(index+post_idx)]
             cutouts.append(cutout)
+
     if (len(cutouts)>0) :
         return np.stack(cutouts)
     return cutouts
@@ -202,6 +203,9 @@ def _get_burst(spikes_in_s, max_start, max_end, min_between, min_duration, min_n
             all_burst.append((burst_start_in_s, burst_end_in_s))
         else:
             i+=1
+
+    if not all_burst:
+        return [], []
     
     merged_bursts=[]
     temp_burst = all_burst[0]
@@ -310,7 +314,7 @@ def plot_all_spikes_together(file_path, channel_id, n_components, pre, post, dea
     _file = _path_valid(file_path)
     if not _file:
         return 1, "File path is incorrect"
-    
+
     electrode_stream = _file.recordings[0].analog_streams[0]
     channel_id = _get_channel_ID(electrode_stream, channel_id)
     if channel_id not in electrode_stream.channel_infos:
@@ -435,7 +439,7 @@ def plot_signal_with_spikes_or_stimulus(file_path, channel_id, canvas, suplot_nu
         bursts_starts, bursts_ends = _get_burst(spikes_in_second, max_start, max_end, min_between, min_duration, min_number_spike)
         bursts_df = pd.DataFrame({"burst_start":bursts_starts, "burst_end":bursts_ends})
         bursts_df += from_in_s
-        
+
         for idx in range(bursts_df.shape[0]):
             temp_burst_start = bursts_df.iloc[idx].burst_start
             temp_burst_end = bursts_df.iloc[idx].burst_end
