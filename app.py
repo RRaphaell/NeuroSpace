@@ -1,6 +1,7 @@
 import sys
 import os
 from PyQt5 import QtWidgets, QtGui
+from PyQt5.QtCore import Qt
 from timeStamp_info import *
 import matplotlib
 import matplotlib.pyplot as plt
@@ -16,6 +17,38 @@ font = {'family' : 'Arial',
         'weight' : 'bold',
         'size'   : 8}
 matplotlib.rc('font', **font)
+
+
+class CheckableComboBox(QtWidgets.QComboBox):
+    def __init__(self):
+	    super().__init__()
+	    self._changed = False
+	    self.view().pressed.connect(self.handleItemPressed)
+
+    def setItemChecked(self, index, checked=False):
+	    item = self.model().item(index, self.modelColumn()) # QStandardItem object
+	    if checked:
+		    item.setCheckState(Qt.Checked)
+	    else:
+		    item.setCheckState(Qt.Unchecked)
+
+    def handleItemPressed(self, index):
+	    item = self.model().itemFromIndex(index)
+	    if item.checkState() == Qt.Checked:
+		    item.setCheckState(Qt.Unchecked)
+	    else:
+		    item.setCheckState(Qt.Checked)
+	    self._changed = True
+
+    def hidePopup(self):
+	    if not self._changed:
+		    super().hidePopup()
+	    self._changed = False
+
+    def itemChecked(self, index):
+	    item = self.model().item(index, self.modelColumn())
+	    return item.checkState() == Qt.Checked
+
 
 
 class MEA_app(QtWidgets.QMainWindow):
@@ -36,7 +69,7 @@ class MEA_app(QtWidgets.QMainWindow):
         self.create_tab2()
         self.create_tab3()
 
-        QtWidgets.QApplication.setStyle(QtWidgets.QStyleFactory.create('Fusion'))  
+        # QtWidgets.QApplication.setStyle(QtWidgets.QStyleFactory.create('Fusion'))
 
         self.dir_path = os.path.dirname(os.path.realpath(__file__))
         self.setWindowIcon(QtGui.QIcon(os.path.join(self.dir_path,"images","app_icon.png")))
@@ -132,7 +165,7 @@ class MEA_app(QtWidgets.QMainWindow):
         tab2_layout = QtWidgets.QGridLayout()
         self.statusBar()
 
-        self.group_box_channel_stream_tab2, self.channel_id_tab2 = self.create_group_select_id()
+        self.group_box_channel_stream_tab2, self.channel_id_tab2 = self.create_group_select_id(checkable_combo=True)
         self.group_box_pre_post_tab2, self.extract_pre_tab2, self.extract_post_tab2, self.dead_time_tab2 = self.create_group_select_time_range_tab2()
         self.extract_pre_tab2.setText("0.001")
         self.extract_post_tab2.setText("0.001")
@@ -395,11 +428,15 @@ class MEA_app(QtWidgets.QMainWindow):
         group_box_from_to.setStatusTip("Choose particular time (second), leave empty for full time")
         return group_box_from_to, extract_from, extract_to
 
-    def create_group_select_id(self):
+    def create_group_select_id(self, checkable_combo=False):
         group_box_channel_stream = QtWidgets.QGroupBox("Select id")
         group_box_channel_stream_layout = QtWidgets.QHBoxLayout()
         
-        channel_id = QtWidgets.QComboBox(self)
+        if checkable_combo:
+            channel_id = CheckableComboBox()
+        else:
+            channel_id = QtWidgets.QComboBox(self)
+        
         channel_id.setStatusTip("Choose particular channel, choose all to extract all Channels")
         channel_id_label = QtWidgets.QLabel(self)
         channel_id_label.setText("Channel_id")
@@ -520,6 +557,7 @@ class MEA_app(QtWidgets.QMainWindow):
     def plot_spike(self):
         analog_stream_path = self.browse_text_box_tab1.text()
         channel_id = self._check_value(self.channel_id_tab2.currentText(), None)
+        # channel_id =  self.get_value(self.channel_id_tab2)
         pre = self._check_value(self.extract_pre_tab2.text(), None)
         post = self._check_value(self.extract_post_tab2.text(), None)
         dead_time = self._check_value(self.dead_time_tab2.text(), None)
@@ -642,6 +680,7 @@ class MEA_app(QtWidgets.QMainWindow):
     def save_spike(self):
         analog_stream_path = self.browse_text_box_tab1.text()
         channel_id = self._check_value(self.channel_id_tab2.currentText(), None)
+        # channel_id =  self.get_value(self.channel_id_tab2)
         from_in_s = self._check_value(self.extract_from_tab2.text(), 0)
         to_in_s = self._check_value(self.extract_to_tab2.text(), None)
         threshold_from = self._check_value(self.threshold_from_tab2.text(), None)
@@ -717,8 +756,11 @@ class MEA_app(QtWidgets.QMainWindow):
             for channel_id in [self.channel_id_tab1, self.channel_id_tab2, self.channel_id_tab3]:
                 channel_id.clear()
                 channel_id.addItems(message)
-                channel_id.setStyleSheet("combobox-popup: 0")
-    
+                # channel_id.setStyleSheet("combobox-popup: 0")
+            
+            for i in range(self.channel_id_tab2.count()):
+                self.channel_id_tab2.setItemChecked(i, False)
+
     def get_file_for_save(self, text_box):
         name, _ = QtWidgets.QFileDialog.getSaveFileName(self,'Save File', options=QtWidgets.QFileDialog.DontUseNativeDialog)
         if name:
@@ -781,6 +823,13 @@ class MEA_app(QtWidgets.QMainWindow):
         axes = canvas.figure.get_axes()
         ax = axes[subplot_num]
         ax.clear()
+
+    def get_value(self, combo):
+        checked_channel = []
+        for i in range(combo.count()):
+            if  combo.itemChecked(i):
+                checked_channel.append(combo.itemText(i))
+        return checked_channel
 
 if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)
