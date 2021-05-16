@@ -330,14 +330,14 @@ def plot_all_spikes_together(file_path, channel_id, n_components, pre, post, dea
     signal = signal_in_uV/1000000 # need this to calculate stimulus or spikes
     threshold_from = _get_proper_threshold(signal, threshold_from, True)
     fs, spks = _get_spike_info(electrode_stream, channel_id, signal, threshold_from, threshold_to, dead_time)
-    spks += int(from_in_s*fs)
+    spks += int(from_in_s)
     cutouts = _get_signal_cutouts(signal_in_uV, fs, spks, pre, post)
 
     axes = canvas.figure.get_axes()
     ax = axes[suplot_num]
     ax.clear()
 
-    if (len(spks) < 1):
+    if (len(spks) < 2):
         ax.set_title('No Spike')
         return 0, ""
 
