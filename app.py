@@ -121,6 +121,7 @@ class MEA_app(QtWidgets.QMainWindow):
         tab3_layout = QtWidgets.QGridLayout()
         self.statusBar()
 
+        self.tab3_stimulus = []
         self.group_box_channel_stream_tab3, self.channel_id_tab3 = self.create_group_select_id()
         self.group_box_pre_post_tab3, self.extract_pre_tab3, self.extract_post_tab3, self.dead_time_tab3 = self.create_group_select_time_range_tab2()
         self.extract_pre_tab3.setText("0.001")
@@ -547,7 +548,7 @@ class MEA_app(QtWidgets.QMainWindow):
             self.clear_plot(self.tab1_canvas, subplot_num=0)
 
         if self.tab1_plot_check_boxes[1].isChecked():
-            fourier_error, fourier_error_msg = plot_signal_frequencies(analog_stream_path, channel_id, self.tab1_canvas, 1, from_in_s, to_in_s)
+            fourier_error, fourier_error_msg = plot_signal_frequencies(analog_stream_path, [channel_id], self.tab1_canvas, 1, from_in_s, to_in_s)
             if fourier_error:
                 self.error_popup(fourier_error_msg, "Plot Error")
                 return
@@ -556,8 +557,8 @@ class MEA_app(QtWidgets.QMainWindow):
     
     def plot_spike(self):
         analog_stream_path = self.browse_text_box_tab1.text()
-        channel_id = self._check_value(self.channel_id_tab2.currentText(), None)
-        # channel_id =  self.get_value(self.channel_id_tab2)
+        # channel_id = self._check_value(self.get_value(self.channel_id_tab2)[0], None)
+        channel_id =  self.get_value(self.channel_id_tab2)
         pre = self._check_value(self.extract_pre_tab2.text(), None)
         post = self._check_value(self.extract_post_tab2.text(), None)
         dead_time = self._check_value(self.dead_time_tab2.text(), None)
@@ -595,7 +596,7 @@ class MEA_app(QtWidgets.QMainWindow):
         
         if self.tab2_plot_check_boxes[1].isChecked():
             spike_plot_dots, spike_plot_dots_error_msg = plot_signal_with_spikes_or_stimulus(analog_stream_path, channel_id, self.tab2_canvas, 1, True, from_in_s, to_in_s, high_pass, low_pass, 
-                                                                                        threshold_from, threshold_to, dead_time, max_start, max_end, min_between, min_duration, min_number_spike)
+                                                                                        threshold_from, threshold_to, dead_time, max_start, max_end, min_between, min_duration, min_number_spike, self.tab3_stimulus)
             if spike_plot_dots:
                 self.error_popup(spike_plot_dots_error_msg, "Plot Error")
         else:
@@ -638,15 +639,18 @@ class MEA_app(QtWidgets.QMainWindow):
             self.clear_plot(self.tab3_canvas, subplot_num=0)
 
         if self.tab3_plot_check_boxes[1].isChecked():
-            stimule_dots_error, stimule_dots_error_msg = plot_signal_with_spikes_or_stimulus(analog_stream_path, channel_id, self.tab3_canvas, 1, False, 
-                                                                                            from_in_s, to_in_s, high_pass, low_pass ,threshold_from, threshold_to, dead_time)
-            if stimule_dots_error:
-                self.error_popup(stimule_dots_error_msg, "Plot Error")
+            stimulus_dots_error, stimulus = plot_signal_with_spikes_or_stimulus(analog_stream_path, [channel_id], self.tab3_canvas, 1, False, 
+                                                                            from_in_s, to_in_s, high_pass, low_pass ,threshold_from, threshold_to, dead_time)
+            if stimulus_dots_error:
+                self.error_popup(stimulus, "Plot Error")
+            else:
+                self.tab3_stimulus = stimulus
+
         else:
             self.clear_plot(self.tab3_canvas, subplot_num=1)
 
         if self.tab3_plot_check_boxes[2].isChecked():
-            fourier, fourier_error_msg = plot_signal_frequencies(analog_stream_path, channel_id, self.tab3_canvas, 2, from_in_s, to_in_s)
+            fourier, fourier_error_msg = plot_signal_frequencies(analog_stream_path, [channel_id], self.tab3_canvas, 2, from_in_s, to_in_s)
 
             if fourier:
                 self.error_popup(fourier_error_msg, "Plot Error")
