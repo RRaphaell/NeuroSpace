@@ -530,7 +530,8 @@ def extract_waveform(analog_stream_path, file_save_path, channel_id, from_in_s, 
     gc.collect()
     return 0, ""
 
-def extract_stimulus(analog_stream_path, file_save_path, channel_id, from_in_s, to_in_s, stimulus_threshold, dead_time, pre, post):
+def extract_stimulus(analog_stream_path, file_save_path, channel_id, from_in_s, to_in_s, stimulus_threshold, dead_time, pre, post, high_pass, low_pass):
+    # gafiltrvaa dasamatebeli
     _file = _path_valid(analog_stream_path)
     if not _file:
         return 1, "File path is incorrect"    
