@@ -114,6 +114,7 @@ class MEA_app(QtWidgets.QMainWindow):
         self.group_box_pre_post_tab3.setFixedSize(int(self.width()*0.2), int(self.height()*0.08))
         self.group_box_from_to_tab3.setFixedSize(int(self.width()*0.2), int(self.height()*0.08))
         self.group_box_threshold_tab3.setFixedSize(int(self.width()*0.2), int(self.height()*0.08))
+        self.group_box_filter_tab3.setFixedSize(int(self.width()*0.2), int(self.height()*0.08))
         self.plot_file_btn_tab3.setFixedSize(int(self.width()*0.2), int(self.height()*0.05))
         self.group_box_extract_tab3.setFixedSize(int(self.width()*0.2), int(self.height()*0.08))
 
@@ -139,6 +140,9 @@ class MEA_app(QtWidgets.QMainWindow):
         self.group_box_from_to_tab3, self.extract_from_tab3, self.extract_to_tab3 = self.create_group_select_time_range_tab1()
         self.group_box_from_to_tab3.toggled.connect(lambda : self.clear_qlines(self.extract_from_tab3, self.extract_to_tab3))
 
+        self.group_box_filter_tab3, self.filter_low_tab3, self.filter_high_tab3 = self.create_group_filter() 
+        self.group_box_filter_tab3.toggled.connect(lambda : self.clear_qlines(self.filter_low_tab3, self.filter_high_tab3))
+
         self.group_box_extract_tab3, self.extract_text_box_tab3, self.extract_btn_tab3 = self.create_group_extract()   
         self.extract_btn_tab3.clicked.connect(self.save_stimulus)
 
@@ -156,10 +160,11 @@ class MEA_app(QtWidgets.QMainWindow):
         tab3_layout.addWidget(self.group_box_pre_post_tab3,1,0)
         tab3_layout.addWidget(self.group_box_from_to_tab3,2,0)
         tab3_layout.addWidget(self.group_box_threshold_tab3,3,0)
-        tab3_layout.addWidget(self.plot_file_btn_tab3,4,0)
-        tab3_layout.setRowStretch(5,0)
-        tab3_layout.addWidget(self.group_box_extract_tab3,6,0)
-        tab3_layout.addWidget(plot_group_box,0,2,7,1)
+        tab3_layout.addWidget(self.group_box_filter_tab3,4,0)
+        tab3_layout.addWidget(self.plot_file_btn_tab3,5,0)
+        tab3_layout.setRowStretch(6,0)
+        tab3_layout.addWidget(self.group_box_extract_tab3,7,0)
+        tab3_layout.addWidget(plot_group_box,0,2,8,1)
         self.tab3.setLayout(tab3_layout)
 
     def create_tab2(self):
@@ -619,8 +624,8 @@ class MEA_app(QtWidgets.QMainWindow):
         to_in_s = self._check_value(self.extract_to_tab3.text(), None)
         threshold_from = self._check_value(self.threshold_from_tab3.text(), -0.0003)
         threshold_to = self._check_value(self.threshold_to_tab3.text(), None)
-        high_pass = None
-        low_pass = None
+        high_pass = self._check_value(self.filter_high_tab3.text(), None)
+        low_pass = self._check_value(self.filter_low_tab3.text(), None)
         
         if -1 in (channel_id, pre, post, dead_time, from_in_s, to_in_s, threshold_from, threshold_to):
             self.error_popup("Please enter correct values", "Value Error")
@@ -726,6 +731,8 @@ class MEA_app(QtWidgets.QMainWindow):
         dead_time = self._check_value(self.dead_time_tab3.text(), None)
         pre = self._check_value(self.extract_pre_tab3.text(), None)
         post = self._check_value(self.extract_post_tab3.text(), None)
+        high_pass = self._check_value(self.filter_high_tab3.text(), None)
+        low_pass = self._check_value(self.filter_low_tab3.text(), None)
         
         if -1 in (analog_stream_path, channel_id, from_in_s, to_in_s, threshold_from, dead_time, pre, post):
             self.error_popup("Please enter correct values", "Value Error")
@@ -739,7 +746,7 @@ class MEA_app(QtWidgets.QMainWindow):
         if not file_save_path:
             return
 
-        save_error, value = extract_stimulus(analog_stream_path, file_save_path, channel_id, from_in_s, to_in_s, threshold_from, dead_time, pre, post)
+        save_error, value = extract_stimulus(analog_stream_path, file_save_path, channel_id, from_in_s, to_in_s, threshold_from, dead_time, pre, post, high_pass, low_pass)
         if save_error:
             self.error_popup(value, "Extract Error")
         else:
