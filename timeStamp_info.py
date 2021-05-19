@@ -184,7 +184,7 @@ def _get_channel_ID(electrode_stream, channel_label):
     if channel_label=="all":
         return "all"
     channel_info = electrode_stream.channel_infos   
-
+    
     my_dict = {}
     for ch in channel_info:
       my_dict[int(channel_info.get(ch).info['Label'])]=int(ch)
@@ -314,22 +314,30 @@ def plot_all_spikes_together(file_path, channel_id, n_components, pre, post, dea
     _file = _path_valid(file_path)
     if not _file:
         return 1, "File path is incorrect"
-
-    electrode_stream = _file.recordings[0].analog_streams[0]
-    channel_id = _get_channel_ID(electrode_stream, channel_id)
-    if channel_id not in electrode_stream.channel_infos:
-        return 1, "Channel ID is incorrect"
     
     if not all([pre, post, dead_time]):
         return 1, "Select time parameters is incorrect"
 
-    signal_in_uV, time_in_sec = _get_signal_time(electrode_stream, channel_id, from_in_s, to_in_s)
+    electrode_stream = _file.recordings[0].analog_streams[0]
+
+    signal_in_uV = []
+    for ch in channel_id:
+        ch = _get_channel_ID(electrode_stream, int(ch))
+        signal_in_uV_temp, time_in_sec = _get_signal_time(electrode_stream, ch, from_in_s, to_in_s) # need this to draw signal
+        if len(signal_in_uV)==0:
+            signal_in_uV = signal_in_uV_temp
+        else:
+            signal_in_uV += signal_in_uV_temp
+    signal_in_uV /= len(channel_id)
+
+
     if (high_pass!=None) or (low_pass!=None):
         signal_in_uV = _filter_base_freqeuncy(signal_in_uV, time_in_sec, high_pass, low_pass)
 
+    ch = _get_channel_ID(electrode_stream, int(channel_id[0]))
     signal = signal_in_uV/1000000 # need this to calculate stimulus or spikes
     threshold_from = _get_proper_threshold(signal, threshold_from, True)
-    fs, spks = _get_spike_info(electrode_stream, channel_id, signal, threshold_from, threshold_to, dead_time)
+    fs, spks = _get_spike_info(electrode_stream, int(ch), signal, threshold_from, threshold_to, dead_time)
     spks += int(from_in_s)
     cutouts = _get_signal_cutouts(signal_in_uV, fs, spks, pre, post)
 
@@ -392,32 +400,36 @@ def plot_stimulus_average(file_path, channel_label, from_in_s, to_in_s, dead_tim
     return 0,""
 
 def plot_signal_with_spikes_or_stimulus(file_path, channel_id, canvas, suplot_num, is_spike, from_in_s, to_in_s, high_pass, low_pass, threshold_from, threshold_to, dead_time,
-                                        max_start=None, max_end=None, min_between=None, min_duration=None, min_number_spike=None):
+                                        max_start=None, max_end=None, min_between=None, min_duration=None, min_number_spike=None, stimulus=[]):
     _file = _path_valid(file_path)
     if not _file:
         return 1, "File path is incorrect"
-
-    electrode_stream = _file.recordings[0].analog_streams[0]
-    channel_label = channel_id
-    channel_id = _get_channel_ID(electrode_stream, channel_id)
-    if channel_id not in electrode_stream.channel_infos:
-        return 1, "Channel ID is incorrect"   
     
     if not dead_time:
         return 1, "Please enter dead time"
-    
-    sampling_frequency = electrode_stream.channel_infos[channel_id].sampling_frequency.magnitude  
-    from_idx ,to_idx = _check_time_range(electrode_stream, sampling_frequency, from_in_s, to_in_s)
-    
-    signal_in_uV, time_in_sec = _get_signal_time(electrode_stream, channel_id, from_in_s, to_in_s) # need this to draw signal
+
+    electrode_stream = _file.recordings[0].analog_streams[0]
+    signal_in_uV = []
+
+    for ch in channel_id:
+        channel_label = channel_id
+        ch = _get_channel_ID(electrode_stream, int(ch))
+        signal_in_uV_temp, time_in_sec = _get_signal_time(electrode_stream, ch, from_in_s, to_in_s) # need this to draw signal
+        if len(signal_in_uV)==0:
+            signal_in_uV = signal_in_uV_temp
+        else:
+            signal_in_uV += signal_in_uV_temp
+    signal_in_uV /= len(channel_id)
+
     if (high_pass!=None) or (low_pass!=None):
         signal_in_uV = _filter_base_freqeuncy(signal_in_uV, time_in_sec, high_pass, low_pass)
     signal = signal_in_uV/1000000 # need this to calculate stimulus or spikes
     threshold_from = _get_proper_threshold(signal, threshold_from, is_spike)
+    ch = _get_channel_ID(electrode_stream, int(channel_id[0]))
     if is_spike:
-        fs, spks = _get_spike_info(electrode_stream, channel_id, signal, threshold_from, threshold_to, dead_time)
+        fs, spks = _get_spike_info(electrode_stream, int(ch), signal, threshold_from, threshold_to, dead_time)
     else :
-        fs = int(electrode_stream.channel_infos[channel_id].sampling_frequency.magnitude)
+        fs = int(electrode_stream.channel_infos[int(ch)].sampling_frequency.magnitude)
         spks = _detect_threshold_crossings_stimulus(signal, fs, threshold_from, dead_time)
 
     timestamps = spks / fs
@@ -430,11 +442,15 @@ def plot_signal_with_spikes_or_stimulus(file_path, channel_id, canvas, suplot_nu
     ax.plot(time_in_sec, signal_in_uV, linewidth=0.5, color = "darkmagenta")
     ax.plot(spikes_in_range, [threshold_from*1e6]*spikes_in_range.shape[0], 'ro', ms=2)
 
+    for stimul in stimulus:
+        if not to_in_s: 
+            to_in_s = electrode_stream.channel_data.shape[1]/fs 
+
+        if stimul>=from_in_s and stimul<=to_in_s:
+            ax.axvspan(stimul, stimul+40/1000000, facecolor='0.2', alpha=0.7, color='lime')
+
     if all([max_start, max_end, min_between, min_duration, min_number_spike]):
-        spikes_in_second=[]
-        for spike in spks:
-            temp_time = electrode_stream.get_channel_sample_timestamps(channel_id, spike, spike)[0][0]/1000000
-            spikes_in_second.append(temp_time)
+        spikes_in_second = spks/fs
 
         bursts_starts, bursts_ends = _get_burst(spikes_in_second, max_start, max_end, min_between, min_duration, min_number_spike)
         bursts_df = pd.DataFrame({"burst_start":bursts_starts, "burst_end":bursts_ends})
@@ -451,7 +467,7 @@ def plot_signal_with_spikes_or_stimulus(file_path, channel_id, canvas, suplot_nu
     canvas.figure.tight_layout()
     canvas.draw()
     gc.collect()
-    return 0,""
+    return 0, spikes_in_range
 
 def plot_signal_frequencies(file_path, channel_id, canvas, suplot_num, from_in_s, to_in_s):
     _file = _path_valid(file_path)
@@ -459,11 +475,18 @@ def plot_signal_frequencies(file_path, channel_id, canvas, suplot_num, from_in_s
         return 1, "File path is incorrect"
 
     electrode_stream = _file.recordings[0].analog_streams[0]
-    channel_id = _get_channel_ID(electrode_stream, channel_id)
-    if channel_id not in electrode_stream.channel_infos:
-        return 1, "Channel ID is incorrect"   
+    signal_in_uV = []
+
+    for ch in channel_id:
+        channel_label = channel_id
+        ch = _get_channel_ID(electrode_stream, int(ch))
+        signal_in_uV_temp, time_in_sec = _get_signal_time(electrode_stream, ch, from_in_s, to_in_s) # need this to draw signal
+        if len(signal_in_uV)==0:
+            signal_in_uV = signal_in_uV_temp
+        else:
+            signal_in_uV += signal_in_uV_temp
+    signal_in_uV /= len(channel_id) 
     
-    signal_in_uV, time_in_sec = _get_signal_time(electrode_stream, channel_id, from_in_s, to_in_s)
     X = fft(signal_in_uV)
     X[(len(time_in_sec)//2+1):]=0
 
