@@ -276,7 +276,6 @@ def _save_stimulus_with_avg(file_save_path, signal, analog_stream, channel_id, f
     stimulus_in_second_df.to_csv(file_save_path+str(channel_id)+".csv", index = False)
     df_avg_stimul.to_csv(file_save_path+str(channel_id)+"_avg_stimulus.csv", index=False)
 
-
 def _clear_plot(canvas, *, subplot_num):
     axes = canvas.figure.get_axes()
     ax = axes[subplot_num]
@@ -284,23 +283,57 @@ def _clear_plot(canvas, *, subplot_num):
 
 # main functions
 
-def plot_tab1(file_path, channel_id, from_in_s, to_in_s, canvas, high_pass, low_pass, waveform_checked, frequency_checked):
+def plot_tab1(file_path, channel_id, from_in_s, to_in_s, canvas, high_pass, low_pass, check_boxes):
     _file = _path_valid(file_path)
     if not _file:
         return 1, "File path is incorrect"
 
     analog_stream = _file.recordings[0].analog_streams[0]
-    if waveform_checked:
+    if check_boxes[0].isChecked():
         plot_signal(analog_stream, channel_id, from_in_s, to_in_s, canvas, 0, high_pass, low_pass)
     else:
         _clear_plot(canvas, subplot_num=0)
 
-    if frequency_checked:
+    if check_boxes[1].isChecked():
         plot_signal_frequencies(analog_stream, [channel_id], canvas, 1)
     else:
         _clear_plot(canvas, subplot_num=1)
 
     return 0,""
+
+def plot_tab2():
+    pass
+
+def plot_tab3(file_path, channel_id, from_in_s, to_in_s, high_pass, low_pass, threshold_from, threshold_to, dead_time, check_boxes, pre, post, canvas):
+
+    _file = _path_valid(file_path)
+    if not _file:
+        return 1, "File path is incorrect"
+
+    if not all([pre, post, dead_time]):
+        return 1, "Select time parameters is incorrect"  
+
+    electrode_stream = _file.recordings[0].analog_streams[0]
+    if check_boxes[0].isChecked():
+        plot_stimulus_average(electrode_stream, channel_id, from_in_s, to_in_s, dead_time, threshold_from, pre, post, canvas, 0)
+    else:
+        _clear_plot(canvas, subplot_num=0)
+
+    if check_boxes[1].isChecked():
+        stimulus = plot_signal_with_spikes_or_stimulus(electrode_stream, [channel_id], canvas, 1, False, from_in_s, to_in_s, high_pass, low_pass, threshold_from, threshold_to, dead_time)
+    else:
+        stimulus = []
+        _clear_plot(canvas, subplot_num=1)
+
+    if check_boxes[2].isChecked():
+        plot_signal_frequencies(electrode_stream, [channel_id], canvas, 2)
+    else:
+        _clear_plot(canvas, subplot_num=2)
+
+    return 0, stimulus
+
+
+
 
 def plot_signal(analog_stream, channel_id, from_in_s, to_in_s, canvas, suplot_num, high_pass, low_pass):
     channel_label = channel_id
@@ -323,7 +356,6 @@ def plot_signal(analog_stream, channel_id, from_in_s, to_in_s, canvas, suplot_nu
     canvas.draw()
     gc.collect()
     
-
 def plot_all_spikes_together(file_path, channel_id, n_components, pre, post, dead_time, number_spikes, canvas, suplot_num,
                         from_in_s, to_in_s, high_pass, low_pass, threshold_from, threshold_to):  
     _file = _path_valid(file_path)
@@ -374,19 +406,8 @@ def plot_all_spikes_together(file_path, channel_id, n_components, pre, post, dea
     gc.collect()
     return 0, ""
 
-def plot_stimulus_average(file_path, channel_label, from_in_s, to_in_s, dead_time, stimulus_threshold, pre, post, canvas, suplot_num):
-    _file = _path_valid(file_path)
-    if not _file:
-        return 1, "File path is incorrect"
-
-    electrode_stream = _file.recordings[0].analog_streams[0]
+def plot_stimulus_average(electrode_stream, channel_label, from_in_s, to_in_s, dead_time, stimulus_threshold, pre, post, canvas, suplot_num):
     channel_id = _get_channel_ID(electrode_stream, channel_label)
-    if channel_id not in electrode_stream.channel_infos:
-        return 1, "Channel ID is incorrect"  
-    
-    if not all([pre, post, dead_time]):
-        return 1, "Select time parameters is incorrect"
-
     _channel_info = electrode_stream.channel_infos[0]
     fs = _channel_info.sampling_frequency.magnitude
     from_idx, to_idx = _check_time_range(electrode_stream, fs, from_in_s, to_in_s)
@@ -412,20 +433,10 @@ def plot_stimulus_average(file_path, channel_label, from_in_s, to_in_s, dead_tim
     canvas.figure.tight_layout()
     canvas.draw()
     gc.collect()
-    return 0,""
 
-def plot_signal_with_spikes_or_stimulus(file_path, channel_id, canvas, suplot_num, is_spike, from_in_s, to_in_s, high_pass, low_pass, threshold_from, threshold_to, dead_time,
+def plot_signal_with_spikes_or_stimulus(electrode_stream, channel_id, canvas, suplot_num, is_spike, from_in_s, to_in_s, high_pass, low_pass, threshold_from, threshold_to, dead_time,
                                         max_start=None, max_end=None, min_between=None, min_duration=None, min_number_spike=None, stimulus=[]):
-    _file = _path_valid(file_path)
-    if not _file:
-        return 1, "File path is incorrect"
-    
-    if not dead_time:
-        return 1, "Please enter dead time"
-
-    electrode_stream = _file.recordings[0].analog_streams[0]
     signal_in_uV = []
-
     for ch in channel_id:
         channel_label = channel_id
         ch = _get_channel_ID(electrode_stream, int(ch))
@@ -482,7 +493,7 @@ def plot_signal_with_spikes_or_stimulus(file_path, channel_id, canvas, suplot_nu
     canvas.figure.tight_layout()
     canvas.draw()
     gc.collect()
-    return 0, spikes_in_range
+    return spikes_in_range
 
 def plot_signal_frequencies(electrode_stream, channel_id, canvas, suplot_num):
     signal_in_uV = []
