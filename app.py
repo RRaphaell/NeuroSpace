@@ -534,7 +534,7 @@ class MEA_app(QtWidgets.QMainWindow):
 
     def plot_waveform(self):
         analog_stream_path = self.browse_text_box_tab1.text()
-        channel_id = self._check_value(self.channel_id_tab1.currentText(), None)
+        channel_id = self._check_value(self.channel_id_tab1.currentText(), -1)
         from_in_s = self._check_value(self.extract_from_tab1.text(), 0)
         to_in_s = self._check_value(self.extract_to_tab1.text(), None)
         high_pass = self._check_value(self.filter_high_tab1.text(), None)
@@ -544,21 +544,11 @@ class MEA_app(QtWidgets.QMainWindow):
             self.error_popup("Please enter correct values", "Value Error")
             return
 
-        if self.tab1_plot_check_boxes[0].isChecked():
-            waveform_error, waveform_error_msg = plot_signal(analog_stream_path, channel_id, from_in_s, to_in_s, self.tab1_canvas, 0, high_pass, low_pass)
-            if waveform_error:
-                self.error_popup(waveform_error_msg, "Plot Error")
-                return
-        else:
-            self.clear_plot(self.tab1_canvas, subplot_num=0)
+        waveform_error, waveform_error_msg = plot_tab1(analog_stream_path, channel_id, from_in_s, to_in_s, self.tab1_canvas, high_pass, low_pass,
+                                                        self.tab1_plot_check_boxes[0].isChecked(), self.tab1_plot_check_boxes[1].isChecked())
+        if waveform_error:
+            self.error_popup(waveform_error_msg, "Plot Error")
 
-        if self.tab1_plot_check_boxes[1].isChecked():
-            fourier_error, fourier_error_msg = plot_signal_frequencies(analog_stream_path, [channel_id], self.tab1_canvas, 1, from_in_s, to_in_s)
-            if fourier_error:
-                self.error_popup(fourier_error_msg, "Plot Error")
-                return
-        else:
-            self.clear_plot(self.tab1_canvas, subplot_num=1)
     
     def plot_spike(self):
         analog_stream_path = self.browse_text_box_tab1.text()

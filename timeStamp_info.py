@@ -277,19 +277,34 @@ def _save_stimulus_with_avg(file_save_path, signal, analog_stream, channel_id, f
     df_avg_stimul.to_csv(file_save_path+str(channel_id)+"_avg_stimulus.csv", index=False)
 
 
+def _clear_plot(canvas, *, subplot_num):
+    axes = canvas.figure.get_axes()
+    ax = axes[subplot_num]
+    ax.clear()
+
 # main functions
 
-def plot_signal(file_path, channel_id, from_in_s, to_in_s, canvas, suplot_num, high_pass, low_pass):
+def plot_tab1(file_path, channel_id, from_in_s, to_in_s, canvas, high_pass, low_pass, waveform_checked, frequency_checked):
     _file = _path_valid(file_path)
     if not _file:
         return 1, "File path is incorrect"
 
     analog_stream = _file.recordings[0].analog_streams[0]
-    channel_label = channel_id
-    channel_id = _get_channel_ID(analog_stream, channel_id)
+    if waveform_checked:
+        plot_signal(analog_stream, channel_id, from_in_s, to_in_s, canvas, 0, high_pass, low_pass)
+    else:
+        _clear_plot(canvas, subplot_num=0)
 
-    if channel_id not in analog_stream.channel_infos:
-        return 1, "Channel ID is incorrect"   
+    if frequency_checked:
+        plot_signal_frequencies(analog_stream, [channel_id], canvas, 1)
+    else:
+        _clear_plot(canvas, subplot_num=1)
+
+    return 0,""
+
+def plot_signal(analog_stream, channel_id, from_in_s, to_in_s, canvas, suplot_num, high_pass, low_pass):
+    channel_label = channel_id
+    channel_id = _get_channel_ID(analog_stream, channel_id)  
     
     signal_in_uV, time_in_sec = _get_signal_time(analog_stream, channel_id, from_in_s, to_in_s)
 
@@ -307,7 +322,7 @@ def plot_signal(file_path, channel_id, from_in_s, to_in_s, canvas, suplot_num, h
     canvas.figure.tight_layout()
     canvas.draw()
     gc.collect()
-    return 0,""
+    
 
 def plot_all_spikes_together(file_path, channel_id, n_components, pre, post, dead_time, number_spikes, canvas, suplot_num,
                         from_in_s, to_in_s, high_pass, low_pass, threshold_from, threshold_to):  
@@ -469,18 +484,11 @@ def plot_signal_with_spikes_or_stimulus(file_path, channel_id, canvas, suplot_nu
     gc.collect()
     return 0, spikes_in_range
 
-def plot_signal_frequencies(file_path, channel_id, canvas, suplot_num, from_in_s, to_in_s):
-    _file = _path_valid(file_path)
-    if not _file:
-        return 1, "File path is incorrect"
-
-    electrode_stream = _file.recordings[0].analog_streams[0]
+def plot_signal_frequencies(electrode_stream, channel_id, canvas, suplot_num):
     signal_in_uV = []
-
     for ch in channel_id:
-        channel_label = channel_id
         ch = _get_channel_ID(electrode_stream, int(ch))
-        signal_in_uV_temp, time_in_sec = _get_signal_time(electrode_stream, ch, from_in_s, to_in_s) # need this to draw signal
+        signal_in_uV_temp, time_in_sec = _get_signal_time(electrode_stream, ch, 0, None) # need this to draw signal
         if len(signal_in_uV)==0:
             signal_in_uV = signal_in_uV_temp
         else:
@@ -499,7 +507,6 @@ def plot_signal_frequencies(file_path, channel_id, canvas, suplot_num, from_in_s
     canvas.figure.tight_layout()
     canvas.draw()
     gc.collect()
-    return 0,""
 
 def extract_waveform(analog_stream_path, file_save_path, channel_id, from_in_s, to_in_s, high_pass, low_pass, stream_id=0):   
     _file = _path_valid(analog_stream_path)
