@@ -548,7 +548,6 @@ class MEA_app(QtWidgets.QMainWindow):
 
         if waveform_error:
             self.error_popup(waveform_error_msg, "Plot Error")
-
     
     def plot_spike(self):
         analog_stream_path = self.browse_text_box_tab1.text()
@@ -580,29 +579,12 @@ class MEA_app(QtWidgets.QMainWindow):
             self.error_popup("Dead time must be more or equal than (pre + post)", "Intersection Error")
             return 
 
-        if self.tab2_plot_check_boxes[0].isChecked():
-            spike_plot, spike_plot_error_msg = plot_all_spikes_together(analog_stream_path, channel_id, comp_number, pre, post, dead_time, spike_number,
-                                                            self.tab2_canvas, 0, from_in_s, to_in_s, high_pass, low_pass, threshold_from, threshold_to)
-            if spike_plot:
-                self.error_popup(spike_plot_error_msg, "Plot Error")
-                return
-        else:
-            self.clear_plot(self.tab2_canvas, subplot_num=0)
+        spike_error, spike_error_msg = plot_tab2(analog_stream_path, channel_id, from_in_s, to_in_s, high_pass, low_pass, threshold_from, threshold_to, dead_time, self.tab2_plot_check_boxes, 
+                                            pre, post, self.tab2_canvas, comp_number, spike_number, self.tab3_stimulus, max_start, max_end, min_between, min_duration, min_number_spike)
         
-        if self.tab2_plot_check_boxes[1].isChecked():
-            spike_plot_dots, spike_plot_dots_error_msg = plot_signal_with_spikes_or_stimulus(analog_stream_path, channel_id, self.tab2_canvas, 1, True, from_in_s, to_in_s, high_pass, low_pass, 
-                                                                                        threshold_from, threshold_to, dead_time, max_start, max_end, min_between, min_duration, min_number_spike, self.tab3_stimulus)
-            if spike_plot_dots:
-                self.error_popup(spike_plot_dots_error_msg, "Plot Error")
-        else:
-            self.clear_plot(self.tab2_canvas, subplot_num=1)
+        if spike_error:
+            self.error_popup(spike_error_msg, "Plot Error")
 
-        if self.tab2_plot_check_boxes[2].isChecked():
-            fourier, fourier_error_msg = plot_signal_frequencies(analog_stream_path, channel_id, self.tab2_canvas, 2, from_in_s, to_in_s)
-            if fourier:
-                self.error_popup(fourier_error_msg, "Plot Error")
-        else:
-            self.clear_plot(self.tab2_canvas, subplot_num=2)
 
     def plot_stimulus(self):
         analog_stream_path = self.browse_text_box_tab1.text()
@@ -631,6 +613,7 @@ class MEA_app(QtWidgets.QMainWindow):
             self.error_popup(error_msg, "Plot Error") 
         else:
             self.tab3_stimulus = error_msg
+
 
     def save_waveform(self):
         analog_stream_path = self.browse_text_box_tab1.text()
@@ -798,11 +781,6 @@ class MEA_app(QtWidgets.QMainWindow):
     def clear_qlines(self, *args):
         for item in args:
             item.setText("")
-
-    def clear_plot(self, canvas, *, subplot_num):
-        axes = canvas.figure.get_axes()
-        ax = axes[subplot_num]
-        ax.clear()
 
     def get_value(self, combo):
         checked_channel = []
