@@ -5,11 +5,10 @@ from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 
 import gc
-import McsPy
-import McsPy.McsData
+from McsPy import McsData
 from McsPy import ureg, Q_
 import matplotlib.pyplot as plt
-from scipy.fft import ifft, fft
+from scipy.fft import fft
 from scipy.signal import butter, sosfilt
 
 # helper functions
@@ -81,13 +80,6 @@ def _filter_base_freqeuncy(signal_in_uV, fs, High_pass, Low_pass):
       return signal_in_uV
     filtered = sosfilt(sos, signal_in_uV)
     return filtered
-
-def _path_valid(file_path):
-    try:
-        _file = McsPy.McsData.RawData(file_path)
-    except:
-        return 0
-    return _file
 
 def _get_proper_threshold (signal, threshold_from, is_spike) :
     if not threshold_from:
@@ -274,7 +266,8 @@ def _save_stimulus_with_avg(file_save_path, signal, analog_stream, channel_id, f
     stimulus_in_second_df["stimulus_number"+str(channel_id)] = np.ceil(stimulus_in_second_df["stimulus_time"+str(channel_id)] / dead_time)
 
     df_avg_stimul = _signal_average_around_stimulus(signal, stimulus_in_second_df*fs, channel_id, pre, post, fs)
-    stimulus_in_second_df += from_in_s
+    stimulus_in_second_df["start"+str(channel_id)] += from_in_s
+    stimulus_in_second_df["end"+str(channel_id)] += from_in_s
     stimulus_in_second_df.to_csv(file_save_path+str(channel_id)+".csv", index = False)
     df_avg_stimul.to_csv(file_save_path+str(channel_id)+"_avg_stimulus.csv", index=False)
 
@@ -283,91 +276,7 @@ def _clear_plot(canvas, *, subplot_num):
     ax = axes[subplot_num]
     ax.clear()
 
-
-
-# main functions
-
-def plot_tab1(file_path, channel_id, from_in_s, to_in_s, canvas, high_pass, low_pass, check_boxes):
-    _file = _path_valid(file_path)
-    if not _file:
-        return 1, "File path is incorrect"
-
-    analog_stream = _file.recordings[0].analog_streams[0]
-    if check_boxes[0].isChecked():
-        plot_signal(analog_stream, channel_id, from_in_s, to_in_s, canvas, 0, high_pass, low_pass)
-    else:
-        _clear_plot(canvas, subplot_num=0)
-
-    if check_boxes[1].isChecked():
-        plot_signal_frequencies(analog_stream, [channel_id], canvas, 1)
-    else:
-        _clear_plot(canvas, subplot_num=1)
-
-    return 0,""
-
-def plot_tab2(file_path, channel_id, from_in_s, to_in_s, high_pass, low_pass, threshold_from, threshold_to, dead_time, check_boxes, pre, post, canvas,
-                comp_number, spike_number, stimulus, max_start, max_end, min_between, min_duration, min_number_spike):
-
-    _file = _path_valid(file_path)
-    if not _file:
-        return 1, "File path is incorrect"
-    
-    if not all([pre, post, dead_time]):
-        return 1, "Select time parameters is incorrect"
-    
-    electrode_stream = _file.recordings[0].analog_streams[0]
-
-    if check_boxes[0].isChecked():
-        plot_all_spikes_together(electrode_stream, channel_id, comp_number, pre, post, dead_time, spike_number,
-                                                        canvas, 0, from_in_s, to_in_s, high_pass, low_pass, threshold_from, threshold_to)
-    else:
-        _clear_plot(canvas, subplot_num=0)
-    
-    if check_boxes[1].isChecked():
-        _ = plot_signal_with_spikes_or_stimulus(electrode_stream, channel_id, canvas, 1, True, from_in_s, to_in_s, high_pass, low_pass, 
-                                            threshold_from, threshold_to, dead_time, max_start, max_end, min_between, min_duration, min_number_spike, stimulus)
-    else:
-        _clear_plot(canvas, subplot_num=1)
-
-    if check_boxes[2].isChecked():
-        plot_signal_frequencies(electrode_stream, channel_id, canvas, 2)
-    else:
-        _clear_plot(canvas, subplot_num=2)
-    
-    return 0, ""
-
-def plot_tab3(file_path, channel_id, from_in_s, to_in_s, high_pass, low_pass, threshold_from, threshold_to, dead_time, check_boxes, pre, post, canvas):
-
-    _file = _path_valid(file_path)
-    if not _file:
-        return 1, "File path is incorrect"
-
-    if not all([pre, post, dead_time]):
-        return 1, "Select time parameters is incorrect"  
-
-    electrode_stream = _file.recordings[0].analog_streams[0]
-    if check_boxes[0].isChecked():
-        plot_stimulus_average(electrode_stream, channel_id, from_in_s, to_in_s, dead_time, threshold_from, pre, post, canvas, 0)
-    else:
-        _clear_plot(canvas, subplot_num=0)
-
-    if check_boxes[1].isChecked():
-        stimulus = plot_signal_with_spikes_or_stimulus(electrode_stream, [channel_id], canvas, 1, False, from_in_s, to_in_s, high_pass, low_pass, threshold_from, threshold_to, dead_time)
-    else:
-        stimulus = []
-        _clear_plot(canvas, subplot_num=1)
-
-    if check_boxes[2].isChecked():
-        plot_signal_frequencies(electrode_stream, [channel_id], canvas, 2)
-    else:
-        _clear_plot(canvas, subplot_num=2)
-
-    return 0, stimulus
-
-
-
-
-def plot_signal(analog_stream, channel_id, from_in_s, to_in_s, canvas, suplot_num, high_pass, low_pass):
+def _plot_signal(analog_stream, channel_id, from_in_s, to_in_s, canvas, suplot_num, high_pass, low_pass):
     channel_label = channel_id
     channel_id = _get_channel_ID(analog_stream, channel_id)  
     
@@ -388,7 +297,7 @@ def plot_signal(analog_stream, channel_id, from_in_s, to_in_s, canvas, suplot_nu
     canvas.draw()
     gc.collect()
     
-def plot_all_spikes_together(electrode_stream, channel_id, n_components, pre, post, dead_time, number_spikes, canvas, suplot_num,
+def _plot_all_spikes_together(electrode_stream, channel_id, n_components, pre, post, dead_time, number_spikes, canvas, suplot_num,
                         from_in_s, to_in_s, high_pass, low_pass, threshold_from, threshold_to):  
     
     signal_in_uV = []
@@ -428,14 +337,15 @@ def plot_all_spikes_together(electrode_stream, channel_id, n_components, pre, po
     canvas.draw()
     gc.collect()
 
-def plot_stimulus_average(electrode_stream, channel_label, from_in_s, to_in_s, dead_time, stimulus_threshold, pre, post, canvas, suplot_num):
+def _plot_stimulus_average(electrode_stream, channel_label, from_in_s, to_in_s, dead_time, stimulus_threshold, pre, post, high_pass, low_pass, canvas, suplot_num):
     channel_id = _get_channel_ID(electrode_stream, channel_label)
     _channel_info = electrode_stream.channel_infos[0]
     fs = _channel_info.sampling_frequency.magnitude
     from_idx, to_idx = _check_time_range(electrode_stream, fs, from_in_s, to_in_s)
     signal = electrode_stream.get_channel_in_range(channel_id, from_idx, to_idx)[0]
-
+    signal = _filter_base_freqeuncy(signal, fs, high_pass, low_pass)
     thresholds = _detect_threshold_crossings_stimulus(signal, fs, stimulus_threshold, dead_time)
+
     stimulus_df = pd.DataFrame()
     stimulus_df["start"+str(channel_label)] = [int(thresholds[i]) for i in range(0,len(thresholds)) if i%2==0]
     stimulus_df["end"+str(channel_label)] = [int(thresholds[i]) for i in range(0,len(thresholds)) if i%2==1]
@@ -456,8 +366,9 @@ def plot_stimulus_average(electrode_stream, channel_label, from_in_s, to_in_s, d
     canvas.draw()
     gc.collect()
 
-def plot_signal_with_spikes_or_stimulus(electrode_stream, channel_id, canvas, suplot_num, is_spike, from_in_s, to_in_s, high_pass, low_pass, threshold_from, threshold_to, dead_time,
+def _plot_signal_with_spikes_or_stimulus(electrode_stream, channel_id, canvas, suplot_num, is_spike, from_in_s, to_in_s, high_pass, low_pass, threshold_from, threshold_to, dead_time,
                                         max_start=None, max_end=None, min_between=None, min_duration=None, min_number_spike=None, stimulus=[]):
+    
     signal_in_uV = []
     for ch in channel_id:
         channel_label = channel_id
@@ -471,24 +382,21 @@ def plot_signal_with_spikes_or_stimulus(electrode_stream, channel_id, canvas, su
 
     ch = _get_channel_ID(electrode_stream, int(channel_id[0]))
     fs = int(electrode_stream.channel_infos[ch].sampling_frequency.magnitude)
-    signal_in_uV = _filter_base_freqeuncy(signal_in_uV, fs, high_pass, low_pass)
+    signal = _filter_base_freqeuncy(signal_in_uV/1000000, fs, high_pass, low_pass)
     
-    signal = signal_in_uV/1000000 # need this to calculate stimulus or spikes
     threshold_from = _get_proper_threshold(signal, threshold_from, is_spike)
     if is_spike:
         fs, spks = _get_spike_info(electrode_stream, int(ch), signal, threshold_from, threshold_to, dead_time)
     else :
-        fs = int(electrode_stream.channel_infos[int(ch)].sampling_frequency.magnitude)
         spks = _detect_threshold_crossings_stimulus(signal, fs, threshold_from, dead_time)
 
-    timestamps = spks / fs
-    spikes_in_range = timestamps
+    spikes_in_range = spks / fs
     spikes_in_range = np.array(spikes_in_range)
     spikes_in_range += from_in_s
     axes = canvas.figure.get_axes()
     ax = axes[suplot_num]
     ax.clear()
-    ax.plot(time_in_sec, signal_in_uV, linewidth=0.5, color = "darkmagenta")
+    ax.plot(time_in_sec, signal*1000000, linewidth=0.5, color = "darkmagenta")
     ax.plot(spikes_in_range, [threshold_from*1e6]*spikes_in_range.shape[0], 'ro', ms=2)
 
     for stimul in stimulus:
@@ -518,7 +426,7 @@ def plot_signal_with_spikes_or_stimulus(electrode_stream, channel_id, canvas, su
     gc.collect()
     return spikes_in_range
 
-def plot_signal_frequencies(electrode_stream, channel_id, canvas, suplot_num):
+def _plot_signal_frequencies(electrode_stream, channel_id, canvas, suplot_num):
     signal_in_uV = []
     for ch in channel_id:
         ch = _get_channel_ID(electrode_stream, int(ch))
@@ -542,12 +450,156 @@ def plot_signal_frequencies(electrode_stream, channel_id, canvas, suplot_num):
     canvas.draw()
     gc.collect()
 
-def extract_waveform(analog_stream_path, file_save_path, channel_id, from_in_s, to_in_s, high_pass, low_pass, stream_id=0):   
-    _file = _path_valid(analog_stream_path)
-    if not _file:
-        return 1, "File path is incorrect"
+def _calculate_average_signal(electrode_stream, channel_id, from_in_s, to_in_s):
+    signal_in_uV = []
+    for ch in channel_id:
+        ch = _get_channel_ID(electrode_stream, int(ch))
+        signal_in_uV_temp, time_in_sec = _get_signal_time(electrode_stream, ch, from_in_s, to_in_s) 
+        if len(signal_in_uV)==0:
+            signal_in_uV = signal_in_uV_temp
+        else:
+            signal_in_uV += signal_in_uV_temp
+    signal_in_uV /= len(channel_id)
+    return signal_in_uV
 
-    analog_stream = _file.recordings[0].analog_streams[stream_id]
+def _get_spikes_dataframe_to_extract(electrode_stream, channel_ids, from_in_s, signal_if_avg, to_in_s, threshold_from, threshold_to, high_pass, low_pass, dead_time, 
+                                bin_width, max_start, max_end, min_between, min_duration, min_number_spike, stimulus):
+                                
+    spikes_df = pd.DataFrame()
+    bins_df = pd.DataFrame()
+
+    _, time_in_sec = _get_signal_time(electrode_stream, channel_ids[0], from_in_s, to_in_s) 
+    fs = int(electrode_stream.channel_infos[0].sampling_frequency.magnitude)
+    from_idx, to_idx = _check_time_range(electrode_stream, fs, from_in_s, to_in_s)
+    if to_in_s is None:
+        to_idx-=1
+    spikes_df["time"] = time_in_sec
+
+    if bin_width:
+        bin_ranges = [bin_width*i for i in list(range(int(np.ceil((to_idx-from_idx+1)/fs/bin_width))))]
+        bins_df["bin_ranges"] = np.array(bin_ranges)+ from_in_s
+
+    for channel_id in channel_ids:
+        if len(signal_if_avg)>0:
+            channel_label = "avg"
+            signal_if_avg /= 1000000
+            signal_if_avg = _filter_base_freqeuncy(signal_if_avg, fs, high_pass, low_pass)
+            spikes_df["signal_avg"] = signal_if_avg  # This part is for average signal, to save the voltage of average signal
+            threshold_from = _get_proper_threshold(signal_if_avg, threshold_from, True)
+            _, spks = _get_spike_info(electrode_stream, 0, signal_if_avg, threshold_from, threshold_to, dead_time)
+        else:
+            channel_label = electrode_stream.channel_infos.get(channel_id).info['Label']            
+            signal = electrode_stream.get_channel_in_range(channel_id, from_idx, to_idx)[0]
+            signal = _filter_base_freqeuncy(signal, fs, high_pass, low_pass)
+            threshold_from = _get_proper_threshold(signal, threshold_from, True)
+            _, spks = _get_spike_info(electrode_stream, channel_id, signal, threshold_from, threshold_to, dead_time)
+            spikes_df["signal_"+str(channel_label)] = signal
+
+        if len(spks)<1:
+            spikes_df["spikes"+str(channel_label)] = np.zeros(to_idx-from_idx+1)
+            spikes_df["bursts"+str(channel_label)] = np.zeros(to_idx-from_idx+1)
+            continue 
+
+        to_be_spikes = np.zeros(to_idx-from_idx+1)
+        to_be_spikes[spks] = 1
+        spikes_df["spikes"+str(channel_label)] = to_be_spikes
+        spikes_in_second = spks/fs
+
+        if bin_width:
+            spike_in_bins = _count_spike_in_bins(spikes_in_second, bin_width)
+            bins_df["spike_num_"+str(channel_label)] = pd.Series(spike_in_bins)
+
+        if all([max_start, max_end, min_between, min_duration, min_number_spike]):
+            bursts_starts, _ = _get_burst(spikes_in_second, max_start, max_end, min_between, min_duration, min_number_spike)
+            bursts_starts = (np.array(bursts_starts)*fs).astype(int)
+            to_be_bursts = np.zeros(to_idx-from_idx+1)
+            to_be_bursts[bursts_starts] = 1
+            spikes_df["bursts"+str(channel_label)] = to_be_bursts
+        else:
+            spikes_df["bursts"+str(channel_label)] = np.zeros(to_idx-from_idx+1)
+        
+        if len(stimulus) > 0 :
+            stimulus = (np.array(stimulus)*fs).astype(int)
+            stimulus_in_range = stimulus[(stimulus >= from_idx) & (stimulus <= to_idx)]
+            stimulus_in_range-=from_idx
+            to_be_stimulus = np.zeros(to_idx-from_idx+1)
+            to_be_stimulus[stimulus_in_range] = 1
+            spikes_df["stimulus"] = to_be_stimulus
+        else:
+            spikes_df["stimulus"] = np.zeros(to_idx-from_idx+1)
+
+    return spikes_df, bins_df
+
+
+
+
+
+# main functions
+
+def plot_tab1(analog_stream, channel_id, from_in_s, to_in_s, canvas, high_pass, low_pass, check_boxes):
+
+    if check_boxes[0].isChecked():
+        _plot_signal(analog_stream, channel_id, from_in_s, to_in_s, canvas, 0, high_pass, low_pass)
+    else:
+        _clear_plot(canvas, subplot_num=0)
+
+    if check_boxes[1].isChecked():
+        _plot_signal_frequencies(analog_stream, [channel_id], canvas, 1)
+    else:
+        _clear_plot(canvas, subplot_num=1)
+
+    return 0,""
+
+def plot_tab2(electrode_stream, channel_id, from_in_s, to_in_s, high_pass, low_pass, threshold_from, threshold_to, dead_time, check_boxes, pre, post, canvas,
+                comp_number, spike_number, stimulus, max_start, max_end, min_between, min_duration, min_number_spike):
+    
+    if not all([pre, post, dead_time]):
+        return 1, "Select time parameters is incorrect"
+
+    if check_boxes[0].isChecked():
+        _plot_all_spikes_together(electrode_stream, channel_id, comp_number, pre, post, dead_time, spike_number,
+                                                        canvas, 0, from_in_s, to_in_s, high_pass, low_pass, threshold_from, threshold_to)
+    else:
+        _clear_plot(canvas, subplot_num=0)
+    
+    if check_boxes[1].isChecked():
+        _ = _plot_signal_with_spikes_or_stimulus(electrode_stream, channel_id, canvas, 1, True, from_in_s, to_in_s, high_pass, low_pass, 
+                                            threshold_from, threshold_to, dead_time, max_start, max_end, min_between, min_duration, min_number_spike, stimulus)
+    else:
+        _clear_plot(canvas, subplot_num=1)
+
+    if check_boxes[2].isChecked():
+        _plot_signal_frequencies(electrode_stream, channel_id, canvas, 2)
+    else:
+        _clear_plot(canvas, subplot_num=2)
+    
+    return 0, ""
+
+def plot_tab3(electrode_stream, channel_id, from_in_s, to_in_s, high_pass, low_pass, threshold_from, threshold_to, dead_time, check_boxes, pre, post, canvas):
+
+    if not all([pre, post, dead_time]):
+        return 1, "Select time parameters is incorrect"  
+
+    if check_boxes[0].isChecked():
+        _plot_stimulus_average(electrode_stream, channel_id, from_in_s, to_in_s, dead_time, threshold_from, pre, post, high_pass, low_pass, canvas, 0)
+    else:
+        _clear_plot(canvas, subplot_num=0)
+
+    if check_boxes[1].isChecked():
+        stimulus = _plot_signal_with_spikes_or_stimulus(electrode_stream, [channel_id], canvas, 1, False, from_in_s, to_in_s, high_pass, low_pass, threshold_from, threshold_to, dead_time)
+    else:
+        stimulus = []
+        _clear_plot(canvas, subplot_num=1)
+
+    if check_boxes[2].isChecked():
+        _plot_signal_frequencies(electrode_stream, [channel_id], canvas, 2)
+    else:
+        _clear_plot(canvas, subplot_num=2)
+
+    return 0, stimulus
+
+
+def extract_waveform(analog_stream, file_save_path, channel_id, from_in_s, to_in_s, high_pass, low_pass, stream_id=0):   
     _channel_info = analog_stream.channel_infos[0]
     sampling_frequency = _channel_info.sampling_frequency.magnitude
     from_idx ,to_idx = _check_time_range(analog_stream,sampling_frequency,from_in_s,to_in_s)  # get start and end index
@@ -562,25 +614,12 @@ def extract_waveform(analog_stream_path, file_save_path, channel_id, from_in_s, 
             df["signal for "+str(channel)] = _get_specific_channel_signal(analog_stream,channel,from_in_s,to_in_s,high_pass,low_pass)
     else:
         channel_id = _get_channel_ID(analog_stream, channel_id)
-        if channel_id in analog_stream.channel_infos:
-            df["signal for "+str(channel_id)] = _get_specific_channel_signal(analog_stream,channel_id,from_in_s,to_in_s,high_pass,low_pass)
-        else:
-            return 1, "Wrong channel_id !"
+        df["signal for "+str(channel_id)] = _get_specific_channel_signal(analog_stream,channel_id,from_in_s,to_in_s,high_pass,low_pass)
 
     df.to_csv(file_save_path+".csv", index=False)
     gc.collect()
-    return 0, ""
 
-def extract_stimulus(analog_stream_path, file_save_path, channel_id, from_in_s, to_in_s, stimulus_threshold, dead_time, pre, post, high_pass, low_pass):
-    # gafiltrvaa dasamatebeli
-    _file = _path_valid(analog_stream_path)
-    if not _file:
-        return 1, "File path is incorrect"    
-
-    if not all([pre, post, dead_time]):
-        return 1, "Select time parameters is incorrect"   
-
-    analog_stream = _file.recordings[0].analog_streams[0]
+def extract_stimulus(analog_stream, file_save_path, channel_id, from_in_s, to_in_s, stimulus_threshold, dead_time, pre, post, high_pass, low_pass):
     _channel_info = analog_stream.channel_infos[0]
     fs = _channel_info.sampling_frequency.magnitude
     from_idx, to_idx = _check_time_range(analog_stream, fs, from_in_s, to_in_s)
@@ -588,95 +627,38 @@ def extract_stimulus(analog_stream_path, file_save_path, channel_id, from_in_s, 
         for channel in analog_stream.channel_infos:
             channel_id = analog_stream.channel_infos.get(channel).info['Label']
             signal = analog_stream.get_channel_in_range(channel, from_idx, to_idx)[0]
+            signal = _filter_base_freqeuncy(signal, fs, high_pass, low_pass)
             _save_stimulus_with_avg(file_save_path, signal, analog_stream, channel_id, from_in_s, to_in_s, stimulus_threshold, fs, pre, post, dead_time)
     else:
         channel = _get_channel_ID(analog_stream, channel_id)
         signal = analog_stream.get_channel_in_range(channel, from_idx, to_idx)[0]
+        signal = _filter_base_freqeuncy(signal, fs, high_pass, low_pass)
         _save_stimulus_with_avg(file_save_path, signal, analog_stream, channel_id, from_in_s, to_in_s, stimulus_threshold, fs, pre, post, dead_time)
     gc.collect()
-    return 0, ""
 
-def extract_spike(analog_stream_path, file_save_path, channel_label, from_in_s, to_in_s, threshold_from, threshold_to, high_pass, low_pass, dead_time, bin_width,
-                max_start, max_end, min_between, min_duration, min_number_spike):
+def extract_spike(analog_stream, file_save_path, channel_id, from_in_s, to_in_s, threshold_from, threshold_to, high_pass, low_pass, dead_time, bin_width,
+                max_start, max_end, min_between, min_duration, min_number_spike, stimulus):
 
-    _file = _path_valid(analog_stream_path)
-    if not _file:
-        return 1, "File path is incorrect"
-    
-    if not isinstance(bin_width, (int, float, type(None))):
-        return 1, "bin width is incorrect"
-    
-    if not dead_time:
-        return 1, "Pleas Enter dead time"
-
-    analog_stream = _file.recordings[0].analog_streams[0]
-    channel_id = _get_channel_ID(analog_stream, channel_label)
-    if channel_id and (channel_id not in analog_stream.channel_infos):
-        return 1, "Channel ID is incorrect"  
-
-    if channel_id==None:
-        spikes_in_bin_df = pd.DataFrame()
-        for channel in analog_stream.channel_infos:
-            channel_id = analog_stream.channel_infos.get(channel).info['Label']
-            spikes_in_second_df = pd.DataFrame()
-            spikes_in_second = _get_spike_in_second(analog_stream, channel, from_in_s, to_in_s, threshold_from, threshold_to, high_pass, low_pass, dead_time)
-            spikes_in_second = np.array(spikes_in_second)
-            spikes_in_second += from_in_s
-
-            if bin_width:
-                spike_in_bins = _count_spike_in_bins(spikes_in_second, bin_width)
-                if channel==0:
-                    fs = int(analog_stream.channel_infos[channel].sampling_frequency.magnitude)
-                    signal = analog_stream.get_channel_in_range(channel, 0, analog_stream.channel_data.shape[1])[0]
-                    bin_ranges = [bin_width*i for i in list(range(int(np.ceil(len(signal)/fs/bin_width))))]
-                    spikes_in_bin_df["bin_ranges"] = pd.Series(bin_ranges)
-                spikes_in_bin_df["spike_num_"+str(channel_id)] = pd.Series(spike_in_bins)
-
-            if all([max_start, max_end, min_between, min_duration, min_number_spike]):
-                bursts_df = pd.DataFrame()
-                bursts_starts, bursts_ends = _get_burst(spikes_in_second, max_start, max_end, min_between, min_duration, min_number_spike)
-                bursts_df["burst_start_"+str(channel_id)] = bursts_starts
-                bursts_df["burst_end_"+str(channel_id)] = bursts_ends
-                bursts_df.to_csv(file_save_path+str(channel_id)+"_burst.csv", index=False)
-                
-            spikes_in_second_df["spike_time_"+str(channel_id)] = spikes_in_second 
-            spikes_in_second_df.to_csv(file_save_path+str(channel_id)+".csv", index=False)   
-
-        spikes_in_bin_df.to_csv(file_save_path+"_bin.csv", index=False)   
+    if len(channel_id) == 1 :
+        if channel_id[0] == "all":
+            channel_ids = [key for key, value in analog_stream.channel_infos.items()]
+            spikes_df,bins_df = _get_spikes_dataframe_to_extract(analog_stream, channel_ids, from_in_s, [], to_in_s, threshold_from, threshold_to, high_pass, low_pass, dead_time,
+                                                                    bin_width, max_start, max_end, min_between, min_duration, min_number_spike, stimulus)
+        else:
+            channel_id = [_get_channel_ID(analog_stream, int(channel_id[0]))]
+            spikes_df,bins_df = _get_spikes_dataframe_to_extract(analog_stream, channel_id, from_in_s, [], to_in_s, threshold_from, threshold_to, high_pass, low_pass, dead_time,
+                                                                        bin_width, max_start, max_end, min_between, min_duration, min_number_spike, stimulus)
     else:
-        spikes_in_bin_df = pd.DataFrame()
-        spikes_in_second_df = pd.DataFrame()
-        bursts_df = pd.DataFrame()
+        signal_if_avg =  _calculate_average_signal(analog_stream, channel_id, from_in_s, to_in_s)
+        channel_ids = [0]
+        spikes_df, bins_df = _get_spikes_dataframe_to_extract(analog_stream, channel_ids, from_in_s, signal_if_avg, to_in_s, threshold_from, threshold_to, high_pass, low_pass, dead_time,
+                                                                    bin_width, max_start, max_end, min_between, min_duration, min_number_spike, stimulus)
+    
+    # save part of DataFrames
+    if spikes_df.size > 0 :
+        spikes_df.to_csv(file_save_path+"_spikes.csv", index = False)
+    if bins_df.size > 0 :
+        bins_df.to_csv(file_save_path+"_bins.csv", index = False)
 
-        spikes_in_second = _get_spike_in_second(analog_stream, channel_id, from_in_s, to_in_s, threshold_from, threshold_to, high_pass, low_pass, dead_time)
-        spikes_in_second = np.array(spikes_in_second)
-        spikes_in_second += from_in_s
-        if bin_width:
-            spike_in_bins = _count_spike_in_bins(spikes_in_second, bin_width)
-            bin_ranges = [bin_width*i for i in list(range(len(spike_in_bins)))]
-            spikes_in_bin_df["bin_"+str(channel_label)] = pd.Series(bin_ranges)
-            spikes_in_bin_df["spike_num_"+str(channel_label)] = pd.Series(spike_in_bins)
-
-        if all([max_start, max_end, min_between, min_duration, min_number_spike]):
-            bursts_starts, bursts_ends = _get_burst(spikes_in_second, max_start, max_end, min_between, min_duration, min_number_spike)
-            bursts_df["burst_start_"+str(channel_label)] = bursts_starts
-            bursts_df["burst_end_"+str(channel_label)] = bursts_ends
-            
-        spikes_in_second_df["spike_time_"+str(channel_label)] = spikes_in_second 
-
-        spikes_in_bin_df.to_csv(file_save_path+str(channel_label)+"_bin.csv", index=False)
-        bursts_df.to_csv(file_save_path+str(channel_label)+"_burst.csv", index=False)
-        spikes_in_second_df.to_csv(file_save_path+str(channel_label)+".csv", index=False)
     gc.collect()
-    return 0, ""
-
-def get_all_channel_ids(file_path):
-    _file = _path_valid(file_path)
-    if not _file:
-        return 1, "File path is incorrect"
-
-    keys = [str(value.info['Label']) for key, value in _file.recordings[0].analog_streams[0].channel_infos.items()]
-    gc.collect()
-    return 0, keys
-
 

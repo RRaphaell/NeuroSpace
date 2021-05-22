@@ -8,7 +8,6 @@ import matplotlib.pyplot as plt
 from matplotlib import style
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
-from matplotlib.figure import Figure
 from functools import partial
 
 style.use('fivethirtyeight')
@@ -533,7 +532,6 @@ class MEA_app(QtWidgets.QMainWindow):
   
 
     def plot_waveform(self):
-        analog_stream_path = self.browse_text_box_tab1.text()
         channel_id = self._check_value(self.channel_id_tab1.currentText(), -1)
         from_in_s = self._check_value(self.extract_from_tab1.text(), 0)
         to_in_s = self._check_value(self.extract_to_tab1.text(), None)
@@ -544,13 +542,12 @@ class MEA_app(QtWidgets.QMainWindow):
             self.error_popup("Please enter correct values", "Value Error")
             return
 
-        waveform_error, waveform_error_msg = plot_tab1(analog_stream_path, channel_id, from_in_s, to_in_s, self.tab1_canvas, high_pass, low_pass, self.tab1_plot_check_boxes)
+        waveform_error, waveform_error_msg = plot_tab1(self.file.recordings[0].analog_streams[0], channel_id, from_in_s, to_in_s, self.tab1_canvas, high_pass, low_pass, self.tab1_plot_check_boxes)
 
         if waveform_error:
             self.error_popup(waveform_error_msg, "Plot Error")
     
     def plot_spike(self):
-        analog_stream_path = self.browse_text_box_tab1.text()
         # channel_id = self._check_value(self.get_value(self.channel_id_tab2)[0], None)
         channel_id =  self.get_value(self.channel_id_tab2)
         pre = self._check_value(self.extract_pre_tab2.text(), None)
@@ -575,19 +572,20 @@ class MEA_app(QtWidgets.QMainWindow):
             self.error_popup("Please enter correct values", "Value Error")
             return
         
+        if not (dead_time and pre and post):
+            return 1, "Please Enter dead time"
+        
         if (dead_time < (pre+post)):
             self.error_popup("Dead time must be more or equal than (pre + post)", "Intersection Error")
             return 
 
-        spike_error, spike_error_msg = plot_tab2(analog_stream_path, channel_id, from_in_s, to_in_s, high_pass, low_pass, threshold_from, threshold_to, dead_time, self.tab2_plot_check_boxes, 
+        spike_error, spike_error_msg = plot_tab2(self.file.recordings[0].analog_streams[0], channel_id, from_in_s, to_in_s, high_pass, low_pass, threshold_from, threshold_to, dead_time, self.tab2_plot_check_boxes, 
                                             pre, post, self.tab2_canvas, comp_number, spike_number, self.tab3_stimulus, max_start, max_end, min_between, min_duration, min_number_spike)
         
         if spike_error:
             self.error_popup(spike_error_msg, "Plot Error")
 
-
     def plot_stimulus(self):
-        analog_stream_path = self.browse_text_box_tab1.text()
         channel_id = self._check_value(self.channel_id_tab3.currentText(), None)
         pre = self._check_value(self.extract_pre_tab3.text(), None)
         post = self._check_value(self.extract_post_tab3.text(), None)
@@ -607,7 +605,7 @@ class MEA_app(QtWidgets.QMainWindow):
             self.error_popup("Dead time must be more or equal than (pre + post)", "Intersection Error")
             return 
 
-        error, error_msg = plot_tab3(analog_stream_path, channel_id, from_in_s, to_in_s, high_pass, low_pass, threshold_from, threshold_to, 
+        error, error_msg = plot_tab3(self.file.recordings[0].analog_streams[0], channel_id, from_in_s, to_in_s, high_pass, low_pass, threshold_from, threshold_to, 
                                     dead_time, self.tab3_plot_check_boxes, pre, post, self.tab3_canvas)
         if error:
             self.error_popup(error_msg, "Plot Error") 
@@ -616,7 +614,6 @@ class MEA_app(QtWidgets.QMainWindow):
 
 
     def save_waveform(self):
-        analog_stream_path = self.browse_text_box_tab1.text()
         channel_id = self._check_value(self.channel_id_tab1.currentText(),None)
         from_in_s = self._check_value(self.extract_from_tab1.text(),0)
         to_in_s = self._check_value(self.extract_to_tab1.text(),None)
@@ -631,17 +628,11 @@ class MEA_app(QtWidgets.QMainWindow):
         if not file_save_path:
             return
         
-        save_error, value = extract_waveform(analog_stream_path, file_save_path, channel_id, from_in_s, to_in_s, high_pass, low_pass)
-        
-        if save_error:
-            self.error_popup(value, "Extract Error")
-        else:
-            self.info_popup("Data created successfully","Extract success")
+        extract_waveform(self.file.recordings[0].analog_streams[0], file_save_path, channel_id, from_in_s, to_in_s, high_pass, low_pass)
 
     def save_spike(self):
-        analog_stream_path = self.browse_text_box_tab1.text()
-        channel_id = self._check_value(self.channel_id_tab2.currentText(), None)
-        # channel_id =  self.get_value(self.channel_id_tab2)
+        # channel_id = self._check_value(self.channel_id_tab2.currentText(), None)
+        channel_id =  self.get_value(self.channel_id_tab2)
         from_in_s = self._check_value(self.extract_from_tab2.text(), 0)
         to_in_s = self._check_value(self.extract_to_tab2.text(), None)
         threshold_from = self._check_value(self.threshold_from_tab2.text(), None)
@@ -661,21 +652,21 @@ class MEA_app(QtWidgets.QMainWindow):
                     dead_time, bin_width, max_start, max_end, min_between, min_duration, min_number_spike):
             self.error_popup("Please enter correct values", "Value Error")
             return
+
+        if not isinstance(bin_width, (int, float, type(None))):
+            self.error_popup("bin width is incorrect", "Parameter Error")
+    
+        if not dead_time:
+            self.error_popup("Pleas Enter dead time", "Parameter Error")
         
         file_save_path = self.get_file_for_save(self.extract_text_box_tab2)
         if not file_save_path:
             return
         
-        save_error, value = extract_spike(analog_stream_path, file_save_path, channel_id, from_in_s, to_in_s, threshold_from, threshold_to, high_pass, low_pass, dead_time, bin_width,
-                                            max_start, max_end, min_between, min_duration, min_number_spike)
-
-        if save_error:
-            self.error_popup(value, "Extract Error")
-        else:
-            self.info_popup("Data created successfully", "Extract success")
+        extract_spike(self.file.recordings[0].analog_streams[0], file_save_path, channel_id, from_in_s, to_in_s, threshold_from, threshold_to, high_pass, low_pass, dead_time, bin_width,
+                                            max_start, max_end, min_between, min_duration, min_number_spike, self.tab3_stimulus)
 
     def save_stimulus(self):
-        analog_stream_path = self.browse_text_box_tab1.text()
         channel_id = self._check_value(self.channel_id_tab3.currentText(), None)
         from_in_s = self._check_value(self.extract_from_tab3.text(), 0)
         to_in_s = self._check_value(self.extract_to_tab3.text(), None)
@@ -686,7 +677,7 @@ class MEA_app(QtWidgets.QMainWindow):
         high_pass = self._check_value(self.filter_high_tab3.text(), None)
         low_pass = self._check_value(self.filter_low_tab3.text(), None)
         
-        if -1 in (analog_stream_path, channel_id, from_in_s, to_in_s, threshold_from, dead_time, pre, post):
+        if -1 in (channel_id, from_in_s, to_in_s, threshold_from, dead_time, pre, post):
             self.error_popup("Please enter correct values", "Value Error")
             return
 
@@ -694,28 +685,38 @@ class MEA_app(QtWidgets.QMainWindow):
             self.error_popup("Dead time must be more or equal than (pre + post)", "Intersection Error")
             return 
         
+        if not all([pre, post, dead_time]):
+            self.error_popup("Select time parameters is incorrect", "Parameter Error")
+            return
+        
         file_save_path = self.get_file_for_save(self.extract_text_box_tab3)
         if not file_save_path:
             return
 
-        save_error, value = extract_stimulus(analog_stream_path, file_save_path, channel_id, from_in_s, to_in_s, threshold_from, dead_time, pre, post, high_pass, low_pass)
-        if save_error:
-            self.error_popup(value, "Extract Error")
-        else:
-            self.info_popup("Data created successfully", "Extract success")
+        extract_stimulus(self.file.recordings[0].analog_streams[0], file_save_path, channel_id, from_in_s, to_in_s, threshold_from, dead_time, pre, post, high_pass, low_pass)
 
+
+    def path_valid(self, fileName):
+            try:
+                _file = McsData.RawData(fileName)
+            except:
+                _file = 0
+            return _file
 
     def get_file_for_open(self, text_box):
         fileName, _ = QtWidgets.QFileDialog.getOpenFileName(self, 'Open File')
         if fileName:
             text_box.setText(fileName)
-            error_message, message = get_all_channel_ids(fileName)
-
-            if error_message:
-                self.error_popup(message, "File Error")
+            
+            self.file = self.path_valid(fileName)
+                
+            if not self.file:
+                self.error_popup("File path is incorrect", "File Error")
                 return
 
+            message = [str(value.info['Label']) for key, value in self.file.recordings[0].analog_streams[0].channel_infos.items()]
             message.insert(0,"all")
+
             for channel_id in [self.channel_id_tab1, self.channel_id_tab2, self.channel_id_tab3]:
                 channel_id.clear()
                 channel_id.addItems(message)
