@@ -601,7 +601,7 @@ class MEA_app(QtWidgets.QMainWindow):
             self.error_popup("Dead time must be more or equal than (pre + post)", "Intersection Error")
             return 
         
-        if (max_start, max_end, min_between, min_duration, min_number_spike).any() < 0:
+        if any([max_start, max_end, min_between, min_duration, min_number_spike]) < 0:
             self.error_popup("Burst parameters must be positive", "Value Error")
             return 
         
@@ -650,7 +650,7 @@ class MEA_app(QtWidgets.QMainWindow):
 
 
     def save_waveform(self):
-        channel_id = self._check_value(self.channel_id_tab1.currentText(),-1)
+        channel_id = self._check_value(self.channel_id_tab1.currentText(), None)
         from_in_s = self._check_value(self.extract_from_tab1.text(),0)
         to_in_s = self._check_value(self.extract_to_tab1.text(),None)
         high_pass = self._check_value(self.filter_high_tab1.text(), None)
@@ -697,11 +697,11 @@ class MEA_app(QtWidgets.QMainWindow):
             self.error_popup("Please enter correct values", "Value Error")
             return
 
-        if not (dead_time and bin_width):
-            self.error_popup("Please enter correct values", "Value Error")
+        if not (dead_time):
+            self.error_popup("Please enter missing values", "Value Error")
             return 
 
-        if (max_start, max_end, min_between, min_duration, min_number_spike).any() < 0:
+        if any([max_start, max_end, min_between, min_duration, min_number_spike]) < 0:
             self.error_popup("Burst parameters must be positive", "Value Error")
             return          
 
@@ -718,7 +718,7 @@ class MEA_app(QtWidgets.QMainWindow):
         self.info_popup("Data Created Succesfully", "Data saved")
 
     def save_stimulus(self):
-        channel_id = self._check_value(self.channel_id_tab3.currentText(), -1)
+        channel_id = self._check_value(self.channel_id_tab3.currentText(), None)
         from_in_s = self._check_value(self.extract_from_tab3.text(), 0)
         to_in_s = self._check_value(self.extract_to_tab3.text(), None)
         threshold_from = self._check_value(self.threshold_from_tab3.text(), -0.0003)
