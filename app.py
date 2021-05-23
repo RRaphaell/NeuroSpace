@@ -10,7 +10,7 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 from functools import partial
 
-style.use('fivethirtyeight')
+style.use('seaborn-dark')
 matplotlib.use('Qt5Agg')
 font = {'family' : 'Arial',
         'weight' : 'bold',
@@ -20,29 +20,40 @@ matplotlib.rc('font', **font)
 
 class CheckableComboBox(QtWidgets.QComboBox):
     def __init__(self):
-	    super().__init__()
-	    self._changed = False
-	    self.view().pressed.connect(self.handleItemPressed)
+        super().__init__()
+        self._changed = False
+        self.view().pressed.connect(self.handleItemPressed)
+        self.last_was_ticked = True
 
     def setItemChecked(self, index, checked=False):
-	    item = self.model().item(index, self.modelColumn()) # QStandardItem object
-	    if checked:
-		    item.setCheckState(Qt.Checked)
-	    else:
-		    item.setCheckState(Qt.Unchecked)
+        item = self.model().item(index, self.modelColumn()) # QStandardItem object
+        if checked:
+            item.setCheckState(Qt.Checked)
+        else:
+            item.setCheckState(Qt.Unchecked)
+        self.last_was_ticked = False
 
     def handleItemPressed(self, index):
-	    item = self.model().itemFromIndex(index)
-	    if item.checkState() == Qt.Checked:
-		    item.setCheckState(Qt.Unchecked)
-	    else:
-		    item.setCheckState(Qt.Checked)
-	    self._changed = True
+        item = self.model().itemFromIndex(index)
+        if item.checkState() == Qt.Checked:
+            item.setCheckState(Qt.Unchecked)
+            self.last_was_ticked = False
+        else:
+            item.setCheckState(Qt.Checked)
+            self.last_was_ticked = True
+        self._changed = True
 
     def hidePopup(self):
-	    if not self._changed:
-		    super().hidePopup()
-	    self._changed = False
+        if not self._changed:
+            super().hidePopup()
+        self._changed = False
+        if not self.last_was_ticked:
+            for i in range(self.count()):
+                if self.itemChecked(i):
+                    self.setCurrentIndex(i)
+                    break
+            else:
+                self.setCurrentIndex(1)
 
     def itemChecked(self, index):
 	    item = self.model().item(index, self.modelColumn())
@@ -154,6 +165,7 @@ class MEA_app(QtWidgets.QMainWindow):
         plot_group_box, self.tab3_canvas, self.tab3_plot_check_boxes, _  = self.create_plot_grop_box("Stimulus", False, plots_names)
         for i in range(len(self.tab3_plot_check_boxes)):
             self.tab3_plot_check_boxes[i].stateChanged.connect(partial(self.check_plotes_visibility, self.tab3_is_plot_visible, self.tab3_canvas, i)) 
+        self.tab3_plot_check_boxes[-1].setChecked(False)
 
         tab3_layout.addWidget(self.group_box_channel_stream_tab3,0,0)
         tab3_layout.addWidget(self.group_box_pre_post_tab3,1,0)
@@ -216,6 +228,7 @@ class MEA_app(QtWidgets.QMainWindow):
         self.tab2_is_canvas_clicked = [False]
         for i in range(len(self.tab2_plot_check_boxes)):
             self.tab2_plot_check_boxes[i].stateChanged.connect(partial(self.check_plotes_visibility, self.tab2_is_plot_visible, self.tab2_canvas, i))
+        self.tab2_plot_check_boxes[-1].setChecked(False)
 
         tab2_layout.addWidget(self.group_box_channel_stream_tab2,0,0)
         tab2_layout.addWidget(self.group_box_pre_post_tab2,1,0)
@@ -260,35 +273,35 @@ class MEA_app(QtWidgets.QMainWindow):
         return group_box_pre_post, extract_pre_tab2, extract_post_tab2, dead_time_tab2 
 
     def create_group_burst(self):
-        group_box_burst = QtWidgets.QGroupBox("Select Burst Parameters (ms)")
+        group_box_burst = QtWidgets.QGroupBox("Select Burst Parameters (s)")
         group_box_burst_layout = QtWidgets.QGridLayout()
         group_box_burst.setCheckable(True)
         group_box_burst.setChecked(False)
 
         max_start = QtWidgets.QLineEdit(self)
-        max_start.setStatusTip("Max. Interval to start burst (ms)")
+        max_start.setStatusTip("Max. Interval to start burst (s)")
         max_start_label = QtWidgets.QLabel(self)
         max_start_label.setText("Max: start")
         max_start_label.setFont(QtGui.QFont('Arial', 7))
 
         max_end = QtWidgets.QLineEdit(self)
-        max_end.setStatusTip("Max. Interval ro end burst (ms)")
+        max_end.setStatusTip("Max. Interval ro end burst (s)")
         max_end_label = QtWidgets.QLabel(self)
         max_end_label.setText("end")
         max_end_label.setFont(QtGui.QFont('Arial', 7))
 
         time_unit = QtWidgets.QLabel(self)
-        time_unit.setText("ms")
+        time_unit.setText("s")
         time_unit.setFont(QtGui.QFont('Arial', 7))
 
         min_interval = QtWidgets.QLineEdit(self)
-        min_interval.setStatusTip("Min. Interval between bursts (ms)")
+        min_interval.setStatusTip("Min. Interval between bursts (s)")
         min_interval_label = QtWidgets.QLabel(self)
         min_interval_label.setText("Min: betw.")
         min_interval_label.setFont(QtGui.QFont('Arial', 7))
 
         min_duration = QtWidgets.QLineEdit(self)
-        min_duration.setStatusTip("Min. duration of bursts (ms)")
+        min_duration.setStatusTip("Min. duration of bursts (s)")
         min_duration_label = QtWidgets.QLabel(self)
         min_duration_label.setText("dur.")
         min_duration_label.setFont(QtGui.QFont('Arial', 7))
@@ -384,6 +397,7 @@ class MEA_app(QtWidgets.QMainWindow):
         self.tab1_is_canvas_clicked = [False]
         for i in range(len(self.tab1_plot_check_boxes)):
             self.tab1_plot_check_boxes[i].stateChanged.connect(partial(self.check_plotes_visibility, self.tab1_is_plot_visible, self.tab1_canvas, i))
+        self.tab1_plot_check_boxes[-1].setChecked(False)
         
         tab1_layout.addWidget(self.group_box_browse_tab1,0,0)
         tab1_layout.addWidget(self.group_box_channel_stream_tab1,1,0)
@@ -538,8 +552,11 @@ class MEA_app(QtWidgets.QMainWindow):
         high_pass = self._check_value(self.filter_high_tab1.text(), None)
         low_pass = self._check_value(self.filter_low_tab1.text(), None)
        
-        if -1 in (channel_id,from_in_s,to_in_s,high_pass,low_pass):
+        if -1 in (channel_id, from_in_s, to_in_s, high_pass, low_pass):
             self.error_popup("Please enter correct values", "Value Error")
+            return
+        
+        if self.check_parameters(from_in_s, to_in_s, high_pass, low_pass):
             return
 
         waveform_error, waveform_error_msg = plot_tab1(self.file.recordings[0].analog_streams[0], channel_id, from_in_s, to_in_s, self.tab1_canvas, high_pass, low_pass, self.tab1_plot_check_boxes)
@@ -550,9 +567,9 @@ class MEA_app(QtWidgets.QMainWindow):
     def plot_spike(self):
         # channel_id = self._check_value(self.get_value(self.channel_id_tab2)[0], None)
         channel_id =  self.get_value(self.channel_id_tab2)
-        pre = self._check_value(self.extract_pre_tab2.text(), None)
-        post = self._check_value(self.extract_post_tab2.text(), None)
-        dead_time = self._check_value(self.dead_time_tab2.text(), None)
+        pre = self._check_value(self.extract_pre_tab2.text(), -1)
+        post = self._check_value(self.extract_post_tab2.text(), -1)
+        dead_time = self._check_value(self.dead_time_tab2.text(), -1)
         comp_number = self._check_value(self.component.text(), 1)
         spike_number = None # because we want to plot all spikes
         from_in_s = self._check_value(self.extract_from_tab2.text(), 0)
@@ -567,17 +584,29 @@ class MEA_app(QtWidgets.QMainWindow):
         min_duration = self._check_value(self.tab2_min_duration.text(), None)
         min_number_spike = self._check_value(self.tab2_min_number.text(), None)
         
-        if -1 in (channel_id,pre,post,dead_time,comp_number,from_in_s,to_in_s,high_pass,low_pass,
-                    threshold_from,threshold_to,max_start,max_end,min_between,min_duration,min_number_spike):
+        if "all" in channel_id:
+            self.error_popup("Channel Id must not contain 'all'", "Value Error")
+            return            
+
+        if -1 in (pre, post, dead_time, comp_number, from_in_s, to_in_s, high_pass, low_pass,
+                    threshold_from, threshold_to, max_start, max_end, min_between, min_duration, min_number_spike):
             self.error_popup("Please enter correct values", "Value Error")
             return
         
-        if not (dead_time and pre and post):
-            return 1, "Please Enter dead time"
+        if not all([pre, post, dead_time]):
+            self.error_popup("'Select time parameters' is incorrect", "Parameter Error")
+            return
         
         if (dead_time < (pre+post)):
             self.error_popup("Dead time must be more or equal than (pre + post)", "Intersection Error")
             return 
+        
+        if (max_start, max_end, min_between, min_duration, min_number_spike).any() < 0:
+            self.error_popup("Burst parameters must be positive", "Value Error")
+            return 
+        
+        if self.check_parameters(from_in_s, to_in_s, high_pass, low_pass):
+            return
 
         spike_error, spike_error_msg = plot_tab2(self.file.recordings[0].analog_streams[0], channel_id, from_in_s, to_in_s, high_pass, low_pass, threshold_from, threshold_to, dead_time, self.tab2_plot_check_boxes, 
                                             pre, post, self.tab2_canvas, comp_number, spike_number, self.tab3_stimulus, max_start, max_end, min_between, min_duration, min_number_spike)
@@ -586,10 +615,10 @@ class MEA_app(QtWidgets.QMainWindow):
             self.error_popup(spike_error_msg, "Plot Error")
 
     def plot_stimulus(self):
-        channel_id = self._check_value(self.channel_id_tab3.currentText(), None)
-        pre = self._check_value(self.extract_pre_tab3.text(), None)
-        post = self._check_value(self.extract_post_tab3.text(), None)
-        dead_time = self._check_value(self.dead_time_tab3.text(), None)
+        channel_id = self._check_value(self.channel_id_tab3.currentText(), -1)
+        pre = self._check_value(self.extract_pre_tab3.text(), -1)
+        post = self._check_value(self.extract_post_tab3.text(), -1)
+        dead_time = self._check_value(self.dead_time_tab3.text(), -1)
         from_in_s = self._check_value(self.extract_from_tab3.text(), 0)
         to_in_s = self._check_value(self.extract_to_tab3.text(), None)
         threshold_from = self._check_value(self.threshold_from_tab3.text(), -0.0003)
@@ -597,13 +626,20 @@ class MEA_app(QtWidgets.QMainWindow):
         high_pass = self._check_value(self.filter_high_tab3.text(), None)
         low_pass = self._check_value(self.filter_low_tab3.text(), None)
         
-        if -1 in (channel_id, pre, post, dead_time, from_in_s, to_in_s, threshold_from, threshold_to):
+        if -1 in (channel_id, pre, post, dead_time, from_in_s, to_in_s, threshold_from, threshold_to, high_pass, low_pass):
             self.error_popup("Please enter correct values", "Value Error")
+            return
+
+        if not all([pre, post, dead_time]):
+            self.error_popup("'Select time parameters' is incorrect", "Parameter Error")
             return
         
         if (dead_time < (pre+post)):
             self.error_popup("Dead time must be more or equal than (pre + post)", "Intersection Error")
             return 
+        
+        if self.check_parameters(from_in_s, to_in_s, high_pass, low_pass):
+            return
 
         error, error_msg = plot_tab3(self.file.recordings[0].analog_streams[0], channel_id, from_in_s, to_in_s, high_pass, low_pass, threshold_from, threshold_to, 
                                     dead_time, self.tab3_plot_check_boxes, pre, post, self.tab3_canvas)
@@ -614,7 +650,7 @@ class MEA_app(QtWidgets.QMainWindow):
 
 
     def save_waveform(self):
-        channel_id = self._check_value(self.channel_id_tab1.currentText(),None)
+        channel_id = self._check_value(self.channel_id_tab1.currentText(),-1)
         from_in_s = self._check_value(self.extract_from_tab1.text(),0)
         to_in_s = self._check_value(self.extract_to_tab1.text(),None)
         high_pass = self._check_value(self.filter_high_tab1.text(), None)
@@ -624,11 +660,16 @@ class MEA_app(QtWidgets.QMainWindow):
             self.error_popup("Please enter correct values", "Value Error")
             return
         
+        if self.check_parameters(from_in_s, to_in_s, high_pass, low_pass):
+            return
+        
         file_save_path = self.get_file_for_save(self.extract_text_box_tab1)
         if not file_save_path:
             return
         
         extract_waveform(self.file.recordings[0].analog_streams[0], file_save_path, channel_id, from_in_s, to_in_s, high_pass, low_pass)
+
+        self.info_popup("Data Created Succesfully", "Data saved")
 
     def save_spike(self):
         # channel_id = self._check_value(self.channel_id_tab2.currentText(), None)
@@ -639,25 +680,33 @@ class MEA_app(QtWidgets.QMainWindow):
         threshold_to = self._check_value(self.threshold_to_tab2.text(), None)
         high_pass = self._check_value(self.filter_high_tab2.text(), None)
         low_pass = self._check_value(self.filter_low_tab2.text(), None)
-        dead_time = self._check_value(self.dead_time_tab2.text(), None)
+        dead_time = self._check_value(self.dead_time_tab2.text(), -1)
         bin_width = self._check_value(self.tab2_bin.text(), None)
-
         max_start = self._check_value(self.tab2_max_start.text(), None)
         max_end = self._check_value(self.tab2_max_end.text(), None)
         min_between = self._check_value(self.tab2_min_interval.text(), None)
         min_duration = self._check_value(self.tab2_min_duration.text(), None)
         min_number_spike = self._check_value(self.tab2_min_number.text(), None)
         
+        if ("all" in channel_id) and (len(channel_id)>1):
+            self.error_popup("Channel Id must not contain 'all'", "Value Error")
+            return 
+
         if -1 in (channel_id, from_in_s, to_in_s, threshold_from, threshold_to, high_pass, low_pass, 
                     dead_time, bin_width, max_start, max_end, min_between, min_duration, min_number_spike):
             self.error_popup("Please enter correct values", "Value Error")
             return
 
-        if not isinstance(bin_width, (int, float, type(None))):
-            self.error_popup("bin width is incorrect", "Parameter Error")
-    
-        if not dead_time:
-            self.error_popup("Pleas Enter dead time", "Parameter Error")
+        if not (dead_time and bin_width):
+            self.error_popup("Please enter correct values", "Value Error")
+            return 
+
+        if (max_start, max_end, min_between, min_duration, min_number_spike).any() < 0:
+            self.error_popup("Burst parameters must be positive", "Value Error")
+            return          
+
+        if self.check_parameters(from_in_s, to_in_s, high_pass, low_pass):
+            return
         
         file_save_path = self.get_file_for_save(self.extract_text_box_tab2)
         if not file_save_path:
@@ -666,27 +715,32 @@ class MEA_app(QtWidgets.QMainWindow):
         extract_spike(self.file.recordings[0].analog_streams[0], file_save_path, channel_id, from_in_s, to_in_s, threshold_from, threshold_to, high_pass, low_pass, dead_time, bin_width,
                                             max_start, max_end, min_between, min_duration, min_number_spike, self.tab3_stimulus)
 
+        self.info_popup("Data Created Succesfully", "Data saved")
+
     def save_stimulus(self):
-        channel_id = self._check_value(self.channel_id_tab3.currentText(), None)
+        channel_id = self._check_value(self.channel_id_tab3.currentText(), -1)
         from_in_s = self._check_value(self.extract_from_tab3.text(), 0)
         to_in_s = self._check_value(self.extract_to_tab3.text(), None)
         threshold_from = self._check_value(self.threshold_from_tab3.text(), -0.0003)
-        dead_time = self._check_value(self.dead_time_tab3.text(), None)
-        pre = self._check_value(self.extract_pre_tab3.text(), None)
-        post = self._check_value(self.extract_post_tab3.text(), None)
+        dead_time = self._check_value(self.dead_time_tab3.text(), -1)
+        pre = self._check_value(self.extract_pre_tab3.text(), -1)
+        post = self._check_value(self.extract_post_tab3.text(), -1)
         high_pass = self._check_value(self.filter_high_tab3.text(), None)
         low_pass = self._check_value(self.filter_low_tab3.text(), None)
         
-        if -1 in (channel_id, from_in_s, to_in_s, threshold_from, dead_time, pre, post):
+        if -1 in (channel_id, from_in_s, to_in_s, threshold_from, dead_time, pre, post, high_pass, low_pass):
             self.error_popup("Please enter correct values", "Value Error")
             return
 
+        if not all([pre, post, dead_time]):
+            self.error_popup("'Select time parameters' is incorrect", "Parameter Error")
+            return
+        
         if (dead_time < (pre+post)):
             self.error_popup("Dead time must be more or equal than (pre + post)", "Intersection Error")
-            return 
-        
-        if not all([pre, post, dead_time]):
-            self.error_popup("Select time parameters is incorrect", "Parameter Error")
+            return
+
+        if self.check_parameters(from_in_s, to_in_s, high_pass, low_pass):
             return
         
         file_save_path = self.get_file_for_save(self.extract_text_box_tab3)
@@ -695,6 +749,25 @@ class MEA_app(QtWidgets.QMainWindow):
 
         extract_stimulus(self.file.recordings[0].analog_streams[0], file_save_path, channel_id, from_in_s, to_in_s, threshold_from, dead_time, pre, post, high_pass, low_pass)
 
+        self.info_popup("Data Created Succesfully", "Data saved")
+
+
+    def check_parameters(self, from_in_s, to_in_s, high_pass, low_pass):
+        if ((from_in_s is not None) and (to_in_s is not None)) and (from_in_s >= to_in_s):
+            self.error_popup("'End time' must be greater than 'Start time'", "Value Error")
+            return True
+        
+        if (high_pass is not None and low_pass is not None) and (high_pass<0 or low_pass<0 or low_pass<high_pass):
+            self.error_popup("Incorrect Filter", "Value Error")
+            return True
+        elif (high_pass is None) and (low_pass is not None) and (low_pass<0):
+            self.error_popup("Incorrect Filter", "Value Error")
+            return True
+        elif (low_pass is None) and (high_pass is not None) and (high_pass<0):
+            self.error_popup("Incorrect Filter", "Value Error")
+            return True
+
+        return False
 
     def path_valid(self, fileName):
             try:
@@ -724,6 +797,8 @@ class MEA_app(QtWidgets.QMainWindow):
             
             for i in range(self.channel_id_tab2.count()):
                 self.channel_id_tab2.setItemChecked(i, False)
+            self.channel_id_tab2.setItemChecked(1, True)
+            self.channel_id_tab2.setCurrentIndex(1)
 
     def get_file_for_save(self, text_box):
         name, _ = QtWidgets.QFileDialog.getSaveFileName(self,'Save File', options=QtWidgets.QFileDialog.DontUseNativeDialog)

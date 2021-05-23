@@ -8,6 +8,7 @@ import gc
 from McsPy import McsData
 from McsPy import ureg, Q_
 import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
 from scipy.fft import fft
 from scipy.signal import butter, sosfilt
 
@@ -15,15 +16,19 @@ from scipy.signal import butter, sosfilt
 
 def _check_time_range(analog_stream, sampling_frequency, from_in_s, to_in_s):
     from_idx = max(0, int(from_in_s * sampling_frequency))
+    from_idx = min(analog_stream.channel_data.shape[1], from_idx)
     if to_in_s is None:
         to_idx = analog_stream.channel_data.shape[1]
     else:
         to_idx = min(analog_stream.channel_data.shape[1], int(to_in_s * sampling_frequency))
+        to_idx = max(0, to_idx)
+    if from_idx==to_idx:
+        from_idx-=1
     return from_idx, to_idx
 
 def _get_specific_channel_signal(analog_stream, channel_id, from_in_s, to_in_s, high_pass, low_pass):
     signal_in_uV, time_in_sec = _get_signal_time(analog_stream, channel_id, from_in_s, to_in_s)
-    fs = int(analog_stream.channel_infos[channel_id[0]].sampling_frequency.magnitude)
+    fs = int(analog_stream.channel_infos[channel_id].sampling_frequency.magnitude)
     signal_in_uV = _filter_base_freqeuncy(signal_in_uV, fs, high_pass, low_pass)
     return signal_in_uV
 
@@ -239,22 +244,6 @@ def _signal_average_around_stimulus(signal, stimulus_df, channel, pre, post, fs)
             oneWaveform = np.concatenate((signal[(index1-pre_idx):index1],signal[index2:(index2+post_idx)]),axis=None)
             waveform_df["avg_stim_voltage"]+=oneWaveform
     return waveform_df/(len(stimulus_df))*1000000
-    
-def _get_spike_in_second(analog_stream, channel,  from_in_s, to_in_s, threshold_from, threshold_to, high_pass, low_pass, dead_time):
-    #TODO in case of spike in time range this two lines should be changed
-    fs = int(analog_stream.channel_infos[channel].sampling_frequency.magnitude)
-    signal_in_uV, _ = _get_signal_time(analog_stream, channel, from_in_s, to_in_s)
-    signal_in_uV = _filter_base_freqeuncy(signal_in_uV, fs, high_pass, low_pass)
-      
-    signal = signal_in_uV/1000000
-    threshold_from = _get_proper_threshold(signal, threshold_from, True)
-    fs, spks = _get_spike_info(analog_stream, channel, signal, threshold_from, threshold_to, dead_time)
-    spikes_in_second=[]
-    for spike in spks:
-        temp_time = analog_stream.get_channel_sample_timestamps(channel, spike, spike)[0][0]/1000000
-        spikes_in_second.append(temp_time)
-    
-    return spikes_in_second
 
 def _save_stimulus_with_avg(file_save_path, signal, analog_stream, channel_id, from_in_s, to_in_s, stimulus_threshold, fs, pre, post, dead_time):
     stimulus_in_second_df = pd.DataFrame()
@@ -397,14 +386,21 @@ def _plot_signal_with_spikes_or_stimulus(electrode_stream, channel_id, canvas, s
     ax = axes[suplot_num]
     ax.clear()
     ax.plot(time_in_sec, signal*1000000, linewidth=0.5, color = "darkmagenta")
-    ax.plot(spikes_in_range, [threshold_from*1e6]*spikes_in_range.shape[0], 'ro', ms=2)
+    if is_spike: # just for painting 
+        ax.plot(spikes_in_range, [threshold_from*1e6]*spikes_in_range.shape[0], 'ro', ms=2)
+        burst_legend = Line2D([], [], color='darkorange', marker='|', linestyle='None', markersize=10, markeredgewidth=2.5, label='Burst')
+        stimulus_legend = Line2D([], [], color='lime', marker='|', linestyle='None', markersize=10, markeredgewidth=2.5, label='Stimulus')
+        spike_legend = Line2D([], [], color='red', marker='o', linestyle='None', markersize=5, markeredgewidth=1, label='Spike')
+        ax.legend(handles =[spike_legend, burst_legend, stimulus_legend])
+    else:
+        ax.scatter(spikes_in_range, [threshold_from*1e6]*spikes_in_range.shape[0], color = 'lime', marker='o', s = 10)
 
     for stimul in stimulus:
         if not to_in_s: 
             to_in_s = electrode_stream.channel_data.shape[1]/fs 
 
         if stimul>=from_in_s and stimul<=to_in_s:
-            ax.axvspan(stimul, stimul+40/1000000, facecolor='0.2', alpha=0.7, color='lime')
+            ax.axvspan(stimul, stimul+5*40/1000000, facecolor='0.2', alpha=0.7, color='lime')
 
     if all([max_start, max_end, min_between, min_duration, min_number_spike]):
         spikes_in_second = spks/fs
@@ -417,7 +413,7 @@ def _plot_signal_with_spikes_or_stimulus(electrode_stream, channel_id, canvas, s
             temp_burst_start = bursts_df.iloc[idx].burst_start
             temp_burst_end = bursts_df.iloc[idx].burst_end
             ax.axvspan(temp_burst_start, temp_burst_end, facecolor='0.2', alpha=0.7, color='darkorange')
-
+    
     ax.set_xlabel('Time (%s)' % ureg.s)
     ax.set_ylabel('Voltage (%s)' % ureg.uV)
     ax.set_title('Channel %s' % channel_label)
@@ -529,8 +525,6 @@ def _get_spikes_dataframe_to_extract(electrode_stream, channel_ids, from_in_s, s
             spikes_df["stimulus"] = np.zeros(to_idx-from_idx+1)
 
     return spikes_df, bins_df
-
-
 
 
 
