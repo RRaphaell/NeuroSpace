@@ -254,7 +254,7 @@ def _save_stimulus_with_avg(file_save_path, signal, analog_stream, channel_id, f
     stimulus_in_second_df["stimulus_time"+str(channel_id)] = (stimulus_in_second_df["end"+str(channel_id)] - stimulus_in_second_df["start"+str(channel_id)])
     stimulus_in_second_df["stimulus_number"+str(channel_id)] = np.ceil(stimulus_in_second_df["stimulus_time"+str(channel_id)] / dead_time)
 
-    df_avg_stimul = _signal_average_around_stimulus(signal, stimulus_in_second_df*fs, channel_id, pre, post, fs)
+    df_avg_stimul = (_signal_average_around_stimulus(signal, stimulus_in_second_df*fs, channel_id, pre, post, fs))/1000000
     stimulus_in_second_df["start"+str(channel_id)] += from_in_s
     stimulus_in_second_df["end"+str(channel_id)] += from_in_s
     stimulus_in_second_df.to_csv(file_save_path+str(channel_id)+".csv", index = False)
@@ -299,10 +299,9 @@ def _plot_all_spikes_together(electrode_stream, channel_id, n_components, pre, p
             signal_in_uV += signal_in_uV_temp
     signal_in_uV /= len(channel_id)
 
-    fs = int(electrode_stream.channel_infos[int(channel_id[0])].sampling_frequency.magnitude)
-    signal_in_uV = _filter_base_freqeuncy(signal_in_uV, fs, high_pass, low_pass)
-
     ch = _get_channel_ID(electrode_stream, int(channel_id[0]))
+    fs = int(electrode_stream.channel_infos[int(ch)].sampling_frequency.magnitude)
+    signal_in_uV = _filter_base_freqeuncy(signal_in_uV, fs, high_pass, low_pass)
     signal = signal_in_uV/1000000 # need this to calculate stimulus or spikes
     threshold_from = _get_proper_threshold(signal, threshold_from, True)
     fs, spks = _get_spike_info(electrode_stream, int(ch), signal, threshold_from, threshold_to, dead_time)
@@ -347,7 +346,7 @@ def _plot_stimulus_average(electrode_stream, channel_label, from_in_s, to_in_s, 
     ax = axes[suplot_num]
     ax.clear()
     ax.plot(x, df_to_draw, linewidth=2)
-    ax.plot(xx, yx, linewidth=2)
+    ax.plot(xx, yx, linewidth=2, color='lime')
     
     ax.set_xlabel('Time (%s)' % ureg.s)
     ax.set_ylabel('Voltage (%s)' % ureg.uV)
@@ -387,13 +386,13 @@ def _plot_signal_with_spikes_or_stimulus(electrode_stream, channel_id, canvas, s
     ax.clear()
     ax.plot(time_in_sec, signal*1000000, linewidth=0.5, color = "darkmagenta")
     if is_spike: # just for painting 
-        ax.plot(spikes_in_range, [threshold_from*1e6]*spikes_in_range.shape[0], 'ro', ms=2)
+        ax.plot(spikes_in_range, [threshold_from*1e6]*spikes_in_range.shape[0], 'ro', ms=2 , zorder=1)
         burst_legend = Line2D([], [], color='darkorange', marker='|', linestyle='None', markersize=10, markeredgewidth=2.5, label='Burst')
         stimulus_legend = Line2D([], [], color='lime', marker='|', linestyle='None', markersize=10, markeredgewidth=2.5, label='Stimulus')
         spike_legend = Line2D([], [], color='red', marker='o', linestyle='None', markersize=5, markeredgewidth=1, label='Spike')
         ax.legend(handles =[spike_legend, burst_legend, stimulus_legend])
     else:
-        ax.scatter(spikes_in_range, [threshold_from*1e6]*spikes_in_range.shape[0], color = 'lime', marker='o', s = 10)
+        ax.scatter(spikes_in_range, [threshold_from*1e6]*spikes_in_range.shape[0], color = 'lime', marker='o', s = 8, zorder=2)
 
     for stimul in stimulus:
         if not to_in_s: 
@@ -604,12 +603,14 @@ def extract_waveform(analog_stream, file_save_path, channel_id, from_in_s, to_in
     df["time_in_sec"] = time_in_sec
 
     if (channel_id==None):
-        for channel in analog_stream.channel_infos:       
-            df["signal for "+str(channel)] = _get_specific_channel_signal(analog_stream,channel,from_in_s,to_in_s,high_pass,low_pass)
+        for channel in analog_stream.channel_infos:     
+            channel_label = analog_stream.channel_infos.get(channel).info['Label'] 
+            df["signal for "+str(channel_label)] = (_get_specific_channel_signal(analog_stream,channel,from_in_s,to_in_s,high_pass,low_pass))/1000000
     else:
+        channel_label = channel_id
         channel_id = _get_channel_ID(analog_stream, channel_id)
-        df["signal for "+str(channel_id)] = _get_specific_channel_signal(analog_stream,channel_id,from_in_s,to_in_s,high_pass,low_pass)
-
+        df["signal for "+str(channel_label)] = (_get_specific_channel_signal(analog_stream,channel_id,from_in_s,to_in_s,high_pass,low_pass))/1000000
+    
     df.to_csv(file_save_path+".csv", index=False)
     gc.collect()
 
