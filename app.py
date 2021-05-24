@@ -92,7 +92,12 @@ class MEA_app(QtWidgets.QMainWindow):
         with File:
             qss = File.read()
             self.setStyleSheet(qss)
+
+        self.statusBar = QtWidgets.QStatusBar()
+        self.setStatusBar(self.statusBar)
+        self.statusBar.setStyleSheet("QStatusBar{color:blue;font-weight:bold;font-size:10}")
  
+
         desktop = QtWidgets.QApplication.desktop()
         screenRect = desktop.screenGeometry()
         height = screenRect.height()
@@ -546,6 +551,7 @@ class MEA_app(QtWidgets.QMainWindow):
   
 
     def plot_waveform(self):
+        self.statusBar.showMessage("Loading ........")
         channel_id = self._check_value(self.channel_id_tab1.currentText(), -1)
         from_in_s = self._check_value(self.extract_from_tab1.text(), 0)
         to_in_s = self._check_value(self.extract_to_tab1.text(), None)
@@ -558,14 +564,15 @@ class MEA_app(QtWidgets.QMainWindow):
         
         if self.check_parameters(from_in_s, to_in_s, high_pass, low_pass):
             return
-
+        
         waveform_error, waveform_error_msg = plot_tab1(self.file.recordings[0].analog_streams[0], channel_id, from_in_s, to_in_s, self.tab1_canvas, high_pass, low_pass, self.tab1_plot_check_boxes)
 
         if waveform_error:
             self.error_popup(waveform_error_msg, "Plot Error")
+        self.statusBar.showMessage("")
     
     def plot_spike(self):
-        # channel_id = self._check_value(self.get_value(self.channel_id_tab2)[0], None)
+        self.statusBar.showMessage("Loading ........")
         channel_id =  self.get_value(self.channel_id_tab2)
         pre = self._check_value(self.extract_pre_tab2.text(), -1)
         post = self._check_value(self.extract_post_tab2.text(), -1)
@@ -607,14 +614,16 @@ class MEA_app(QtWidgets.QMainWindow):
         
         if self.check_parameters(from_in_s, to_in_s, high_pass, low_pass):
             return
-
+        
         spike_error, spike_error_msg = plot_tab2(self.file.recordings[0].analog_streams[0], channel_id, from_in_s, to_in_s, high_pass, low_pass, threshold_from, threshold_to, dead_time, self.tab2_plot_check_boxes, 
                                             pre, post, self.tab2_canvas, comp_number, spike_number, self.tab3_stimulus, max_start, max_end, min_between, min_duration, min_number_spike)
         
         if spike_error:
             self.error_popup(spike_error_msg, "Plot Error")
+        self.statusBar.showMessage("")
 
     def plot_stimulus(self):
+        self.statusBar.showMessage("Loading ........")
         channel_id = self._check_value(self.channel_id_tab3.currentText(), -1)
         pre = self._check_value(self.extract_pre_tab3.text(), -1)
         post = self._check_value(self.extract_post_tab3.text(), -1)
@@ -647,9 +656,10 @@ class MEA_app(QtWidgets.QMainWindow):
             self.error_popup(error_msg, "Plot Error") 
         else:
             self.tab3_stimulus = error_msg
-
+        self.statusBar.showMessage("")
 
     def save_waveform(self):
+        self.statusBar.showMessage("Loading ........")
         channel_id = self._check_value(self.channel_id_tab1.currentText(), None)
         from_in_s = self._check_value(self.extract_from_tab1.text(),0)
         to_in_s = self._check_value(self.extract_to_tab1.text(),None)
@@ -666,13 +676,13 @@ class MEA_app(QtWidgets.QMainWindow):
         file_save_path = self.get_file_for_save(self.extract_text_box_tab1)
         if not file_save_path:
             return
-        
-        extract_waveform(self.file.recordings[0].analog_streams[0], file_save_path, channel_id, from_in_s, to_in_s, high_pass, low_pass)
 
+        extract_waveform(self.file.recordings[0].analog_streams[0], file_save_path, channel_id, from_in_s, to_in_s, high_pass, low_pass)
+        self.statusBar.showMessage("")
         self.info_popup("Data Created Succesfully", "Data saved")
 
     def save_spike(self):
-        # channel_id = self._check_value(self.channel_id_tab2.currentText(), None)
+        self.statusBar.showMessage("Loading ........")
         channel_id =  self.get_value(self.channel_id_tab2)
         from_in_s = self._check_value(self.extract_from_tab2.text(), 0)
         to_in_s = self._check_value(self.extract_to_tab2.text(), None)
@@ -711,13 +721,14 @@ class MEA_app(QtWidgets.QMainWindow):
         file_save_path = self.get_file_for_save(self.extract_text_box_tab2)
         if not file_save_path:
             return
-        
+
         extract_spike(self.file.recordings[0].analog_streams[0], file_save_path, channel_id, from_in_s, to_in_s, threshold_from, threshold_to, high_pass, low_pass, dead_time, bin_width,
                                             max_start, max_end, min_between, min_duration, min_number_spike, self.tab3_stimulus)
-
+        self.statusBar.showMessage("")
         self.info_popup("Data Created Succesfully", "Data saved")
 
     def save_stimulus(self):
+        self.statusBar.showMessage("Loading ........")
         channel_id = self._check_value(self.channel_id_tab3.currentText(), None)
         from_in_s = self._check_value(self.extract_from_tab3.text(), 0)
         to_in_s = self._check_value(self.extract_to_tab3.text(), None)
@@ -748,7 +759,7 @@ class MEA_app(QtWidgets.QMainWindow):
             return
 
         extract_stimulus(self.file.recordings[0].analog_streams[0], file_save_path, channel_id, from_in_s, to_in_s, threshold_from, dead_time, pre, post, high_pass, low_pass)
-
+        self.statusBar.showMessage("")
         self.info_popup("Data Created Succesfully", "Data saved")
 
 
@@ -793,7 +804,6 @@ class MEA_app(QtWidgets.QMainWindow):
             for channel_id in [self.channel_id_tab1, self.channel_id_tab2, self.channel_id_tab3]:
                 channel_id.clear()
                 channel_id.addItems(message)
-                # channel_id.setStyleSheet("combobox-popup: 0")
             
             for i in range(self.channel_id_tab2.count()):
                 self.channel_id_tab2.setItemChecked(i, False)

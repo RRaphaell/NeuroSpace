@@ -392,7 +392,9 @@ def _plot_signal_with_spikes_or_stimulus(electrode_stream, channel_id, canvas, s
         spike_legend = Line2D([], [], color='red', marker='o', linestyle='None', markersize=5, markeredgewidth=1, label='Spike')
         ax.legend(handles =[spike_legend, burst_legend, stimulus_legend])
     else:
-        ax.scatter(spikes_in_range, [threshold_from*1e6]*spikes_in_range.shape[0], color = 'lime', marker='o', s = 8, zorder=2)
+        ax.scatter(spikes_in_range, [threshold_from*1e6]*spikes_in_range.shape[0], color = 'lime', marker='o', s = 8, zorder=2, alpha=0.7)
+        stimulus_legend = Line2D([], [], color='lime', marker='o', linestyle='None', markersize=5, markeredgewidth=1, label='Stimulus')
+        ax.legend(handles =[stimulus_legend])
 
     for stimul in stimulus:
         if not to_in_s: 
