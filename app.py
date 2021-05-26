@@ -123,6 +123,7 @@ class MEA_app(QtWidgets.QMainWindow):
         self.plot_file_btn_tab2.setFixedSize(int(self.width()*0.2), int(self.height()*0.05))
         self.group_box_burst_tab2.setFixedSize(int(self.width()*0.2), int(self.height()*0.11))
         self.group_box_bin_tab2.setFixedSize(int(self.width()*0.2), int(self.height()*0.08))
+        self.group_box_combine_tab2.setFixedSize(int(self.width()*0.2), int(self.height()*0.08))
         self.group_box_extract_tab2.setFixedSize(int(self.width()*0.2), int(self.height()*0.08))
 
         self.group_box_channel_stream_tab3.setFixedSize(int(self.width()*0.2), int(self.height()*0.08))
@@ -220,6 +221,9 @@ class MEA_app(QtWidgets.QMainWindow):
         self.tab2_bin.setStatusTip("Recommended: 10 (s)")
         self.group_box_bin_tab2.toggled.connect(lambda : self.clear_qlines(self.tab2_bin))
 
+        self.group_box_combine_tab2, self.combine_text_box_tab2, self.combine_btn_tab2 = self.create_group_extract("Combine spikes", "combine", "Choose the path where you have spikes files")
+        self.combine_btn_tab2.clicked.connect(self.combine_spikes)
+
         self.group_box_extract_tab2, self.extract_text_box_tab2, self.extract_btn_tab2 = self.create_group_extract() 
         self.extract_btn_tab2.clicked.connect(self.save_spike)
 
@@ -244,8 +248,9 @@ class MEA_app(QtWidgets.QMainWindow):
         tab2_layout.addWidget(self.group_box_burst_tab2,6,0)
         tab2_layout.addWidget(self.group_box_bin_tab2,7,0)
         tab2_layout.setRowStretch(8,0)
-        tab2_layout.addWidget(self.group_box_extract_tab2,9,0)
-        tab2_layout.addWidget(plot_group_box,0,2,10,1)
+        tab2_layout.addWidget(self.group_box_combine_tab2,9,0)
+        tab2_layout.addWidget(self.group_box_extract_tab2,10,0)
+        tab2_layout.addWidget(plot_group_box,0,2,11,1)
         self.tab2.setLayout(tab2_layout)
 
     def create_group_select_time_range_tab2(self):
@@ -493,19 +498,19 @@ class MEA_app(QtWidgets.QMainWindow):
         group_box_filter.setStatusTip("Choose filter (Hz), low high or band pass")
         return group_box_filter, filter_low, filter_high
         
-    def create_group_extract(self):
-        group_box_extract = QtWidgets.QGroupBox("Save to")
+    def create_group_extract(self, group_title="Save to", btn_title="Extract", status="Choose path to save csv file"):
+        group_box_extract = QtWidgets.QGroupBox(group_title)
         group_box_extract_layout = QtWidgets.QHBoxLayout()
         
         extract_text_box = QtWidgets.QLineEdit(self)
         extract_text_box.setDisabled(True)
         extract = QtWidgets.QPushButton(self)
-        extract.setText("Extract")
+        extract.setText(btn_title)
 
         group_box_extract_layout.addWidget(extract_text_box)
         group_box_extract_layout.addWidget(extract)
         group_box_extract.setLayout(group_box_extract_layout)
-        group_box_extract.setStatusTip("Choose path to save csv file")
+        group_box_extract.setStatusTip(status)
         return group_box_extract, extract_text_box, extract
 
     def create_plot_grop_box(self, title, add_component, plots_names):
@@ -786,6 +791,25 @@ class MEA_app(QtWidgets.QMainWindow):
             except:
                 _file = 0
             return _file
+
+    def combine_spikes(self):
+        dir_name = QtWidgets.QFileDialog.getExistingDirectory(self, "Select Directory")
+        self.combine_text_box_tab2.setText(dir_name)
+
+        if dir_name:
+            if os.path.exists(os.path.join(dir_name,"combined")):
+                os.remove(os.path.join(dir_name,"combined"))
+            files = os.listdir(dir_name)
+            if not len(files):
+                return
+
+            combined = 0
+            for file in files:
+                temp_df = pd.read_csv(os.path.join(dir_name,file))
+                combined = combined + temp_df.iloc[:,1]
+            combined = combined / len(files)
+            combined.to_csv(os.path.join(dir_name, "combined"), index = False)
+        self.info_popup("Data Created Succesfully", "Data saved")
 
     def get_file_for_open(self, text_box):
         fileName, _ = QtWidgets.QFileDialog.getOpenFileName(self, 'Open File')
