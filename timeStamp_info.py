@@ -69,7 +69,6 @@ def _get_next_minimum(signal, index, max_samples_to_search):
     return index + min_idx
 
 def _align_to_minimum(signal, fs, threshold_crossings, search_range):
-    # mosafiqrebeli raunda vqnat
     search_end = int(search_range*fs)
     aligned_spikes = np.array([_get_next_minimum(signal, t, search_end) for t in threshold_crossings])
     return aligned_spikes
@@ -112,6 +111,7 @@ def _get_pca_labels(cutouts, n_components):
     pca.n_components = int(n_components)
     scaler = StandardScaler()
     scaled_cutouts = scaler.fit_transform(abs(cutouts))
+
     transformed = pca.fit_transform(scaled_cutouts)
     gmm = GaussianMixture(n_components=int(n_components), n_init=10)
     return gmm.fit_predict(transformed)
@@ -312,7 +312,7 @@ def _plot_all_spikes_together(electrode_stream, channel_id, n_components, pre, p
     signal = signal_in_uV/1000000 # need this to calculate stimulus or spikes
     threshold_from, threshold_to = _get_proper_threshold(signal, threshold_from, threshold_to, True)
     fs, spks = _get_spike_info(electrode_stream, int(ch), signal, threshold_from, threshold_to, dead_time)
-    spks += int(from_in_s)
+    spks = np.array(list(filter(lambda x: signal[x]>=threshold_to, spks))) 
     cutouts = _get_signal_cutouts(signal_in_uV, fs, spks, pre, post)
 
     axes = canvas.figure.get_axes()
@@ -321,7 +321,7 @@ def _plot_all_spikes_together(electrode_stream, channel_id, n_components, pre, p
 
     if (len(spks) < 2):
         ax.set_title('No Spike')
-        return
+        return []
 
     labels = _get_pca_labels(cutouts, n_components)
     for i in range(int(n_components)):
@@ -331,6 +331,7 @@ def _plot_all_spikes_together(electrode_stream, channel_id, n_components, pre, p
     canvas.figure.tight_layout()
     canvas.draw()
     gc.collect()
+    return labels
 
 def _plot_stimulus_average(electrode_stream, channel_label, from_in_s, to_in_s, dead_time, stimulus_threshold, pre, post, high_pass, low_pass, canvas, suplot_num):
     channel_id = _get_channel_ID(electrode_stream, channel_label)
@@ -362,7 +363,7 @@ def _plot_stimulus_average(electrode_stream, channel_label, from_in_s, to_in_s, 
     gc.collect()
 
 def _plot_signal_with_spikes_or_stimulus(electrode_stream, channel_id, canvas, suplot_num, is_spike, from_in_s, to_in_s, high_pass, low_pass, threshold_from, threshold_to, dead_time,
-                                        max_start=None, max_end=None, min_between=None, min_duration=None, min_number_spike=None, stimulus=[]):
+                                        max_start=None, max_end=None, min_between=None, min_duration=None, min_number_spike=None, stimulus=[], labels=[]):
     
     signal_in_uV = []
     for ch in channel_id:
@@ -385,7 +386,6 @@ def _plot_signal_with_spikes_or_stimulus(electrode_stream, channel_id, canvas, s
     else :
         spks = _detect_threshold_crossings_stimulus(signal, fs, threshold_from, dead_time)
 
-    # igivenairi tema gasaketebelia spikebis extractze 
     spks = np.array(list(filter(lambda x: signal[x]>=threshold_to, spks))) 
     if not len(spks):
         spikes_voltage = []
@@ -401,6 +401,11 @@ def _plot_signal_with_spikes_or_stimulus(electrode_stream, channel_id, canvas, s
     ax.plot(time_in_sec, signal*1000000, linewidth=0.5, color = "darkmagenta")
     if is_spike: # just for painting 
         ax.plot(spikes_in_range, spikes_voltage, 'ro', ms=2 , zorder=1)
+        if len(spikes_in_range>=2):
+            unique = np.unique(np.array(labels))
+            for i in unique:
+                indices = [j for j, x in enumerate(labels) if x == i]
+                ax.plot(spikes_in_range[indices], spikes_voltage[indices], 'ro', ms=2 , zorder=1, color=plt.rcParams['axes.prop_cycle'].by_key()['color'][i])
         burst_legend = Line2D([], [], color='darkorange', marker='|', linestyle='None', markersize=10, markeredgewidth=2.5, label='Burst')
         stimulus_legend = Line2D([], [], color='lime', marker='|', linestyle='None', markersize=10, markeredgewidth=2.5, label='Stimulus')
         spike_legend = Line2D([], [], color='red', marker='o', linestyle='None', markersize=5, markeredgewidth=1, label='Spike')
@@ -498,6 +503,7 @@ def _get_spikes_dataframe_to_extract(electrode_stream, channel_ids, from_in_s, s
             spikes_df["signal_avg"] = signal_if_avg  # This part is for average signal, to save the voltage of average signal
             threshold_from, threshold_to = _get_proper_threshold(signal_if_avg, threshold_from, threshold_to, True)
             _, spks = _get_spike_info(electrode_stream, 0, signal_if_avg, threshold_from, threshold_to, dead_time)
+            spks = np.array(list(filter(lambda x: signal_if_avg[x]>=threshold_to, spks))) 
         else:
             channel_label = electrode_stream.channel_infos.get(channel_id).info['Label']            
             signal = electrode_stream.get_channel_in_range(channel_id, from_idx, to_idx)[0]
@@ -505,8 +511,8 @@ def _get_spikes_dataframe_to_extract(electrode_stream, channel_ids, from_in_s, s
             threshold_from, threshold_to = _get_proper_threshold(signal, threshold_from, threshold_to, True)
             _, spks = _get_spike_info(electrode_stream, channel_id, signal, threshold_from, threshold_to, dead_time)
             spikes_df["signal_"+str(channel_label)] = signal
+            spks = np.array(list(filter(lambda x: signal[x]>=threshold_to, spks))) 
 
-        # აქ ის გადვაამოწმოტ ხოარ მოხდება რო ზომებში აირიონ იმიტორო ზომას to_idx-from_idx+1 idx ebit vitvlit
         if len(spks)<1:
             spikes_df["spikes"+str(channel_label)] = np.zeros(to_idx-from_idx+1)
             spikes_df["bursts"+str(channel_label)] = np.zeros(to_idx-from_idx+1)
@@ -530,15 +536,15 @@ def _get_spikes_dataframe_to_extract(electrode_stream, channel_ids, from_in_s, s
         else:
             spikes_df["bursts"+str(channel_label)] = np.zeros(to_idx-from_idx+1)
         
-        if len(stimulus) > 0 :
-            stimulus = (np.array(stimulus)*fs).astype(int)
-            stimulus_in_range = stimulus[(stimulus >= from_idx) & (stimulus <= to_idx)]
-            stimulus_in_range-=from_idx
-            to_be_stimulus = np.zeros(to_idx-from_idx+1)
-            to_be_stimulus[stimulus_in_range] = 1
-            spikes_df["stimulus"] = to_be_stimulus
-        else:
-            spikes_df["stimulus"] = np.zeros(to_idx-from_idx+1)
+    if len(stimulus) > 0 :
+        stimulus = (np.array(stimulus)*fs).astype(int)
+        stimulus_in_range = stimulus[(stimulus >= from_idx) & (stimulus <= to_idx)]
+        stimulus_in_range-=from_idx
+        to_be_stimulus = np.zeros(to_idx-from_idx+1)
+        to_be_stimulus[stimulus_in_range] = 1
+        spikes_df["stimulus"] = to_be_stimulus
+    else:
+        spikes_df["stimulus"] = np.zeros(to_idx-from_idx+1)
 
     return spikes_df, bins_df
 
@@ -567,14 +573,15 @@ def plot_tab2(electrode_stream, channel_id, from_in_s, to_in_s, high_pass, low_p
         return 1, "Select time parameters is incorrect"
 
     if check_boxes[0].isChecked():
-        _plot_all_spikes_together(electrode_stream, channel_id, comp_number, pre, post, dead_time, spike_number,
+        labels = _plot_all_spikes_together(electrode_stream, channel_id, comp_number, pre, post, dead_time, spike_number,
                                                         canvas, 0, from_in_s, to_in_s, high_pass, low_pass, threshold_from, threshold_to)
     else:
         _clear_plot(canvas, subplot_num=0)
+        labels = []
     
     if check_boxes[1].isChecked():
         _ = _plot_signal_with_spikes_or_stimulus(electrode_stream, channel_id, canvas, 1, True, from_in_s, to_in_s, high_pass, low_pass, 
-                                            threshold_from, threshold_to, dead_time, max_start, max_end, min_between, min_duration, min_number_spike, stimulus)
+                                            threshold_from, threshold_to, dead_time, max_start, max_end, min_between, min_duration, min_number_spike, stimulus, labels)
     else:
         _clear_plot(canvas, subplot_num=1)
 
