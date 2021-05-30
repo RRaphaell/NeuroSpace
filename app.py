@@ -558,8 +558,8 @@ class MEA_app(QtWidgets.QMainWindow):
     def plot_waveform(self):
         self.statusBar.showMessage("Loading ........")
         channel_id = self._check_value(self.channel_id_tab1.currentText(), -1)
-        from_in_s = self._check_value(self.extract_from_tab1.text(), 0)
-        to_in_s = self._check_value(self.extract_to_tab1.text(), None)
+        from_in_s = self.round_to_closest(self._check_value(self.extract_from_tab1.text(), 0), 40/1000000)
+        to_in_s = self.round_to_closest(self._check_value(self.extract_to_tab1.text(), None), 40/1000000)
         high_pass = self._check_value(self.filter_high_tab1.text(), None)
         low_pass = self._check_value(self.filter_low_tab1.text(), None)
        
@@ -584,8 +584,8 @@ class MEA_app(QtWidgets.QMainWindow):
         dead_time = self._check_value(self.dead_time_tab2.text(), -1)
         comp_number = self._check_value(self.component.text(), 1)
         spike_number = None # because we want to plot all spikes
-        from_in_s = self._check_value(self.extract_from_tab2.text(), 0)
-        to_in_s = self._check_value(self.extract_to_tab2.text(), None)
+        from_in_s = self.round_to_closest(self._check_value(self.extract_from_tab2.text(), 0), 40/1000000)
+        to_in_s = self.round_to_closest(self._check_value(self.extract_to_tab2.text(), None), 40/1000000)
         high_pass = self._check_value(self.filter_high_tab2.text(), None)
         low_pass = self._check_value(self.filter_low_tab2.text(), None)
         threshold_from = self._check_value(self.threshold_from_tab2.text(), None)
@@ -633,8 +633,8 @@ class MEA_app(QtWidgets.QMainWindow):
         pre = self._check_value(self.extract_pre_tab3.text(), -1)
         post = self._check_value(self.extract_post_tab3.text(), -1)
         dead_time = self._check_value(self.dead_time_tab3.text(), -1)
-        from_in_s = self._check_value(self.extract_from_tab3.text(), 0)
-        to_in_s = self._check_value(self.extract_to_tab3.text(), None)
+        from_in_s = self.round_to_closest(self._check_value(self.extract_from_tab3.text(), 0), 40/1000000)
+        to_in_s = self.round_to_closest(self._check_value(self.extract_to_tab3.text(), None), 40/1000000)
         threshold_from = self._check_value(self.threshold_from_tab3.text(), -0.0003)
         threshold_to = self._check_value(self.threshold_to_tab3.text(), None)
         high_pass = self._check_value(self.filter_high_tab3.text(), None)
@@ -666,8 +666,8 @@ class MEA_app(QtWidgets.QMainWindow):
     def save_waveform(self):
         self.statusBar.showMessage("Loading ........")
         channel_id = self._check_value(self.channel_id_tab1.currentText(), None)
-        from_in_s = self._check_value(self.extract_from_tab1.text(),0)
-        to_in_s = self._check_value(self.extract_to_tab1.text(),None)
+        from_in_s = self.round_to_closest(self._check_value(self.extract_from_tab1.text(),0), 40/1000000)
+        to_in_s = self.round_to_closest(self._check_value(self.extract_to_tab1.text(),None), 40/1000000)
         high_pass = self._check_value(self.filter_high_tab1.text(), None)
         low_pass = self._check_value(self.filter_low_tab1.text(), None)
         
@@ -689,8 +689,8 @@ class MEA_app(QtWidgets.QMainWindow):
     def save_spike(self):
         self.statusBar.showMessage("Loading ........")
         channel_id =  self.get_value(self.channel_id_tab2)
-        from_in_s = self._check_value(self.extract_from_tab2.text(), 0)
-        to_in_s = self._check_value(self.extract_to_tab2.text(), None)
+        from_in_s = self.round_to_closest(self._check_value(self.extract_from_tab2.text(), 0), 40/1000000)
+        to_in_s = self.round_to_closest(self._check_value(self.extract_to_tab2.text(), None), 40/1000000)
         threshold_from = self._check_value(self.threshold_from_tab2.text(), None)
         threshold_to = self._check_value(self.threshold_to_tab2.text(), None)
         high_pass = self._check_value(self.filter_high_tab2.text(), None)
@@ -735,8 +735,8 @@ class MEA_app(QtWidgets.QMainWindow):
     def save_stimulus(self):
         self.statusBar.showMessage("Loading ........")
         channel_id = self._check_value(self.channel_id_tab3.currentText(), None)
-        from_in_s = self._check_value(self.extract_from_tab3.text(), 0)
-        to_in_s = self._check_value(self.extract_to_tab3.text(), None)
+        from_in_s = self.round_to_closest(self._check_value(self.extract_from_tab3.text(), 0), 40/1000000)
+        to_in_s = self.round_to_closest(self._check_value(self.extract_to_tab3.text(), None), 40/1000000)
         threshold_from = self._check_value(self.threshold_from_tab3.text(), -0.0003)
         dead_time = self._check_value(self.dead_time_tab3.text(), -1)
         pre = self._check_value(self.extract_pre_tab3.text(), -1)
@@ -767,6 +767,15 @@ class MEA_app(QtWidgets.QMainWindow):
         self.statusBar.showMessage("")
         self.info_popup("Data Created Succesfully", "Data saved")
 
+
+    def round_to_closest(self, value, time_stamp):
+        if value and value>0:
+            remainder = value % time_stamp
+            if (remainder > time_stamp / 2):
+                value += time_stamp - remainder
+            else:
+                value -= remainder
+        return value
 
     def check_parameters(self, from_in_s, to_in_s, high_pass, low_pass):
         if ((from_in_s is not None) and (to_in_s is not None)) and (from_in_s >= to_in_s):
