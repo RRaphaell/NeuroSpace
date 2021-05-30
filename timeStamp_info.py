@@ -46,12 +46,14 @@ def _get_signal_cutouts(signal, fs, spikes_idx, pre, post):
     return cutouts
 
 def _plot_each_spike(ax, cutouts, fs, pre, post, n=100, color='k'):
-
     if n is None:
         n = cutouts.shape[0]
     else:
         n = int(n)
     n = min(n, cutouts.shape[0])
+
+    pre = int(pre * fs)/fs
+    post = int(post * fs)/fs
     time_in_us = np.arange(-pre*1000, post*1000, 1e3/fs)
     
     for i in range(n):
@@ -69,12 +71,14 @@ def _get_next_minimum(signal, index, max_samples_to_search):
 def _align_to_minimum(signal, fs, threshold_crossings, search_range):
     # mosafiqrebeli raunda vqnat
     search_end = int(search_range*fs)
-    aligned_spikes = [_get_next_minimum(signal, t, search_end) for t in threshold_crossings]
-    return threshold_crossings
+    aligned_spikes = np.array([_get_next_minimum(signal, t, search_end) for t in threshold_crossings])
+    return aligned_spikes
 
 def _filter_base_freqeuncy(signal_in_uV, fs, High_pass, Low_pass):    
     butter_range = 2
 
+    if (High_pass and High_pass >= fs/2) or (Low_pass and Low_pass >= fs/2):
+        return signal_in_uV*0
     if High_pass and Low_pass:
         sos = butter(N = butter_range, Wn = [High_pass, Low_pass], fs=fs, btype='band', output = 'sos')
     elif High_pass:
@@ -86,7 +90,7 @@ def _filter_base_freqeuncy(signal_in_uV, fs, High_pass, Low_pass):
     filtered = sosfilt(sos, signal_in_uV)
     return filtered
 
-def _get_proper_threshold (signal, threshold_from, is_spike) :
+def _get_proper_threshold (signal, threshold_from, threshold_to, is_spike) :
     if not threshold_from:
         if is_spike: 
             noise_std= np.std(signal)
@@ -97,9 +101,13 @@ def _get_proper_threshold (signal, threshold_from, is_spike) :
                  threshold_from = -5 * noise_std
         else: 
             threshold_from=-100/1000000       
-    return threshold_from
+    if not threshold_to:
+        threshold_to = np.min(signal)
+    return threshold_from, threshold_to
 
 def _get_pca_labels(cutouts, n_components):
+    if n_components>=len(cutouts):
+        n_components = 1
     pca = PCA()
     pca.n_components = int(n_components)
     scaler = StandardScaler()
@@ -128,7 +136,7 @@ def _detect_threshold_crossings_spikes(signal, fs, threshold_from, threshold_to,
     last_idx = -dead_time_idx
     threshold_crossings = []
     for idx in range(len(signal)):
-        if idx > 0 and signal[idx-1] > threshold_from and signal[idx] <= threshold_from and signal[idx] >= threshold_to and idx - last_idx > dead_time_idx + 1:
+        if idx > 0 and signal[idx-1] > threshold_from and signal[idx] <= threshold_from and idx - last_idx > dead_time_idx + 1:
             threshold_crossings.append(idx)
             last_idx = idx
     return np.array(threshold_crossings)
@@ -202,10 +210,10 @@ def _get_burst(spikes_in_s, max_start, max_end, min_between, min_duration, min_n
             while (i < len(spikes_in_s)-1) and ((spikes_in_s[i+1]-spikes_in_s[i]) < max_end):
                 i += 1
             burst_end_in_s = spikes_in_s[i]   
-            all_burst.append((burst_start_in_s, burst_end_in_s))
+            all_burst.append([burst_start_in_s, burst_end_in_s])
+            i+=1
         else:
             i+=1
-
     if not all_burst:
         return [], []
     
@@ -217,7 +225,6 @@ def _get_burst(spikes_in_s, max_start, max_end, min_between, min_duration, min_n
         else:
             merged_bursts.append(temp_burst)
             temp_burst = all_burst[i]      
-
     bursts_starts = []
     bursts_ends = []
     for burst in merged_bursts:
@@ -247,7 +254,7 @@ def _signal_average_around_stimulus(signal, stimulus_df, channel, pre, post, fs)
 
 def _save_stimulus_with_avg(file_save_path, signal, analog_stream, channel_id, from_in_s, to_in_s, stimulus_threshold, fs, pre, post, dead_time):
     stimulus_in_second_df = pd.DataFrame()
-    threshold_from = _get_proper_threshold(signal, stimulus_threshold, False)
+    threshold_from, _ = _get_proper_threshold(signal, stimulus_threshold, None, False)
     thresholds = _detect_threshold_crossings_stimulus(signal, fs, threshold_from, dead_time)/fs
     stimulus_in_second_df["start"+str(channel_id)] = [thresholds[i] for i in range(0,len(thresholds),2)]
     stimulus_in_second_df["end"+str(channel_id)] = [thresholds[i] for i in range(1,len(thresholds),2)]
@@ -303,7 +310,7 @@ def _plot_all_spikes_together(electrode_stream, channel_id, n_components, pre, p
     fs = int(electrode_stream.channel_infos[int(ch)].sampling_frequency.magnitude)
     signal_in_uV = _filter_base_freqeuncy(signal_in_uV, fs, high_pass, low_pass)
     signal = signal_in_uV/1000000 # need this to calculate stimulus or spikes
-    threshold_from = _get_proper_threshold(signal, threshold_from, True)
+    threshold_from, threshold_to = _get_proper_threshold(signal, threshold_from, threshold_to, True)
     fs, spks = _get_spike_info(electrode_stream, int(ch), signal, threshold_from, threshold_to, dead_time)
     spks += int(from_in_s)
     cutouts = _get_signal_cutouts(signal_in_uV, fs, spks, pre, post)
@@ -372,11 +379,18 @@ def _plot_signal_with_spikes_or_stimulus(electrode_stream, channel_id, canvas, s
     fs = int(electrode_stream.channel_infos[ch].sampling_frequency.magnitude)
     signal = _filter_base_freqeuncy(signal_in_uV/1000000, fs, high_pass, low_pass)
     
-    threshold_from = _get_proper_threshold(signal, threshold_from, is_spike)
+    threshold_from, threshold_to = _get_proper_threshold(signal, threshold_from, threshold_to, is_spike)
     if is_spike:
         fs, spks = _get_spike_info(electrode_stream, int(ch), signal, threshold_from, threshold_to, dead_time)
     else :
         spks = _detect_threshold_crossings_stimulus(signal, fs, threshold_from, dead_time)
+
+    # igivenairi tema gasaketebelia spikebis extractze 
+    spks = np.array(list(filter(lambda x: signal[x]>=threshold_to, spks))) 
+    if not len(spks):
+        spikes_voltage = []
+    else:    
+        spikes_voltage = signal[spks]*1000000
 
     spikes_in_range = spks / fs
     spikes_in_range = np.array(spikes_in_range)
@@ -386,7 +400,7 @@ def _plot_signal_with_spikes_or_stimulus(electrode_stream, channel_id, canvas, s
     ax.clear()
     ax.plot(time_in_sec, signal*1000000, linewidth=0.5, color = "darkmagenta")
     if is_spike: # just for painting 
-        ax.plot(spikes_in_range, [threshold_from*1e6]*spikes_in_range.shape[0], 'ro', ms=2 , zorder=1)
+        ax.plot(spikes_in_range, spikes_voltage, 'ro', ms=2 , zorder=1)
         burst_legend = Line2D([], [], color='darkorange', marker='|', linestyle='None', markersize=10, markeredgewidth=2.5, label='Burst')
         stimulus_legend = Line2D([], [], color='lime', marker='|', linestyle='None', markersize=10, markeredgewidth=2.5, label='Stimulus')
         spike_legend = Line2D([], [], color='red', marker='o', linestyle='None', markersize=5, markeredgewidth=1, label='Spike')
@@ -482,16 +496,17 @@ def _get_spikes_dataframe_to_extract(electrode_stream, channel_ids, from_in_s, s
             signal_if_avg /= 1000000
             signal_if_avg = _filter_base_freqeuncy(signal_if_avg, fs, high_pass, low_pass)
             spikes_df["signal_avg"] = signal_if_avg  # This part is for average signal, to save the voltage of average signal
-            threshold_from = _get_proper_threshold(signal_if_avg, threshold_from, True)
+            threshold_from, threshold_to = _get_proper_threshold(signal_if_avg, threshold_from, threshold_to, True)
             _, spks = _get_spike_info(electrode_stream, 0, signal_if_avg, threshold_from, threshold_to, dead_time)
         else:
             channel_label = electrode_stream.channel_infos.get(channel_id).info['Label']            
             signal = electrode_stream.get_channel_in_range(channel_id, from_idx, to_idx)[0]
             signal = _filter_base_freqeuncy(signal, fs, high_pass, low_pass)
-            threshold_from = _get_proper_threshold(signal, threshold_from, True)
+            threshold_from, threshold_to = _get_proper_threshold(signal, threshold_from, threshold_to, True)
             _, spks = _get_spike_info(electrode_stream, channel_id, signal, threshold_from, threshold_to, dead_time)
             spikes_df["signal_"+str(channel_label)] = signal
 
+        # აქ ის გადვაამოწმოტ ხოარ მოხდება რო ზომებში აირიონ იმიტორო ზომას to_idx-from_idx+1 idx ebit vitvlit
         if len(spks)<1:
             spikes_df["spikes"+str(channel_label)] = np.zeros(to_idx-from_idx+1)
             spikes_df["bursts"+str(channel_label)] = np.zeros(to_idx-from_idx+1)
