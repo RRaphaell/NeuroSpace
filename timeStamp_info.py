@@ -292,7 +292,7 @@ def _plot_signal(analog_stream, channel_id, from_in_s, to_in_s, canvas, suplot_n
     canvas.figure.tight_layout()
     canvas.draw()
     gc.collect()
-    
+
 def _plot_all_spikes_together(electrode_stream, channel_id, n_components, pre, post, dead_time, number_spikes, canvas, suplot_num,
                         from_in_s, to_in_s, high_pass, low_pass, threshold_from, threshold_to):  
     
@@ -479,7 +479,7 @@ def _calculate_average_signal(electrode_stream, channel_id, from_in_s, to_in_s):
     return signal_in_uV
 
 def _get_spikes_dataframe_to_extract(electrode_stream, channel_ids, from_in_s, signal_if_avg, to_in_s, threshold_from, threshold_to, high_pass, low_pass, dead_time, 
-                                bin_width, max_start, max_end, min_between, min_duration, min_number_spike, stimulus):
+                                bin_width, max_start, max_end, min_between, min_duration, min_number_spike, stimulus, pre, post, n_components):
                                 
     spikes_df = pd.DataFrame()
     bins_df = pd.DataFrame()
@@ -503,7 +503,8 @@ def _get_spikes_dataframe_to_extract(electrode_stream, channel_ids, from_in_s, s
             spikes_df["signal_avg"] = signal_if_avg  # This part is for average signal, to save the voltage of average signal
             threshold_from, threshold_to = _get_proper_threshold(signal_if_avg, threshold_from, threshold_to, True)
             _, spks = _get_spike_info(electrode_stream, 0, signal_if_avg, threshold_from, threshold_to, dead_time)
-            spks = np.array(list(filter(lambda x: signal_if_avg[x]>=threshold_to, spks))) 
+            spks = np.array(list(filter(lambda x: signal_if_avg[x]>=threshold_to, spks)))
+            cutouts = _get_signal_cutouts(signal_if_avg, fs, spks, pre, post)
         else:
             channel_label = electrode_stream.channel_infos.get(channel_id).info['Label']            
             signal = electrode_stream.get_channel_in_range(channel_id, from_idx, to_idx)[0]
@@ -511,7 +512,8 @@ def _get_spikes_dataframe_to_extract(electrode_stream, channel_ids, from_in_s, s
             threshold_from, threshold_to = _get_proper_threshold(signal, threshold_from, threshold_to, True)
             _, spks = _get_spike_info(electrode_stream, channel_id, signal, threshold_from, threshold_to, dead_time)
             spikes_df["signal_"+str(channel_label)] = signal
-            spks = np.array(list(filter(lambda x: signal[x]>=threshold_to, spks))) 
+            spks = np.array(list(filter(lambda x: signal[x]>=threshold_to, spks)))
+            cutouts = _get_signal_cutouts(signal, fs, spks, pre, post)
 
         if len(spks)<1:
             spikes_df["spikes"+str(channel_label)] = np.zeros(to_idx-from_idx+1)
@@ -519,7 +521,12 @@ def _get_spikes_dataframe_to_extract(electrode_stream, channel_ids, from_in_s, s
             continue 
 
         to_be_spikes = np.zeros(to_idx-from_idx+1)
-        to_be_spikes[spks] = 1
+        if len(spks) >=2:
+            labels = _get_pca_labels(cutouts, n_components)
+            labels = labels + 1
+        else:
+            labels = np.ones(len(spks))
+        to_be_spikes[spks] = labels
         spikes_df["spikes"+str(channel_label)] = to_be_spikes
         spikes_in_second = spks/fs
 
@@ -650,22 +657,22 @@ def extract_stimulus(analog_stream, file_save_path, channel_id, from_in_s, to_in
     gc.collect()
 
 def extract_spike(analog_stream, file_save_path, channel_id, from_in_s, to_in_s, threshold_from, threshold_to, high_pass, low_pass, dead_time, bin_width,
-                max_start, max_end, min_between, min_duration, min_number_spike, stimulus):
+                max_start, max_end, min_between, min_duration, min_number_spike, stimulus, pre, post, n_cpmponents):
 
     if len(channel_id) == 1 :
         if channel_id[0] == "all":
             channel_ids = [key for key, value in analog_stream.channel_infos.items()]
             spikes_df,bins_df = _get_spikes_dataframe_to_extract(analog_stream, channel_ids, from_in_s, [], to_in_s, threshold_from, threshold_to, high_pass, low_pass, dead_time,
-                                                                    bin_width, max_start, max_end, min_between, min_duration, min_number_spike, stimulus)
+                                                                    bin_width, max_start, max_end, min_between, min_duration, min_number_spike, stimulus, pre, post, n_cpmponents)
         else:
             channel_id = [_get_channel_ID(analog_stream, int(channel_id[0]))]
             spikes_df,bins_df = _get_spikes_dataframe_to_extract(analog_stream, channel_id, from_in_s, [], to_in_s, threshold_from, threshold_to, high_pass, low_pass, dead_time,
-                                                                        bin_width, max_start, max_end, min_between, min_duration, min_number_spike, stimulus)
+                                                                        bin_width, max_start, max_end, min_between, min_duration, min_number_spike, stimulus, pre, post, n_cpmponents)
     else:
         signal_if_avg =  _calculate_average_signal(analog_stream, channel_id, from_in_s, to_in_s)
         channel_ids = [0]
         spikes_df, bins_df = _get_spikes_dataframe_to_extract(analog_stream, channel_ids, from_in_s, signal_if_avg, to_in_s, threshold_from, threshold_to, high_pass, low_pass, dead_time,
-                                                                    bin_width, max_start, max_end, min_between, min_duration, min_number_spike, stimulus)
+                                                                    bin_width, max_start, max_end, min_between, min_duration, min_number_spike, stimulus, pre, post, n_cpmponents)
     
     # save part of DataFrames
     if spikes_df.size > 0 :
