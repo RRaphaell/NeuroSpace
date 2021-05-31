@@ -527,7 +527,7 @@ def _get_spikes_dataframe_to_extract(electrode_stream, channel_ids, from_in_s, s
             spike_in_bins = _count_spike_in_bins(spikes_in_second, bin_width)
             bins_df["spike_num_"+str(channel_label)] = pd.Series(spike_in_bins)
 
-        if all([max_start, max_end, min_between, min_duration, min_number_spike]):
+        if (not (None in [max_start, max_end, min_between, min_duration, min_number_spike])):
             bursts_starts, _ = _get_burst(spikes_in_second, max_start, max_end, min_between, min_duration, min_number_spike)
             bursts_starts = (np.array(bursts_starts)*fs).astype(int)
             to_be_bursts = np.zeros(to_idx-from_idx+1)
@@ -568,9 +568,6 @@ def plot_tab1(analog_stream, channel_id, from_in_s, to_in_s, canvas, high_pass, 
 
 def plot_tab2(electrode_stream, channel_id, from_in_s, to_in_s, high_pass, low_pass, threshold_from, threshold_to, dead_time, check_boxes, pre, post, canvas,
                 comp_number, spike_number, stimulus, max_start, max_end, min_between, min_duration, min_number_spike):
-    
-    if not all([pre, post, dead_time]):
-        return 1, "Select time parameters is incorrect"
 
     if check_boxes[0].isChecked():
         labels = _plot_all_spikes_together(electrode_stream, channel_id, comp_number, pre, post, dead_time, spike_number,
@@ -593,9 +590,6 @@ def plot_tab2(electrode_stream, channel_id, from_in_s, to_in_s, high_pass, low_p
     return 0, ""
 
 def plot_tab3(electrode_stream, channel_id, from_in_s, to_in_s, high_pass, low_pass, threshold_from, threshold_to, dead_time, check_boxes, pre, post, canvas):
-
-    if not all([pre, post, dead_time]):
-        return 1, "Select time parameters is incorrect"  
 
     if check_boxes[0].isChecked():
         _plot_stimulus_average(electrode_stream, channel_id, from_in_s, to_in_s, dead_time, threshold_from, pre, post, high_pass, low_pass, canvas, 0)
