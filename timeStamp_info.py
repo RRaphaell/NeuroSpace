@@ -422,7 +422,7 @@ def _plot_signal_with_spikes_or_stimulus(electrode_stream, channel_id, canvas, s
         if stimul>=from_in_s and stimul<=to_in_s:
             ax.axvspan(stimul, stimul+5*40/1000000, facecolor='0.2', alpha=0.7, color='lime')
 
-    if all([max_start, max_end, min_between, min_duration, min_number_spike]):
+    if (not (None in [max_start, max_end, min_between, min_duration, min_number_spike])):
         spikes_in_second = spks/fs
 
         bursts_starts, bursts_ends = _get_burst(spikes_in_second, max_start, max_end, min_between, min_duration, min_number_spike)

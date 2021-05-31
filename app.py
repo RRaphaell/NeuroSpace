@@ -605,15 +605,15 @@ class MEA_app(QtWidgets.QMainWindow):
             self.error_popup("Please enter correct values", "Value Error")
             return
         
-        if not all([pre, post, dead_time]):
+        if not (all (x and x>0 for x in [pre,post,dead_time])):
             self.error_popup("'Select time parameters' is incorrect", "Parameter Error")
             return
         
         if (dead_time < (pre+post)):
             self.error_popup("Dead time must be more or equal than (pre + post)", "Intersection Error")
             return 
-        
-        if any([max_start, max_end, min_between, min_duration, min_number_spike]) < 0:
+
+        if any (x and x<0 for x in [max_start, max_end, min_between, min_duration, min_number_spike]):
             self.error_popup("Burst parameters must be positive", "Value Error")
             return 
         
@@ -644,7 +644,7 @@ class MEA_app(QtWidgets.QMainWindow):
             self.error_popup("Please enter correct values", "Value Error")
             return
 
-        if not all([pre, post, dead_time]):
+        if not (all (x and x>0 for x in [pre,post,dead_time])):
             self.error_popup("'Select time parameters' is incorrect", "Parameter Error")
             return
         
@@ -716,7 +716,7 @@ class MEA_app(QtWidgets.QMainWindow):
             self.error_popup("Please enter missing values", "Value Error")
             return 
 
-        if any([max_start, max_end, min_between, min_duration, min_number_spike]) < 0:
+        if any (x and x<0 for x in [max_start, max_end, min_between, min_duration, min_number_spike]):
             self.error_popup("Burst parameters must be positive", "Value Error")
             return          
 
@@ -748,7 +748,7 @@ class MEA_app(QtWidgets.QMainWindow):
             self.error_popup("Please enter correct values", "Value Error")
             return
 
-        if not all([pre, post, dead_time]):
+        if not(all (x and x>0 for x in [pre,post,dead_time])):
             self.error_popup("'Select time parameters' is incorrect", "Parameter Error")
             return
         
