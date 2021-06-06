@@ -133,6 +133,7 @@ class MEA_app(QtWidgets.QMainWindow):
         self.group_box_filter_tab3.setFixedSize(int(self.width()*0.2), int(self.height()*0.08))
         self.plot_file_btn_tab3.setFixedSize(int(self.width()*0.2), int(self.height()*0.05))
         self.group_box_extract_tab3.setFixedSize(int(self.width()*0.2), int(self.height()*0.08))
+        self.component.setFixedWidth(int(self.width()*0.05))
 
     def create_tab3(self):
         tab3_layout = QtWidgets.QGridLayout()
@@ -702,18 +703,25 @@ class MEA_app(QtWidgets.QMainWindow):
         min_between = self._check_value(self.tab2_min_interval.text(), None)
         min_duration = self._check_value(self.tab2_min_duration.text(), None)
         min_number_spike = self._check_value(self.tab2_min_number.text(), None)
-        
+        pre = self._check_value(self.extract_pre_tab2.text(), -1)
+        post = self._check_value(self.extract_post_tab2.text(), -1)
+        comp_number = self._check_value(self.component.text(), 1)
+
         if ("all" in channel_id) and (len(channel_id)>1):
             self.error_popup("Channel Id must not contain 'all'", "Value Error")
             return 
 
         if -1 in (channel_id, from_in_s, to_in_s, threshold_from, threshold_to, high_pass, low_pass, 
-                    dead_time, bin_width, max_start, max_end, min_between, min_duration, min_number_spike):
+                    dead_time, bin_width, max_start, max_end, min_between, min_duration, min_number_spike, pre, post, comp_number):
             self.error_popup("Please enter correct values", "Value Error")
             return
-
-        if not (dead_time):
-            self.error_popup("Please enter missing values", "Value Error")
+        
+        if not (all (x and x>0 for x in [pre,post,dead_time])):
+            self.error_popup("'Select time parameters' is incorrect", "Parameter Error")
+            return  
+                
+        if (dead_time < (pre+post)):
+            self.error_popup("Dead time must be more or equal than (pre + post)", "Intersection Error")
             return 
 
         if any (x and x<0 for x in [max_start, max_end, min_between, min_duration, min_number_spike]):
@@ -728,7 +736,7 @@ class MEA_app(QtWidgets.QMainWindow):
             return
 
         extract_spike(self.file.recordings[0].analog_streams[0], file_save_path, channel_id, from_in_s, to_in_s, threshold_from, threshold_to, high_pass, low_pass, dead_time, bin_width,
-                                            max_start, max_end, min_between, min_duration, min_number_spike, self.tab3_stimulus)
+                                            max_start, max_end, min_between, min_duration, min_number_spike, self.tab3_stimulus, pre, post, comp_number)
         self.statusBar.showMessage("")
         self.info_popup("Data Created Succesfully", "Data saved")
 
@@ -817,8 +825,8 @@ class MEA_app(QtWidgets.QMainWindow):
                 temp_df = pd.read_csv(os.path.join(dir_name,file))
                 combined = combined + temp_df.iloc[:,1]
             combined = combined / len(files)
-            combined.to_csv(os.path.join(dir_name, "combined"), index = False)
-        self.info_popup("Data Created Succesfully", "Data saved")
+            combined.to_csv(os.path.join(dir_name, "combined.csv"), index = False)
+            self.info_popup("Data Created Succesfully", "Data saved")
 
     def get_file_for_open(self, text_box):
         fileName, _ = QtWidgets.QFileDialog.getOpenFileName(self, 'Open File')
