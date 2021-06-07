@@ -109,9 +109,10 @@ def _get_pca_labels(cutouts, n_components):
     if n_components>=len(cutouts):
         n_components = 1
     pca = PCA()
-    pca.n_components = int(n_components)
+    pca.n_components = int(2)
     scaler = StandardScaler()
     scaled_cutouts = scaler.fit_transform(abs(cutouts))
+    scaled_cutouts *= 2
 
     transformed = pca.fit_transform(scaled_cutouts)
     gmm = GaussianMixture(n_components=int(n_components), n_init=10)

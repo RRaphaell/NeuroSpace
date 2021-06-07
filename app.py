@@ -145,8 +145,8 @@ class MEA_app(QtWidgets.QMainWindow):
         spacer.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Preferred)
 
         btn_help = QtWidgets.QAction(QtGui.QIcon("images/help_icon.png"), "Help", self)
-        btn_help.setStatusTip("Add soon")
-        # btn_combine.triggered.connect(lambda x: self.help()) add soon
+        btn_help.setStatusTip("Comming soon")
+        # btn_combine.triggered.connect(lambda x: self.help()) coming soon
 
         toolbar.addAction(btn_combine)
         toolbar.addWidget(spacer)
@@ -542,19 +542,21 @@ class MEA_app(QtWidgets.QMainWindow):
                                     'margin-top: 27px;'
                                     'font-size: 20px;}')
 
-        component = QtWidgets.QLineEdit(self)
-        component_label = QtWidgets.QLabel(self)
-        component_label.setText("Component number: ")
-
         figure, _ = plt.subplots(nrows=len(plots_names), ncols=1)
         figure.tight_layout()
         canvas = FigureCanvas(figure)
         toolbar = NavigationToolbar(canvas, self)
 
         if add_component:
+            component = QtWidgets.QLineEdit(self)
+            component_label = QtWidgets.QLabel(self)
+            component_label.setText("Component number: ")
+
             toolbar.addWidget(component_label)
             toolbar.addWidget(component)
             toolbar.addSeparator()
+        else:
+            component = 0 # bugi iyo da magitom
         
         check_boxes = []
         for plot_name in plots_names:
