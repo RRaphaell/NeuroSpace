@@ -5,6 +5,7 @@ from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 
 import gc
+import os
 from McsPy import McsData
 from McsPy import ureg, Q_
 import matplotlib.pyplot as plt
@@ -656,7 +657,7 @@ def extract_stimulus(analog_stream, file_save_path, channel_id, from_in_s, to_in
         _save_stimulus_with_avg(file_save_path, signal, analog_stream, channel_id, from_in_s, to_in_s, stimulus_threshold, fs, pre, post, dead_time)
     gc.collect()
 
-def extract_spike(analog_stream, file_save_path, channel_id, from_in_s, to_in_s, threshold_from, threshold_to, high_pass, low_pass, dead_time, bin_width,
+def extract_spike(file_path, analog_stream, file_save_path, channel_id, from_in_s, to_in_s, threshold_from, threshold_to, high_pass, low_pass, dead_time, bin_width,
                 max_start, max_end, min_between, min_duration, min_number_spike, stimulus, pre, post, n_cpmponents):
 
     if len(channel_id) == 1 :
@@ -665,8 +666,8 @@ def extract_spike(analog_stream, file_save_path, channel_id, from_in_s, to_in_s,
             spikes_df,bins_df = _get_spikes_dataframe_to_extract(analog_stream, channel_ids, from_in_s, [], to_in_s, threshold_from, threshold_to, high_pass, low_pass, dead_time,
                                                                     bin_width, max_start, max_end, min_between, min_duration, min_number_spike, stimulus, pre, post, n_cpmponents)
         else:
-            channel_id = [_get_channel_ID(analog_stream, int(channel_id[0]))]
-            spikes_df,bins_df = _get_spikes_dataframe_to_extract(analog_stream, channel_id, from_in_s, [], to_in_s, threshold_from, threshold_to, high_pass, low_pass, dead_time,
+            channel_id_converted = [_get_channel_ID(analog_stream, int(channel_id[0]))]
+            spikes_df,bins_df = _get_spikes_dataframe_to_extract(analog_stream, channel_id_converted, from_in_s, [], to_in_s, threshold_from, threshold_to, high_pass, low_pass, dead_time,
                                                                         bin_width, max_start, max_end, min_between, min_duration, min_number_spike, stimulus, pre, post, n_cpmponents)
     else:
         signal_if_avg =  _calculate_average_signal(analog_stream, channel_id, from_in_s, to_in_s)
@@ -676,6 +677,9 @@ def extract_spike(analog_stream, file_save_path, channel_id, from_in_s, to_in_s,
     
     # save part of DataFrames
     if spikes_df.size > 0 :
+        spikes_df["channel"] = "-".join([str(value) for value in channel_id])
+        spikes_df["stimulus_type"] = file_save_path.split("_")[-1]
+        spikes_df["file_name"] = os.path.basename(file_path).split(".")[0]
         spikes_df.to_csv(file_save_path+"_spikes.csv", index = False)
     if bins_df.size > 0 :
         bins_df.to_csv(file_save_path+"_bins.csv", index = False)

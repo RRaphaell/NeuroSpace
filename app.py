@@ -1,5 +1,4 @@
 import sys
-import os
 from PyQt5 import QtWidgets, QtGui
 from PyQt5.QtCore import Qt
 from timeStamp_info import *
@@ -84,9 +83,9 @@ class MEA_app(QtWidgets.QMainWindow):
         self.dir_path = os.path.dirname(os.path.realpath(__file__))
         self.setWindowIcon(QtGui.QIcon(os.path.join(self.dir_path,"images","app_icon.png")))
         # როცა აპლიკაციის სახეს მივცემთ ეს 3 ხაზი წესით აღარ დაჭირდება რომ ტასკბარზე აიქონ გამოჩნდეს
-        import ctypes
-        myappid = 'mycompany.myproduct.subproduct.version'                      
-        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
+        # import ctypes
+        # myappid = 'mycompany.myproduct.subproduct.version'
+        # ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
 
         File = open(os.path.join(self.dir_path,"styles/main_style.qss"),"r")
         with File:
@@ -223,7 +222,7 @@ class MEA_app(QtWidgets.QMainWindow):
         self.group_box_bin_tab2.toggled.connect(lambda : self.clear_qlines(self.tab2_bin))
 
         self.group_box_combine_tab2, self.combine_text_box_tab2, self.combine_btn_tab2 = self.create_group_extract("Combine spikes", "combine", "Choose the path where you have spikes files")
-        self.combine_btn_tab2.clicked.connect(self.combine_spikes)
+        self.combine_btn_tab2.clicked.connect(lambda x: self.combine_spikes())
 
         self.group_box_extract_tab2, self.extract_text_box_tab2, self.extract_btn_tab2 = self.create_group_extract() 
         self.extract_btn_tab2.clicked.connect(self.save_spike)
@@ -735,7 +734,7 @@ class MEA_app(QtWidgets.QMainWindow):
         if not file_save_path:
             return
 
-        extract_spike(self.file.recordings[0].analog_streams[0], file_save_path, channel_id, from_in_s, to_in_s, threshold_from, threshold_to, high_pass, low_pass, dead_time, bin_width,
+        extract_spike(self.browse_text_box_tab1.text(), self.file.recordings[0].analog_streams[0], file_save_path, channel_id, from_in_s, to_in_s, threshold_from, threshold_to, high_pass, low_pass, dead_time, bin_width,
                                             max_start, max_end, min_between, min_duration, min_number_spike, self.tab3_stimulus, pre, post, comp_number)
         self.statusBar.showMessage("")
         self.info_popup("Data Created Succesfully", "Data saved")
@@ -809,22 +808,29 @@ class MEA_app(QtWidgets.QMainWindow):
                 _file = 0
             return _file
 
-    def combine_spikes(self):
+    def combine_spikes(self, num_col=8):
         dir_name = QtWidgets.QFileDialog.getExistingDirectory(self, "Select Directory")
         self.combine_text_box_tab2.setText(dir_name)
 
         if dir_name:
-            if os.path.exists(os.path.join(dir_name,"combined")):
-                os.remove(os.path.join(dir_name,"combined"))
+            if os.path.exists(os.path.join(dir_name,"combined.csv")):
+                os.remove(os.path.join(dir_name,"combined.csv"))
             files = os.listdir(dir_name)
             if not len(files):
                 return
 
-            combined = 0
+            combined = None
+            combined_columns = ["time", "signal", "spike", "burst", "stimulus", "channel", "stimulus_type", "file_name"]
             for file in files:
                 temp_df = pd.read_csv(os.path.join(dir_name,file))
-                combined = combined + temp_df.iloc[:,1]
-            combined = combined / len(files)
+                if len(temp_df.columns) > num_col:
+                    self.info_popup(f"some files columns quantity did not match so we combined only last {num_col} columns", "Columns length")
+                temp_df = temp_df[temp_df.columns[-num_col:]]
+                if combined is None:
+                    combined = temp_df
+                else:
+                    combined = pd.DataFrame(np.concatenate([combined.values, temp_df.values]), columns = combined_columns)
+
             combined.to_csv(os.path.join(dir_name, "combined.csv"), index = False)
             self.info_popup("Data Created Succesfully", "Data saved")
 
