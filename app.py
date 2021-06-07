@@ -95,7 +95,8 @@ class MEA_app(QtWidgets.QMainWindow):
         self.statusBar = QtWidgets.QStatusBar()
         self.setStatusBar(self.statusBar)
         self.statusBar.setStyleSheet("QStatusBar{color:blue;font-weight:bold;font-size:10}")
- 
+
+        self.add_toolbar()
 
         desktop = QtWidgets.QApplication.desktop()
         screenRect = desktop.screenGeometry()
@@ -122,7 +123,6 @@ class MEA_app(QtWidgets.QMainWindow):
         self.plot_file_btn_tab2.setFixedSize(int(self.width()*0.2), int(self.height()*0.05))
         self.group_box_burst_tab2.setFixedSize(int(self.width()*0.2), int(self.height()*0.11))
         self.group_box_bin_tab2.setFixedSize(int(self.width()*0.2), int(self.height()*0.08))
-        self.group_box_combine_tab2.setFixedSize(int(self.width()*0.2), int(self.height()*0.08))
         self.group_box_extract_tab2.setFixedSize(int(self.width()*0.2), int(self.height()*0.08))
 
         self.group_box_channel_stream_tab3.setFixedSize(int(self.width()*0.2), int(self.height()*0.08))
@@ -133,6 +133,25 @@ class MEA_app(QtWidgets.QMainWindow):
         self.plot_file_btn_tab3.setFixedSize(int(self.width()*0.2), int(self.height()*0.05))
         self.group_box_extract_tab3.setFixedSize(int(self.width()*0.2), int(self.height()*0.08))
         self.component.setFixedWidth(int(self.width()*0.05))
+
+    def add_toolbar(self):
+        toolbar = QtWidgets.QToolBar(self)
+
+        btn_combine = QtWidgets.QAction(QtGui.QIcon("images/merge_icon.png"), "Merge files", self)
+        btn_combine.setStatusTip("Choose folder to combine all files from it")
+        btn_combine.triggered.connect(lambda x: self.combine_spikes())
+
+        spacer = QtWidgets.QWidget()
+        spacer.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Preferred)
+
+        btn_help = QtWidgets.QAction(QtGui.QIcon("images/help_icon.png"), "Help", self)
+        btn_help.setStatusTip("Add soon")
+        # btn_combine.triggered.connect(lambda x: self.help()) add soon
+
+        toolbar.addAction(btn_combine)
+        toolbar.addWidget(spacer)
+        toolbar.addAction(btn_help)
+        self.addToolBar(toolbar)
 
     def create_tab3(self):
         tab3_layout = QtWidgets.QGridLayout()
@@ -221,9 +240,6 @@ class MEA_app(QtWidgets.QMainWindow):
         self.tab2_bin.setStatusTip("Recommended: 10 (s)")
         self.group_box_bin_tab2.toggled.connect(lambda : self.clear_qlines(self.tab2_bin))
 
-        self.group_box_combine_tab2, self.combine_text_box_tab2, self.combine_btn_tab2 = self.create_group_extract("Combine spikes", "combine", "Choose the path where you have spikes files")
-        self.combine_btn_tab2.clicked.connect(lambda x: self.combine_spikes())
-
         self.group_box_extract_tab2, self.extract_text_box_tab2, self.extract_btn_tab2 = self.create_group_extract() 
         self.extract_btn_tab2.clicked.connect(self.save_spike)
 
@@ -248,9 +264,8 @@ class MEA_app(QtWidgets.QMainWindow):
         tab2_layout.addWidget(self.group_box_burst_tab2,6,0)
         tab2_layout.addWidget(self.group_box_bin_tab2,7,0)
         tab2_layout.setRowStretch(8,0)
-        tab2_layout.addWidget(self.group_box_combine_tab2,9,0)
-        tab2_layout.addWidget(self.group_box_extract_tab2,10,0)
-        tab2_layout.addWidget(plot_group_box,0,2,11,1)
+        tab2_layout.addWidget(self.group_box_extract_tab2,9,0)
+        tab2_layout.addWidget(plot_group_box,0,2,10,1)
         self.tab2.setLayout(tab2_layout)
 
     def create_group_select_time_range_tab2(self):
@@ -810,7 +825,6 @@ class MEA_app(QtWidgets.QMainWindow):
 
     def combine_spikes(self, num_col=8):
         dir_name = QtWidgets.QFileDialog.getExistingDirectory(self, "Select Directory")
-        self.combine_text_box_tab2.setText(dir_name)
 
         if dir_name:
             if os.path.exists(os.path.join(dir_name,"combined.csv")):
