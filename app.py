@@ -247,13 +247,12 @@ class MEA_app(QtWidgets.QMainWindow):
         self.plot_file_btn_tab2.setText("Plot Spike")
         self.plot_file_btn_tab2.clicked.connect(self.plot_spike)  
         
-        plots_names = ["Spike together","Spikes","Frequency"]
+        plots_names = ["Spike together","Spikes","Bin Frequency"]
         self.tab2_is_plot_visible = [2]*len(plots_names)
         plot_group_box, self.tab2_canvas, self.tab2_plot_check_boxes, self.component  = self.create_plot_grop_box("Spike", True, plots_names)
         self.tab2_is_canvas_clicked = [False]
         for i in range(len(self.tab2_plot_check_boxes)):
             self.tab2_plot_check_boxes[i].stateChanged.connect(partial(self.check_plotes_visibility, self.tab2_is_plot_visible, self.tab2_canvas, i))
-        self.tab2_plot_check_boxes[-1].setChecked(False)
 
         tab2_layout.addWidget(self.group_box_channel_stream_tab2,0,0)
         tab2_layout.addWidget(self.group_box_pre_post_tab2,1,0)

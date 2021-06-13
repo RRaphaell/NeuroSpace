@@ -469,7 +469,7 @@ def _plot_signal_frequencies(electrode_stream, channel_id, canvas, suplot_num):
     canvas.draw()
     gc.collect()
 
-def _plot_bins(spikes_in_second, ax, from_in_s, to_in_s, bin_width):
+def _plot_bins(spikes_in_second, canvas, from_in_s, to_in_s, bin_width, subplot_num):
     df = pd.DataFrame()
     bin_ranges = [bin_width*i for i in list(range(int(np.ceil((to_in_s-from_in_s+0.00004)/bin_width))))]
     df["bin_ranges"] = np.array(bin_ranges)+ from_in_s
@@ -478,8 +478,11 @@ def _plot_bins(spikes_in_second, ax, from_in_s, to_in_s, bin_width):
     x = df.iloc[:,0]
     y = df.iloc[:,1]
     y = [0 if math.isnan(value) else int(value) for value in df.iloc[:,1]]
+
+    axes = canvas.figure.get_axes()
+    ax = axes[subplot_num]
     ax.clear()
-    pps = ax.bar(x, y, width = bin_width, align='edge')
+    pps = ax.bar(x, y, width = bin_width, align='edge', alpha=0.4, facecolor='blue', edgecolor='red', linewidth=2)
     ax.grid(color='#95a5a6', linestyle='--', linewidth=1, axis='y', alpha=0.7)
 
     for p in pps:
@@ -489,6 +492,12 @@ def _plot_bins(spikes_in_second, ax, from_in_s, to_in_s, bin_width):
                     xytext=(0, 3), # 3 points vertical offset
                     textcoords="offset points",
                     ha='center', va='bottom')
+    
+    ax.set_ylabel('Bin Frequency')
+    ax.set_xlabel('Bin time step (second)')
+    canvas.figure.tight_layout()
+    canvas.draw()
+    gc.collect()
 
 def _calculate_average_signal(electrode_stream, channel_id, from_in_s, to_in_s):
     signal_in_uV = []
@@ -614,10 +623,7 @@ def plot_tab2(electrode_stream, channel_id, from_in_s, to_in_s, high_pass, low_p
         _clear_plot(canvas, subplot_num=1)
 
     if check_boxes[2].isChecked() and bin_width:
-        # _plot_signal_frequencies(electrode_stream, channel_id, canvas, 2)
-        axes = canvas.figure.get_axes()
-        ax = axes[2]
-        _plot_bins(spikes_in_range, ax,from_in_s, to_in_s, bin_width)
+        _plot_bins(spikes_in_range, canvas, from_in_s, to_in_s, bin_width, 2)
 
     else:
         _clear_plot(canvas, subplot_num=2)
