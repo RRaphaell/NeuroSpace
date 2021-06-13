@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import math
 from sklearn.mixture import GaussianMixture
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
@@ -468,6 +469,27 @@ def _plot_signal_frequencies(electrode_stream, channel_id, canvas, suplot_num):
     canvas.draw()
     gc.collect()
 
+def _plot_bins(spikes_in_second, ax, from_in_s, to_in_s, bin_width):
+    df = pd.DataFrame()
+    bin_ranges = [bin_width*i for i in list(range(int(np.ceil((to_in_s-from_in_s+0.00004)/bin_width))))]
+    df["bin_ranges"] = np.array(bin_ranges)+ from_in_s
+    spike_in_bins = _count_spike_in_bins(spikes_in_second, bin_width)
+    df["spike_num_"] = pd.Series(spike_in_bins)
+    x = df.iloc[:,0]
+    y = df.iloc[:,1]
+    y = [0 if math.isnan(value) else int(value) for value in df.iloc[:,1]]
+    ax.clear()
+    pps = ax.bar(x, y, width = bin_width, align='edge')
+    ax.grid(color='#95a5a6', linestyle='--', linewidth=1, axis='y', alpha=0.7)
+
+    for p in pps:
+        height = p.get_height()
+        ax.annotate('{}'.format(height),
+                    xy=(p.get_x() + p.get_width() / 2, height),
+                    xytext=(0, 3), # 3 points vertical offset
+                    textcoords="offset points",
+                    ha='center', va='bottom')
+
 def _calculate_average_signal(electrode_stream, channel_id, from_in_s, to_in_s):
     signal_in_uV = []
     for ch in channel_id:
@@ -576,7 +598,7 @@ def plot_tab1(analog_stream, channel_id, from_in_s, to_in_s, canvas, high_pass, 
     return 0,""
 
 def plot_tab2(electrode_stream, channel_id, from_in_s, to_in_s, high_pass, low_pass, threshold_from, threshold_to, dead_time, check_boxes, pre, post, canvas,
-                comp_number, spike_number, stimulus, max_start, max_end, min_between, min_duration, min_number_spike):
+                comp_number, spike_number, stimulus, max_start, max_end, min_between, min_duration, min_number_spike, bin_width):
 
     if check_boxes[0].isChecked():
         labels = _plot_all_spikes_together(electrode_stream, channel_id, comp_number, pre, post, dead_time, spike_number,
@@ -586,13 +608,17 @@ def plot_tab2(electrode_stream, channel_id, from_in_s, to_in_s, high_pass, low_p
         labels = []
     
     if check_boxes[1].isChecked():
-        _ = _plot_signal_with_spikes_or_stimulus(electrode_stream, channel_id, canvas, 1, True, from_in_s, to_in_s, high_pass, low_pass, 
+        spikes_in_range = _plot_signal_with_spikes_or_stimulus(electrode_stream, channel_id, canvas, 1, True, from_in_s, to_in_s, high_pass, low_pass, 
                                             threshold_from, threshold_to, dead_time, max_start, max_end, min_between, min_duration, min_number_spike, stimulus, labels)
     else:
         _clear_plot(canvas, subplot_num=1)
 
-    if check_boxes[2].isChecked():
-        _plot_signal_frequencies(electrode_stream, channel_id, canvas, 2)
+    if check_boxes[2].isChecked() and bin_width:
+        # _plot_signal_frequencies(electrode_stream, channel_id, canvas, 2)
+        axes = canvas.figure.get_axes()
+        ax = axes[2]
+        _plot_bins(spikes_in_range, ax,from_in_s, to_in_s, bin_width)
+
     else:
         _clear_plot(canvas, subplot_num=2)
     
