@@ -469,9 +469,11 @@ def _plot_signal_frequencies(electrode_stream, channel_id, canvas, suplot_num):
     canvas.draw()
     gc.collect()
 
-def _plot_bins(spikes_in_second, canvas, from_in_s, to_in_s, bin_width, subplot_num):
+def _plot_bins(electrode_stream, channel_id, spikes_in_second, canvas, from_in_s, to_in_s, bin_width, subplot_num):
+    fs = int(electrode_stream.channel_infos[0].sampling_frequency.magnitude)
+    from_idx, to_idx = _check_time_range(electrode_stream, fs, from_in_s, to_in_s) 
     df = pd.DataFrame()
-    bin_ranges = [bin_width*i for i in list(range(int(np.ceil((to_in_s-from_in_s+0.00004)/bin_width))))]
+    bin_ranges = [bin_width*i for i in list(range(int(np.ceil((to_idx-from_idx+1)/fs/bin_width))))]
     df["bin_ranges"] = np.array(bin_ranges)+ from_in_s
     spike_in_bins = _count_spike_in_bins(spikes_in_second, bin_width)
     df["spike_num_"] = pd.Series(spike_in_bins)
@@ -623,7 +625,7 @@ def plot_tab2(electrode_stream, channel_id, from_in_s, to_in_s, high_pass, low_p
         _clear_plot(canvas, subplot_num=1)
 
     if check_boxes[2].isChecked() and bin_width:
-        _plot_bins(spikes_in_range, canvas, from_in_s, to_in_s, bin_width, 2)
+        _plot_bins(electrode_stream, channel_id, spikes_in_range, canvas, from_in_s, to_in_s, bin_width, 2)
 
     else:
         _clear_plot(canvas, subplot_num=2)
