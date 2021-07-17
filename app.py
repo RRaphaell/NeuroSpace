@@ -9,10 +9,10 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 from functools import partial
 
+McsData.VERBOSE = False
 style.use('seaborn-dark')
 matplotlib.use('Qt5Agg')
-font = {'family' : 'Arial',
-        'weight' : 'bold',
+font = {'weight' : 'bold',
         'size'   : 8}
 matplotlib.rc('font', **font)
 
@@ -658,6 +658,7 @@ class MEA_app(QtWidgets.QMainWindow):
         min_duration = self._check_value(self.tab2_min_duration.text(), None)
         min_number_spike = self._check_value(self.tab2_min_number.text(), None)
         bin_width = self._check_value(self.tab2_bin.text(), None)
+        reduce_num = self._check_value(self.reduced_by.text(), None) 
 
         if "all" in channel_id:
             self.error_popup("Channel Id must not contain 'all'", "Value Error")
@@ -684,7 +685,7 @@ class MEA_app(QtWidgets.QMainWindow):
             return
 
         spike_error, spike_error_msg = plot_tab2(self.file.recordings[0].analog_streams[0], channel_id, from_in_s, to_in_s, high_pass, low_pass, threshold_from, threshold_to, dead_time, self.tab2_plot_check_boxes,
-                                            pre, post, self.tab2_canvas, comp_number, spike_number, self.tab3_stimulus, max_start, max_end, min_between, min_duration, min_number_spike, bin_width)
+                                            pre, post, self.tab2_canvas, comp_number, spike_number, self.tab3_stimulus, max_start, max_end, min_between, min_duration, min_number_spike, bin_width, reduce_num)
 
         if spike_error:
             self.error_popup(spike_error_msg, "Plot Error")
@@ -702,6 +703,7 @@ class MEA_app(QtWidgets.QMainWindow):
         threshold_to = self._check_value(self.threshold_to_tab3.text(), None)
         high_pass = self._check_value(self.filter_high_tab3.text(), None)
         low_pass = self._check_value(self.filter_low_tab3.text(), None)
+        reduce_num = self._check_value(self.reduced_by.text(), None) 
 
         if -1 in (channel_id, pre, post, dead_time, from_in_s, to_in_s, threshold_from, threshold_to, high_pass, low_pass):
             self.error_popup("Please enter correct values", "Value Error")
@@ -719,7 +721,7 @@ class MEA_app(QtWidgets.QMainWindow):
             return
 
         error, error_msg = plot_tab3(self.file.recordings[0].analog_streams[0], channel_id, from_in_s, to_in_s, high_pass, low_pass, threshold_from, threshold_to,
-                                    dead_time, self.tab3_plot_check_boxes, pre, post, self.tab3_canvas)
+                                    dead_time, self.tab3_plot_check_boxes, pre, post, self.tab3_canvas, reduce_num)
         if error:
             self.error_popup(error_msg, "Plot Error")
         else:
@@ -733,6 +735,7 @@ class MEA_app(QtWidgets.QMainWindow):
         to_in_s = self.round_to_closest(self._check_value(self.extract_to_tab1.text(),None), 40/1000000)
         high_pass = self._check_value(self.filter_high_tab1.text(), None)
         low_pass = self._check_value(self.filter_low_tab1.text(), None)
+        reduce_num = self._check_value(self.reduced_by.text(), None) 
 
         if -1 in (channel_id, from_in_s, to_in_s, high_pass, low_pass):
             self.error_popup("Please enter correct values", "Value Error")
@@ -745,7 +748,7 @@ class MEA_app(QtWidgets.QMainWindow):
         if not file_save_path:
             return
 
-        extract_waveform(self.file.recordings[0].analog_streams[0], file_save_path, channel_id, from_in_s, to_in_s, high_pass, low_pass)
+        extract_waveform(self.file.recordings[0].analog_streams[0], file_save_path, channel_id, from_in_s, to_in_s, high_pass, low_pass, reduce_num)
         self.statusBar.showMessage("")
         self.info_popup("Data Created Succesfully", "Data saved")
 
@@ -768,6 +771,7 @@ class MEA_app(QtWidgets.QMainWindow):
         pre = self._check_value(self.extract_pre_tab2.text(), -1)
         post = self._check_value(self.extract_post_tab2.text(), -1)
         comp_number = self._check_value(self.component.text(), 1)
+        reduce_num = self._check_value(self.reduced_by.text(), None) 
 
         if ("all" in channel_id) and (len(channel_id)>1):
             self.error_popup("Channel Id must not contain 'all'", "Value Error")
@@ -798,7 +802,7 @@ class MEA_app(QtWidgets.QMainWindow):
             return
 
         extract_spike(self.browse_text_box_tab1.text(), self.file.recordings[0].analog_streams[0], file_save_path, channel_id, from_in_s, to_in_s, threshold_from, threshold_to, high_pass, low_pass, dead_time, bin_width,
-                                            max_start, max_end, min_between, min_duration, min_number_spike, self.tab3_stimulus, pre, post, comp_number)
+                                            max_start, max_end, min_between, min_duration, min_number_spike, self.tab3_stimulus, pre, post, comp_number, reduce_num)
         self.statusBar.showMessage("")
         self.info_popup("Data Created Succesfully", "Data saved")
 
@@ -813,6 +817,7 @@ class MEA_app(QtWidgets.QMainWindow):
         post = self._check_value(self.extract_post_tab3.text(), -1)
         high_pass = self._check_value(self.filter_high_tab3.text(), None)
         low_pass = self._check_value(self.filter_low_tab3.text(), None)
+        reduce_num = self._check_value(self.reduced_by.text(), None) 
 
         if -1 in (channel_id, from_in_s, to_in_s, threshold_from, dead_time, pre, post, high_pass, low_pass):
             self.error_popup("Please enter correct values", "Value Error")
@@ -833,7 +838,7 @@ class MEA_app(QtWidgets.QMainWindow):
         if not file_save_path:
             return
 
-        extract_stimulus(self.file.recordings[0].analog_streams[0], file_save_path, channel_id, from_in_s, to_in_s, threshold_from, dead_time, pre, post, high_pass, low_pass)
+        extract_stimulus(self.file.recordings[0].analog_streams[0], file_save_path, channel_id, from_in_s, to_in_s, threshold_from, dead_time, pre, post, high_pass, low_pass, reduce_num)
         self.statusBar.showMessage("")
         self.info_popup("Data Created Succesfully", "Data saved")
 
