@@ -17,12 +17,14 @@ from scipy.signal import butter, sosfilt
 # helper functions
 
 def _check_time_range(analog_stream, sampling_frequency, from_in_s, to_in_s):
+    signal_shape = analog_stream.channel_data.shape[1]
+
     from_idx = max(0, int(from_in_s * sampling_frequency))
-    from_idx = min(analog_stream.channel_data.shape[1], from_idx)
+    from_idx = min(signal_shape, from_idx)
     if to_in_s is None:
-        to_idx = analog_stream.channel_data.shape[1]
+        to_idx = signal_shape
     else:
-        to_idx = min(analog_stream.channel_data.shape[1], int(to_in_s * sampling_frequency))
+        to_idx = min(signal_shape, int(to_in_s * sampling_frequency))
         to_idx = max(0, to_idx)
     if from_idx==to_idx:
         from_idx-=1
