@@ -12,6 +12,7 @@ from functools import partial
 McsData.VERBOSE = False
 style.use('seaborn-dark')
 matplotlib.use('Qt5Agg')
+plt.rcParams['legend.loc'] = "upper right"
 font = {'weight' : 'bold',
         'size'   : 8}
 matplotlib.rc('font', **font)
@@ -420,7 +421,7 @@ class MEA_app(QtWidgets.QMainWindow):
         self.extract_btn_tab1.clicked.connect(self.save_waveform)
 
         self.group_box_algo, self.algo_speed = self.create_choose_algo_group_box()
-        self.algo_speed.addItems(["Fast", "Slow"])
+        self.algo_speed.addItems(["Slow", "Fast"])
 
         self.group_box_reduced_by, self.reduced_by = self.create_reduced_by_group_box()
         self.group_box_reduced_by.toggled.connect(lambda : self.clear_qlines(self.reduced_by))
@@ -658,7 +659,8 @@ class MEA_app(QtWidgets.QMainWindow):
         min_duration = self._check_value(self.tab2_min_duration.text(), None)
         min_number_spike = self._check_value(self.tab2_min_number.text(), None)
         bin_width = self._check_value(self.tab2_bin.text(), None)
-        reduce_num = self._check_value(self.reduced_by.text(), None) 
+        reduce_num = self._check_value(self.reduced_by.text(), None)
+        detecting_type = self.algo_speed.currentText()
 
         if "all" in channel_id:
             self.error_popup("Channel Id must not contain 'all'", "Value Error")
@@ -685,7 +687,7 @@ class MEA_app(QtWidgets.QMainWindow):
             return
 
         spike_error, spike_error_msg = plot_tab2(self.file.recordings[0].analog_streams[0], channel_id, from_in_s, to_in_s, high_pass, low_pass, threshold_from, threshold_to, dead_time, self.tab2_plot_check_boxes,
-                                            pre, post, self.tab2_canvas, comp_number, spike_number, self.tab3_stimulus, max_start, max_end, min_between, min_duration, min_number_spike, bin_width, reduce_num)
+                                            pre, post, self.tab2_canvas, comp_number, spike_number, self.tab3_stimulus, max_start, max_end, min_between, min_duration, min_number_spike, bin_width, reduce_num, detecting_type)
 
         if spike_error:
             self.error_popup(spike_error_msg, "Plot Error")

@@ -15,7 +15,7 @@ from scipy.fft import fft
 from scipy.signal import butter, sosfilt
 
 # helper functions
-
+DETECT_CROSSINGS_TYPE = "Slow"
 def _check_time_range(analog_stream, sampling_frequency, from_in_s, to_in_s):
     signal_shape = analog_stream.channel_data.shape[1]
 
@@ -147,8 +147,22 @@ def _detect_threshold_crossings_spikes(signal, fs, threshold_from, threshold_to,
             last_idx = idx
     return np.array(threshold_crossings)
 
+def _detect_threshold_crossings_spikes_fast(signal, fs, threshold, threshold_to, dead_time):
+    dead_time_idx = dead_time * fs
+    threshold_crossings = np.diff((signal <= threshold).astype(int) > 0).nonzero()[0]
+    distance_sufficient = np.insert(np.diff(threshold_crossings) >= dead_time_idx, 0, True)
+    while not np.all(distance_sufficient):
+        # repeatedly remove all threshold crossings that violate the dead_time
+        threshold_crossings = threshold_crossings[distance_sufficient]
+        distance_sufficient = np.insert(np.diff(threshold_crossings) >= dead_time_idx, 0, True)
+    return np.array(threshold_crossings)
+
 def _get_spike_info(signal, fs, threshold_from, threshold_to, dead_time):
-    crossings = _detect_threshold_crossings_spikes(signal, fs, threshold_from, threshold_to, dead_time)
+    if DETECT_CROSSINGS_TYPE=="Fast":
+        crossings = _detect_threshold_crossings_spikes_fast(signal, fs, threshold_from, threshold_to, dead_time)
+    else:
+        crossings = _detect_threshold_crossings_spikes(signal, fs, threshold_from, threshold_to, dead_time)
+
     spks = _align_to_minimum(signal, fs, crossings, 0.002) # search range 2 ms
     return spks
 
@@ -585,8 +599,10 @@ def plot_tab1(electrode_stream, channel_id, from_in_s, to_in_s, canvas, high_pas
     return 0,""
 
 def plot_tab2(electrode_stream, channel_id, from_in_s, to_in_s, high_pass, low_pass, threshold_from, threshold_to, dead_time, check_boxes, pre, post, canvas,
-                comp_number, spike_number, stimulus, max_start, max_end, min_between, min_duration, min_number_spike, bin_width, reduce_num):
+                comp_number, spike_number, stimulus, max_start, max_end, min_between, min_duration, min_number_spike, bin_width, reduce_num, detecting_type):
 
+    global DETECT_CROSSINGS_TYPE
+    DETECT_CROSSINGS_TYPE = detecting_type
     signal_in_uV , channel_id_converted, time_in_sec = _calculate_average_signal(electrode_stream, channel_id, from_in_s, to_in_s)
     fs = int(electrode_stream.channel_infos[0].sampling_frequency.magnitude)
     signal_in_uV = _filter_base_freqeuncy(signal_in_uV, fs, high_pass, low_pass)  
