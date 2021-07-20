@@ -698,18 +698,23 @@ def extract_waveform(analog_stream, file_save_path, channel_id, from_in_s, to_in
 def extract_stimulus(analog_stream, file_save_path, channel_id, from_in_s, to_in_s, stimulus_threshold, dead_time, pre, post, high_pass, low_pass, reduce_num):
     _channel_info = analog_stream.channel_infos[0]
     fs = _channel_info.sampling_frequency.magnitude
+    fs_reduced = fs
     from_idx, to_idx = _check_time_range(analog_stream, fs, from_in_s, to_in_s)
     if (channel_id==None):
         for channel in analog_stream.channel_infos:
             channel_id = analog_stream.channel_infos.get(channel).info['Label']
             signal = analog_stream.get_channel_in_range(channel, from_idx, to_idx)[0]
+            if reduce_num and reduce_num > 0:
+                signal, fs_reduced = _reduce_signal(signal, fs, int(reduce_num))
             signal = _filter_base_freqeuncy(signal, fs, high_pass, low_pass)
-            _save_stimulus_with_avg(file_save_path, signal, channel_id, from_in_s, to_in_s, stimulus_threshold, fs, pre, post, dead_time)
+            _save_stimulus_with_avg(file_save_path, signal, channel_id, from_in_s, to_in_s, stimulus_threshold, fs_reduced, pre, post, dead_time)
     else:
         channel = _get_channel_ID(analog_stream, channel_id)
         signal = analog_stream.get_channel_in_range(channel, from_idx, to_idx)[0]
         signal = _filter_base_freqeuncy(signal, fs, high_pass, low_pass)
-        _save_stimulus_with_avg(file_save_path, signal, channel_id, from_in_s, to_in_s, stimulus_threshold, fs, pre, post, dead_time)
+        if reduce_num and reduce_num > 0:
+            signal, fs_reduced = _reduce_signal(signal, fs, int(reduce_num))
+        _save_stimulus_with_avg(file_save_path, signal, channel_id, from_in_s, to_in_s, stimulus_threshold, fs_reduced, pre, post, dead_time)
     gc.collect()
 
 def extract_spike(file_path, analog_stream, file_save_path, channel_id, from_in_s, to_in_s, threshold_from, threshold_to, high_pass, low_pass, dead_time, bin_width,
