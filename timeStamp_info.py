@@ -306,13 +306,8 @@ def _plot_signal(signal_in_uV, title, time_in_sec, canvas, suplot_num):
     canvas.draw()
     gc.collect()
 
-def _plot_all_spikes_together(signal_in_uV, channel_id, channel_id_converted, fs, n_components, pre, post, dead_time, number_spikes, canvas, suplot_num,
-                        from_in_s, to_in_s, threshold_from, threshold_to):  
+def _plot_all_spikes_together(signal_in_uV, fs, n_components, pre, post, number_spikes, canvas, suplot_num, spks):  
 
-    signal = signal_in_uV/1000000 
-    threshold_from, threshold_to = _get_proper_threshold(signal, threshold_from, threshold_to, True)
-    spks = _get_spike_info(signal, fs, threshold_from, threshold_to, dead_time)
-    spks = np.array(list(filter(lambda x: signal[x]>=threshold_to, spks))) 
     cutouts = _get_signal_cutouts(signal_in_uV, fs, spks, pre, post)
 
     axes = canvas.figure.get_axes()
@@ -332,10 +327,9 @@ def _plot_all_spikes_together(signal_in_uV, channel_id, channel_id_converted, fs
     gc.collect()
     return labels
 
-def _plot_stimulus_average(signal_in_uV, channel_label, channel_id_converted, fs, from_in_s, to_in_s, from_idx, to_idx, dead_time, stimulus_threshold, pre, post, canvas, suplot_num):
+def _plot_stimulus_average(signal_in_uV, channel_label, fs, thresholds, dead_time, stimulus_threshold, pre, post, canvas, suplot_num):
 
     signal = signal_in_uV/1000000
-    thresholds = _detect_threshold_crossings_stimulus(signal, fs, stimulus_threshold, dead_time)
 
     stimulus_df = pd.DataFrame()
     stimulus_df["start"+str(channel_label)] = [int(thresholds[i]) for i in range(0,len(thresholds)) if i%2==0]
@@ -357,18 +351,10 @@ def _plot_stimulus_average(signal_in_uV, channel_label, channel_id_converted, fs
     canvas.draw()
     gc.collect()
 
-def _plot_signal_with_spikes_or_stimulus(signal_in_uV, time_in_sec, channel_id, channel_id_converted, fs, canvas, suplot_num, is_spike, from_in_s, to_in_s, threshold_from, threshold_to, dead_time,
+def _plot_signal_with_spikes_or_stimulus(signal_in_uV, time_in_sec, channel_id, channel_id_converted, fs, canvas, suplot_num, is_spike, from_in_s, to_in_s, threshold_from, threshold_to, spks, dead_time,
                                         max_start=None, max_end=None, min_between=None, min_duration=None, min_number_spike=None, stimulus=[], labels=[]):
     
     signal = signal_in_uV/1000000
-    threshold_from, threshold_to = _get_proper_threshold(signal, threshold_from, threshold_to, is_spike)
-
-    if is_spike:
-        spks = _get_spike_info(signal, fs, threshold_from, threshold_to, dead_time)
-    else :
-        spks = _detect_threshold_crossings_stimulus(signal, fs, threshold_from, dead_time)
-
-    spks = np.array(list(filter(lambda x: signal[x]>=threshold_to, spks))) 
     if not len(spks):
         spikes_voltage = []
     else:    
@@ -380,7 +366,7 @@ def _plot_signal_with_spikes_or_stimulus(signal_in_uV, time_in_sec, channel_id, 
     axes = canvas.figure.get_axes()
     ax = axes[suplot_num]
     ax.clear()
-    ax.plot(time_in_sec, signal*1000000, linewidth=0.5, color = "darkmagenta")
+    ax.plot(time_in_sec, signal_in_uV, linewidth=0.5, color = "darkmagenta")
     if is_spike: # just for painting 
         ax.plot(spikes_in_range, spikes_voltage, 'ro', ms=2 , zorder=1)
         if len(spikes_in_range>=2):
@@ -606,22 +592,26 @@ def plot_tab2(electrode_stream, channel_id, from_in_s, to_in_s, high_pass, low_p
     signal_in_uV , channel_id_converted, time_in_sec = _calculate_average_signal(electrode_stream, channel_id, from_in_s, to_in_s)
     fs = int(electrode_stream.channel_infos[0].sampling_frequency.magnitude)
     signal_in_uV = _filter_base_freqeuncy(signal_in_uV, fs, high_pass, low_pass)  
-    from_idx, to_idx = _check_time_range(electrode_stream, fs, from_in_s, to_in_s)  
+    from_idx, to_idx = _check_time_range(electrode_stream, fs, from_in_s, to_in_s) 
 
     if reduce_num and reduce_num > 0:
         signal_in_uV, fs = _reduce_signal(signal_in_uV, fs, int(reduce_num))
         time_in_sec = np.arange(0, len(signal_in_uV))/fs
 
+    signal = signal_in_uV/1000000 
+    threshold_from, threshold_to = _get_proper_threshold(signal, threshold_from, threshold_to, True)
+    spks = _get_spike_info(signal, fs, threshold_from, threshold_to, dead_time)
+    spks = np.array(list(filter(lambda x: signal[x]>=threshold_to, spks))) 
+
     if check_boxes[0].isChecked():
-        labels = _plot_all_spikes_together(signal_in_uV, channel_id, channel_id_converted, fs, comp_number, pre, post, dead_time, spike_number,
-                                                        canvas, 0, from_in_s, to_in_s, threshold_from, threshold_to)
+        labels = _plot_all_spikes_together(signal_in_uV, fs, comp_number, pre, post, spike_number, canvas, 0, spks)
     else:
         _clear_plot(canvas, subplot_num=0)
         labels = []
     
     if check_boxes[1].isChecked():
         spikes_in_range = _plot_signal_with_spikes_or_stimulus(signal_in_uV, time_in_sec, channel_id, channel_id_converted, fs, canvas, 1, True, from_in_s, to_in_s,
-                                            threshold_from, threshold_to, dead_time, max_start, max_end, min_between, min_duration, min_number_spike, stimulus, labels)
+                                            threshold_from, threshold_to, spks, dead_time, max_start, max_end, min_between, min_duration, min_number_spike, stimulus, labels)
     else:
         _clear_plot(canvas, subplot_num=1)
 
@@ -638,19 +628,24 @@ def plot_tab3(electrode_stream, channel_id, from_in_s, to_in_s, high_pass, low_p
     signal_in_uV , channel_id_converted, time_in_sec = _calculate_average_signal(electrode_stream, [channel_id], from_in_s, to_in_s)
     fs = int(electrode_stream.channel_infos[0].sampling_frequency.magnitude)
     signal_in_uV = _filter_base_freqeuncy(signal_in_uV, fs, high_pass, low_pass)  
-    from_idx, to_idx = _check_time_range(electrode_stream, fs, from_in_s, to_in_s) 
-
+    from_idx, to_idx = _check_time_range(electrode_stream, fs, from_in_s, to_in_s)
     if reduce_num and reduce_num > 0:
         signal_in_uV, fs = _reduce_signal(signal_in_uV, fs, int(reduce_num))
         time_in_sec = np.arange(0, len(signal_in_uV))/fs
 
+    signal = signal_in_uV/1000000
+    threshold_from, threshold_to = _get_proper_threshold(signal, threshold_from, threshold_to, True)
+    thresholds = _detect_threshold_crossings_stimulus(signal, fs, threshold_from, dead_time)
+    if len(thresholds):
+        thresholds = np.array(list(filter(lambda x: signal[x]>=threshold_to, thresholds))) 
+
     if check_boxes[0].isChecked():
-        _plot_stimulus_average(signal_in_uV, channel_id, channel_id_converted, fs, from_in_s, to_in_s, from_idx, to_idx, dead_time, threshold_from, pre, post, canvas, 0)
+        _plot_stimulus_average(signal_in_uV, channel_id, fs, thresholds, dead_time, threshold_from, pre, post, canvas, 0)
     else:
         _clear_plot(canvas, subplot_num=0)
 
     if check_boxes[1].isChecked():
-        stimulus = _plot_signal_with_spikes_or_stimulus(signal_in_uV, time_in_sec, channel_id, channel_id_converted, fs, canvas, 1, False, from_in_s, to_in_s, threshold_from, threshold_to, dead_time)
+        stimulus = _plot_signal_with_spikes_or_stimulus(signal_in_uV, time_in_sec, channel_id, channel_id_converted, fs, canvas, 1, False, from_in_s, to_in_s, threshold_from, threshold_to, thresholds, dead_time)
     else:
         stimulus = []
         _clear_plot(canvas, subplot_num=1)
