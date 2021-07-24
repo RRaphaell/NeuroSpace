@@ -190,14 +190,15 @@ def _detect_threshold_crossings_stimulus(signal, fs, threshold, dead_time):
         threshold_crossings = np.insert(threshold_crossings,len(threshold_crossings),last_stimulus_index)
     return threshold_crossings
 
-def _count_spike_in_bins(spike_in_s, bin_width):
+def _count_spike_in_bins(spike_in_s, bin_width, from_in_s):
     temp_bin = bin_width
     spike_len_in_bins = []
-    
+    if not from_in_s:
+        from_in_s = 0
     spike_idx = 0
     count_spike = 0
     while spike_idx < len(spike_in_s):
-        if spike_in_s[spike_idx] < temp_bin:
+        if (spike_in_s[spike_idx]-from_in_s) < temp_bin:
             count_spike += 1
             spike_idx += 1
         else:
@@ -235,7 +236,7 @@ def _get_burst(spikes_in_s, max_start, max_end, min_between, min_duration, min_n
             i+=1
     if not all_burst:
         return [], []
-    
+
     merged_bursts=[]
     temp_burst = all_burst[0]
     for i in range(1, len(all_burst)):
@@ -243,7 +244,9 @@ def _get_burst(spikes_in_s, max_start, max_end, min_between, min_duration, min_n
             temp_burst[1] = all_burst[i][1]
         else:
             merged_bursts.append(temp_burst)
-            temp_burst = all_burst[i]      
+            temp_burst = all_burst[i]
+    merged_bursts.append(temp_burst)
+
     bursts_starts = []
     bursts_ends = []
     for burst in merged_bursts:
@@ -385,7 +388,7 @@ def _plot_signal_with_spikes_or_stimulus(signal_in_uV, time_in_sec, channel_id, 
 
     for stimul in stimulus:
         if not to_in_s: 
-            to_in_s = time_in_sec[len(time_in_sec-1)]
+            to_in_s = time_in_sec[len(time_in_sec)-1]
 
         if stimul>=from_in_s and stimul<=to_in_s:
             ax.axvspan(stimul, stimul+5*40/1000000, facecolor='0.2', alpha=0.7, color='lime')
@@ -429,7 +432,7 @@ def _plot_bins(channel_id, spikes_in_second, fs, canvas, from_in_s, to_in_s, fro
     df = pd.DataFrame()
     bin_ranges = [bin_width*i for i in list(range(int(np.ceil((to_idx-from_idx+1)/fs/bin_width))))]
     df["bin_ranges"] = np.array(bin_ranges)+ from_in_s
-    spike_in_bins = _count_spike_in_bins(spikes_in_second, bin_width)
+    spike_in_bins = _count_spike_in_bins(spikes_in_second, bin_width, from_in_s)
     df["spike_num_"] = pd.Series(spike_in_bins)
     x = df.iloc[:,0]
     y = df.iloc[:,1]
@@ -471,18 +474,15 @@ def _get_spikes_dataframe_to_extract(electrode_stream, channel_ids, from_in_s, s
     fs = int(electrode_stream.channel_infos[0].sampling_frequency.magnitude)
     fs_reduced = fs
     from_idx, to_idx = _check_time_range(electrode_stream, fs, from_in_s, to_in_s)
-    len_of_spike_df = to_idx - from_idx +1 
-    
+    from_idx_reduced = from_idx
+    to_idx_reduced = to_idx
+
     if to_in_s is None:
         to_idx-=1
 
     if bin_width:
         bin_ranges = [bin_width*i for i in list(range(int(np.ceil((to_idx-from_idx+1)/fs/bin_width))))]
         bins_df["bin_ranges"] = np.array(bin_ranges)+ from_in_s
-
-    if reduce_num and reduce_num > 0:
-        len_of_spike_df /= reduce_num
-        len_of_spike_df = int(len_of_spike_df) +1
 
     for channel_id in channel_ids:
         if len(signal_if_avg)>0:
@@ -513,11 +513,11 @@ def _get_spikes_dataframe_to_extract(electrode_stream, channel_ids, from_in_s, s
             cutouts = _get_signal_cutouts(signal, fs_reduced, spks, pre, post)
 
         if len(spks)<1:
-            spikes_df["spikes"+str(channel_label)] = np.zeros(int(len_of_spike_df))
-            spikes_df["bursts"+str(channel_label)] = np.zeros(int(len_of_spike_df))
-            continue 
+            spikes_df["spikes"+str(channel_label)] = np.zeros(len(spikes_df))
+            spikes_df["bursts"+str(channel_label)] = np.zeros(len(spikes_df))
+            continue
 
-        to_be_spikes = np.zeros(int(len_of_spike_df))
+        to_be_spikes = np.zeros(len(spikes_df))
         if len(cutouts) >=2:
             labels = _get_pca_labels(cutouts, n_components)
             labels = labels + 1
@@ -525,30 +525,34 @@ def _get_spikes_dataframe_to_extract(electrode_stream, channel_ids, from_in_s, s
             labels = np.ones(len(spks))
         to_be_spikes[spks] = labels
         spikes_df["spikes"+str(channel_label)] = to_be_spikes
-        spikes_in_second = spks/fs
+        spikes_in_second = spks/fs_reduced
 
         if bin_width:
-            spike_in_bins = _count_spike_in_bins(spikes_in_second, bin_width)
+            spike_in_bins = _count_spike_in_bins(spikes_in_second, bin_width, from_in_s)
             bins_df["spike_num_"+str(channel_label)] = pd.Series(spike_in_bins)
 
         if (not (None in [max_start, max_end, min_between, min_duration, min_number_spike])):
             bursts_starts, _ = _get_burst(spikes_in_second, max_start, max_end, min_between, min_duration, min_number_spike)
             bursts_starts = (np.array(bursts_starts)*fs).astype(int)
-            to_be_bursts = np.zeros(int(len_of_spike_df))
+            to_be_bursts = np.zeros(len(spikes_df))
             to_be_bursts[bursts_starts] = 1
             spikes_df["bursts"+str(channel_label)] = to_be_bursts
         else:
-            spikes_df["bursts"+str(channel_label)] = np.zeros(int(len_of_spike_df))
-        
+            spikes_df["bursts"+str(channel_label)] = np.zeros(len(spikes_df))
+
+    if reduce_num and reduce_num > 0:
+        from_idx_reduced = from_idx / reduce_num
+        to_idx_reduced = to_idx / reduce_num
+
     if len(stimulus) > 0 :
         stimulus = (np.array(stimulus)*fs).astype(int)
-        stimulus_in_range = stimulus[(stimulus >= from_idx) & (stimulus <= to_idx)]
-        stimulus_in_range-=from_idx
-        to_be_stimulus = np.zeros(int(len_of_spike_df))
+        stimulus_in_range = stimulus[(stimulus >= from_idx_reduced) & (stimulus <= to_idx_reduced)]
+        stimulus_in_range -= int(from_idx_reduced)
+        to_be_stimulus = np.zeros(len(spikes_df))
         to_be_stimulus[stimulus_in_range] = 1
         spikes_df["stimulus"] = to_be_stimulus
     else:
-        spikes_df["stimulus"] = np.zeros(int(len_of_spike_df))
+        spikes_df["stimulus"] = np.zeros(len(spikes_df))
     
     return spikes_df, bins_df
 
@@ -597,6 +601,10 @@ def plot_tab2(electrode_stream, channel_id, from_in_s, to_in_s, high_pass, low_p
     if reduce_num and reduce_num > 0:
         signal_in_uV, fs = _reduce_signal(signal_in_uV, fs, int(reduce_num))
         time_in_sec = np.arange(0, len(signal_in_uV))/fs
+        if from_in_s:
+            time_in_sec += from_in_s
+        from_idx /= reduce_num
+        to_idx /= reduce_num
 
     signal = signal_in_uV/1000000 
     threshold_from, threshold_to = _get_proper_threshold(signal, threshold_from, threshold_to, True)
@@ -632,6 +640,8 @@ def plot_tab3(electrode_stream, channel_id, from_in_s, to_in_s, high_pass, low_p
     if reduce_num and reduce_num > 0:
         signal_in_uV, fs = _reduce_signal(signal_in_uV, fs, int(reduce_num))
         time_in_sec = np.arange(0, len(signal_in_uV))/fs
+        if from_in_s:
+            time_in_sec += from_in_s
 
     signal = signal_in_uV/1000000
     threshold_from, threshold_to = _get_proper_threshold(signal, threshold_from, threshold_to, True)
