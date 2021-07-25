@@ -508,7 +508,7 @@ def _get_spikes_dataframe_to_extract(electrode_stream, channel_ids, from_in_s, s
                 signal_if_avg, fs_reduced = _reduce_signal(signal_if_avg, fs, int(reduce_num))
                 time_in_sec = np.arange(0, len(signal_if_avg))/fs_reduced
             signal_if_avg = _filter_base_freqeuncy(signal_if_avg, fs_reduced, high_pass, low_pass)
-            spikes_df["time"] = time_in_sec
+            spikes_df["time"] = time_in_sec+from_in_s
             spikes_df["signal_avg"] = signal_if_avg  # This part is for average signal, to save the voltage of average signal
             threshold_from, threshold_to = _get_proper_threshold(signal_if_avg, threshold_from, threshold_to, True)
             spks = _get_spike_info(signal_if_avg, fs_reduced, threshold_from, threshold_to, dead_time)
@@ -521,7 +521,7 @@ def _get_spikes_dataframe_to_extract(electrode_stream, channel_ids, from_in_s, s
                 signal, fs_reduced = _reduce_signal(signal, fs, int(reduce_num))
                 time_in_sec = np.arange(0, len(signal))/fs_reduced
             signal = _filter_base_freqeuncy(signal, fs_reduced, high_pass, low_pass)
-            spikes_df["time"] = time_in_sec
+            spikes_df["time"] = time_in_sec+from_in_s
             threshold_from, threshold_to = _get_proper_threshold(signal, threshold_from, threshold_to, True)       
             spks = _get_spike_info(signal, fs_reduced, threshold_from, threshold_to, dead_time)
             spikes_df["signal_"+str(channel_label)] = signal
@@ -545,14 +545,16 @@ def _get_spikes_dataframe_to_extract(electrode_stream, channel_ids, from_in_s, s
         to_be_spikes[spks] = labels
         spikes_df["spikes"+str(channel_label)] = to_be_spikes
         spikes_in_second = spks/fs_reduced
+        spikes_in_second += from_in_s
 
         if bin_width:
             spike_in_bins = _count_spike_in_bins(spikes_in_second, bin_width, from_in_s)
             bins_df["spike_num_"+str(channel_label)] = pd.Series(spike_in_bins)
 
         if (not (None in [max_start, max_end, min_between, min_duration, min_number_spike])):
+            spikes_in_second -= from_in_s
             bursts_starts, _ = _get_burst(spikes_in_second, max_start, max_end, min_between, min_duration, min_number_spike)
-            bursts_starts = (np.array(bursts_starts)*fs).astype(int)
+            bursts_starts = (np.array(bursts_starts)*fs_reduced).astype(int)
             to_be_bursts = np.zeros(len(spikes_df))
             to_be_bursts[bursts_starts] = 1
             spikes_df["bursts"+str(channel_label)] = to_be_bursts
@@ -564,7 +566,7 @@ def _get_spikes_dataframe_to_extract(electrode_stream, channel_ids, from_in_s, s
         to_idx_reduced = to_idx / reduce_num
 
     if len(stimulus) > 0 :
-        stimulus = (np.array(stimulus)*fs).astype(int)
+        stimulus = (np.array(stimulus)*fs_reduced).astype(int)
         stimulus_in_range = stimulus[(stimulus >= from_idx_reduced) & (stimulus <= to_idx_reduced)]
         stimulus_in_range -= int(from_idx_reduced)
         to_be_stimulus = np.zeros(len(spikes_df))
