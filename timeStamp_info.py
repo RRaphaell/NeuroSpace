@@ -208,6 +208,7 @@ def _count_spike_in_bins(spike_in_s, bin_width, from_in_s):
 
     if count_spike != 0:
         spike_len_in_bins.append(count_spike)
+    spike_len_in_bins = list(map(lambda x: int(x/bin_width), spike_len_in_bins))
     return spike_len_in_bins
 
 def _get_channel_ID(electrode_stream, channel_label):
@@ -428,14 +429,13 @@ def _plot_signal_frequencies(signal_in_uV, time_in_sec, canvas, suplot_num):
     canvas.draw()
     gc.collect()
 
-def _plot_bins(channel_id, spikes_in_second, fs, canvas, from_in_s, to_in_s, from_idx, to_idx, bin_width, subplot_num):
+def _plot_bins(channel_id, spikes_in_second, fs, canvas, from_in_s, to_in_s, from_idx, to_idx, bin_width, subplot_num, stimulus, time_in_sec):
     df = pd.DataFrame()
     bin_ranges = [bin_width*i for i in list(range(int(np.ceil((to_idx-from_idx+1)/fs/bin_width))))]
     df["bin_ranges"] = np.array(bin_ranges)+ from_in_s
     spike_in_bins = _count_spike_in_bins(spikes_in_second, bin_width, from_in_s)
     df["spike_num_"] = pd.Series(spike_in_bins)
     x = df.iloc[:,0]
-    y = df.iloc[:,1]
     y = [0 if math.isnan(value) else int(value) for value in df.iloc[:,1]]
 
     axes = canvas.figure.get_axes()
@@ -443,7 +443,14 @@ def _plot_bins(channel_id, spikes_in_second, fs, canvas, from_in_s, to_in_s, fro
     ax.clear()
     pps = ax.bar(x, y, width = bin_width, align='edge', alpha=0.4, facecolor='blue', edgecolor='red', linewidth=2)
     ax.grid(color='#95a5a6', linestyle='--', linewidth=1, axis='y', alpha=0.7)
-    
+
+    for stimul in stimulus:
+        if not to_in_s:
+            to_in_s = time_in_sec[len(time_in_sec)-1]
+
+        if stimul>=from_in_s and stimul<=to_in_s:
+            ax.axvspan(stimul, stimul+5*40/1000000, facecolor='0.2', alpha=0.7, color='lime')
+
     ax.set_ylabel('Bin Frequency')
     ax.set_xlabel('Bin time step (second)')
     canvas.figure.tight_layout()
@@ -624,7 +631,7 @@ def plot_tab2(electrode_stream, channel_id, from_in_s, to_in_s, high_pass, low_p
         _clear_plot(canvas, subplot_num=1)
 
     if check_boxes[2].isChecked() and bin_width:
-        _plot_bins(channel_id, spikes_in_range, fs, canvas, from_in_s, to_in_s, from_idx, to_idx, bin_width, 2)
+        _plot_bins(channel_id, spikes_in_range, fs, canvas, from_in_s, to_in_s, from_idx, to_idx, bin_width, 2, stimulus, time_in_sec)
 
     else:
         _clear_plot(canvas, subplot_num=2)
