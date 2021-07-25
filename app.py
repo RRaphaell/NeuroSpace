@@ -660,6 +660,7 @@ class MEA_app(QtWidgets.QMainWindow):
         min_number_spike = self._check_value(self.tab2_min_number.text(), None)
         bin_width = self._check_value(self.tab2_bin.text(), None)
         reduce_num = self._check_value(self.reduced_by.text(), None)
+        reduce_num = int(float(reduce_num)) if reduce_num else np.nan
         detecting_type = self.algo_speed.currentText()
 
         if "all" in channel_id:
@@ -685,6 +686,7 @@ class MEA_app(QtWidgets.QMainWindow):
 
         if self.check_parameters(from_in_s, to_in_s, high_pass, low_pass):
             return
+        
 
         spike_error, spike_error_msg = plot_tab2(self.file.recordings[0].analog_streams[0], channel_id, from_in_s, to_in_s, high_pass, low_pass, threshold_from, threshold_to, dead_time, self.tab2_plot_check_boxes,
                                             pre, post, self.tab2_canvas, comp_number, spike_number, self.tab3_stimulus, max_start, max_end, min_between, min_duration, min_number_spike, bin_width, reduce_num, detecting_type)
@@ -705,7 +707,8 @@ class MEA_app(QtWidgets.QMainWindow):
         threshold_to = self._check_value(self.threshold_to_tab3.text(), None)
         high_pass = self._check_value(self.filter_high_tab3.text(), None)
         low_pass = self._check_value(self.filter_low_tab3.text(), None)
-        reduce_num = self._check_value(self.reduced_by.text(), None) 
+        reduce_num = self._check_value(self.reduced_by.text(), None)
+        reduce_num = int(float(reduce_num)) if reduce_num else np.nan 
 
         if -1 in (channel_id, pre, post, dead_time, from_in_s, to_in_s, threshold_from, threshold_to, high_pass, low_pass):
             self.error_popup("Please enter correct values", "Value Error")
@@ -737,7 +740,9 @@ class MEA_app(QtWidgets.QMainWindow):
         to_in_s = self.round_to_closest(self._check_value(self.extract_to_tab1.text(),None), 40/1000000)
         high_pass = self._check_value(self.filter_high_tab1.text(), None)
         low_pass = self._check_value(self.filter_low_tab1.text(), None)
-        reduce_num = self._check_value(self.reduced_by.text(), None) 
+        reduce_num = self._check_value(self.reduced_by.text(), None)
+        reduce_num = int(float(reduce_num)) if reduce_num else np.nan
+ 
 
         if -1 in (channel_id, from_in_s, to_in_s, high_pass, low_pass):
             self.error_popup("Please enter correct values", "Value Error")
@@ -774,6 +779,7 @@ class MEA_app(QtWidgets.QMainWindow):
         post = self._check_value(self.extract_post_tab2.text(), -1)
         comp_number = self._check_value(self.component.text(), 1)
         reduce_num = self._check_value(self.reduced_by.text(), None) 
+        reduce_num = int(float(reduce_num)) if reduce_num else np.nan
 
         if ("all" in channel_id) and (len(channel_id)>1):
             self.error_popup("Channel Id must not contain 'all'", "Value Error")
@@ -820,6 +826,7 @@ class MEA_app(QtWidgets.QMainWindow):
         high_pass = self._check_value(self.filter_high_tab3.text(), None)
         low_pass = self._check_value(self.filter_low_tab3.text(), None)
         reduce_num = self._check_value(self.reduced_by.text(), None) 
+        reduce_num = int(float(reduce_num)) if reduce_num else np.nan
 
         if -1 in (channel_id, from_in_s, to_in_s, threshold_from, dead_time, pre, post, high_pass, low_pass):
             self.error_popup("Please enter correct values", "Value Error")
@@ -846,7 +853,10 @@ class MEA_app(QtWidgets.QMainWindow):
 
 
     def update_reduced_by(self, reduced_by):
-        self.tab1_plot_check_boxes[-1] = reduced_by
+        if reduced_by:
+            self.tab1_plot_check_boxes[-1] = int(float(reduced_by))
+        else :
+            self.tab1_plot_check_boxes[-1] = np.nan
 
     def round_to_closest(self, value, time_stamp):
         if value and value>0:
