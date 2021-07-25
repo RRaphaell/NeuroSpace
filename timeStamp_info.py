@@ -495,10 +495,10 @@ def _get_spikes_dataframe_to_extract(electrode_stream, channel_ids, from_in_s, s
         if len(signal_if_avg)>0:
             channel_label = "avg"
             signal_if_avg /= 1000000
-            signal_if_avg = _filter_base_freqeuncy(signal_if_avg, fs, high_pass, low_pass)
             if reduce_num and reduce_num > 0:
                 signal_if_avg, fs_reduced = _reduce_signal(signal_if_avg, fs, int(reduce_num))
                 time_in_sec = np.arange(0, len(signal_if_avg))/fs_reduced
+            signal_if_avg = _filter_base_freqeuncy(signal_if_avg, fs_reduced, high_pass, low_pass)
             spikes_df["time"] = time_in_sec
             spikes_df["signal_avg"] = signal_if_avg  # This part is for average signal, to save the voltage of average signal
             threshold_from, threshold_to = _get_proper_threshold(signal_if_avg, threshold_from, threshold_to, True)
@@ -508,10 +508,10 @@ def _get_spikes_dataframe_to_extract(electrode_stream, channel_ids, from_in_s, s
         else:
             channel_label = electrode_stream.channel_infos.get(channel_id).info['Label']            
             signal = electrode_stream.get_channel_in_range(channel_id, from_idx, to_idx)[0]
-            signal = _filter_base_freqeuncy(signal, fs, high_pass, low_pass)
             if reduce_num and reduce_num > 0:
                 signal, fs_reduced = _reduce_signal(signal, fs, int(reduce_num))
                 time_in_sec = np.arange(0, len(signal))/fs_reduced
+            signal = _filter_base_freqeuncy(signal, fs_reduced, high_pass, low_pass)
             spikes_df["time"] = time_in_sec
             threshold_from, threshold_to = _get_proper_threshold(signal, threshold_from, threshold_to, True)       
             spks = _get_spike_info(signal, fs_reduced, threshold_from, threshold_to, dead_time)
@@ -583,11 +583,12 @@ def _reduce_signal(signal, fs, reduce_num):
 def plot_tab1(electrode_stream, channel_id, from_in_s, to_in_s, canvas, high_pass, low_pass, check_boxes):
     signal_in_uV , channel_id_converted, time_in_sec = _calculate_average_signal(electrode_stream, [channel_id], from_in_s, to_in_s)
     fs = int(electrode_stream.channel_infos[0].sampling_frequency.magnitude)
-    signal_in_uV = _filter_base_freqeuncy(signal_in_uV, fs, high_pass, low_pass)
-    _plot_signal(signal_in_uV, "Original Signal", time_in_sec, canvas, 0)
+    signal_in_uV_filtered = _filter_base_freqeuncy(signal_in_uV, fs, high_pass, low_pass)
+    _plot_signal(signal_in_uV_filtered, "Original Signal", time_in_sec, canvas, 0)
 
     if check_boxes[1] and int(check_boxes[1]) > 0:
         signal_in_uV, fs = _reduce_signal(signal_in_uV, fs, int(check_boxes[1]))
+        signal_in_uV = _filter_base_freqeuncy(signal_in_uV, fs, high_pass, low_pass)
         time_in_sec = np.arange(0, len(signal_in_uV))/fs
         _plot_signal(signal_in_uV, "After Reducing", time_in_sec, canvas, 1)
     else:
@@ -602,7 +603,6 @@ def plot_tab2(electrode_stream, channel_id, from_in_s, to_in_s, high_pass, low_p
     DETECT_CROSSINGS_TYPE = detecting_type
     signal_in_uV , channel_id_converted, time_in_sec = _calculate_average_signal(electrode_stream, channel_id, from_in_s, to_in_s)
     fs = int(electrode_stream.channel_infos[0].sampling_frequency.magnitude)
-    signal_in_uV = _filter_base_freqeuncy(signal_in_uV, fs, high_pass, low_pass)  
     from_idx, to_idx = _check_time_range(electrode_stream, fs, from_in_s, to_in_s) 
 
     if reduce_num and reduce_num > 0:
@@ -612,7 +612,7 @@ def plot_tab2(electrode_stream, channel_id, from_in_s, to_in_s, high_pass, low_p
             time_in_sec += from_in_s
         from_idx /= reduce_num
         to_idx /= reduce_num
-
+    signal_in_uV = _filter_base_freqeuncy(signal_in_uV, fs, high_pass, low_pass)  
     signal = signal_in_uV/1000000 
     threshold_from, threshold_to = _get_proper_threshold(signal, threshold_from, threshold_to, True)
     spks = _get_spike_info(signal, fs, threshold_from, threshold_to, dead_time)
@@ -642,14 +642,13 @@ def plot_tab3(electrode_stream, channel_id, from_in_s, to_in_s, high_pass, low_p
 
     signal_in_uV , channel_id_converted, time_in_sec = _calculate_average_signal(electrode_stream, [channel_id], from_in_s, to_in_s)
     fs = int(electrode_stream.channel_infos[0].sampling_frequency.magnitude)
-    signal_in_uV = _filter_base_freqeuncy(signal_in_uV, fs, high_pass, low_pass)  
     from_idx, to_idx = _check_time_range(electrode_stream, fs, from_in_s, to_in_s)
     if reduce_num and reduce_num > 0:
         signal_in_uV, fs = _reduce_signal(signal_in_uV, fs, int(reduce_num))
         time_in_sec = np.arange(0, len(signal_in_uV))/fs
         if from_in_s:
             time_in_sec += from_in_s
-
+    signal_in_uV = _filter_base_freqeuncy(signal_in_uV, fs, high_pass, low_pass)  
     signal = signal_in_uV/1000000
     threshold_from, threshold_to = _get_proper_threshold(signal, threshold_from, threshold_to, True)
     thresholds = _detect_threshold_crossings_stimulus(signal, fs, threshold_from, dead_time)
@@ -723,9 +722,9 @@ def extract_stimulus(analog_stream, file_save_path, channel_id, from_in_s, to_in
     else:
         channel = _get_channel_ID(analog_stream, channel_id)
         signal = analog_stream.get_channel_in_range(channel, from_idx, to_idx)[0]
-        signal = _filter_base_freqeuncy(signal, fs, high_pass, low_pass)
         if reduce_num and reduce_num > 0:
             signal, fs_reduced = _reduce_signal(signal, fs, int(reduce_num))
+        signal = _filter_base_freqeuncy(signal, fs_reduced, high_pass, low_pass)
         _save_stimulus_with_avg(file_save_path, signal, channel_id, from_in_s, to_in_s, stimulus_threshold, fs_reduced, pre, post, dead_time)
     gc.collect()
 
