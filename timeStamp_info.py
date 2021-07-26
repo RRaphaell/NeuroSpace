@@ -53,12 +53,14 @@ def _get_signal_cutouts(signal, fs, spikes_idx, pre, post):
 def _drop_extra_spike(spks, fs, pre, post, signal_idx):
     first_idx = spks[0]
     last_idx = spks[-1]
-    pre_idx = pre*fs
-    post_idx = post*fs
+    pre_idx = int(pre*fs)
+    post_idx = int(post*fs)
 
-    if first_idx-pre_idx >= 0:  
+    if first_idx-pre_idx < 0 and last_idx+post_idx > signal_idx:
+        spks = spks[1:-1]
+    elif first_idx-pre_idx < 0:  
         spks = spks[1:]
-    elif last_idx+post_idx <= signal_idx:
+    elif last_idx+post_idx > signal_idx:
         spks = spks[:-1]
     return spks
 
@@ -496,9 +498,6 @@ def _get_spikes_dataframe_to_extract(electrode_stream, channel_ids, from_in_s, s
     from_idx_reduced = from_idx
     to_idx_reduced = to_idx
 
-    if to_in_s is None:
-        to_idx-=1
-
     if bin_width:
         bin_ranges = [bin_width*i for i in list(range(int(np.ceil((to_idx-from_idx+1)/fs/bin_width))))]
         bins_df["bin_ranges"] = np.array(bin_ranges)+ from_in_s
@@ -516,6 +515,7 @@ def _get_spikes_dataframe_to_extract(electrode_stream, channel_ids, from_in_s, s
             threshold_from, threshold_to = _get_proper_threshold(signal_if_avg, threshold_from, threshold_to, True)
             spks = _get_spike_info(signal_if_avg, fs_reduced, threshold_from, threshold_to, dead_time)
             spks = np.array(list(filter(lambda x: signal_if_avg[x]>=threshold_to, spks)))
+            spks = _drop_extra_spike(spks, fs_reduced, pre, post, signal_if_avg.shape[0])
             cutouts = _get_signal_cutouts(signal_if_avg, fs_reduced, spks, pre, post)
         else:
             channel_label = electrode_stream.channel_infos.get(channel_id).info['Label']            
@@ -529,6 +529,7 @@ def _get_spikes_dataframe_to_extract(electrode_stream, channel_ids, from_in_s, s
             spks = _get_spike_info(signal, fs_reduced, threshold_from, threshold_to, dead_time)
             spikes_df["signal_"+str(channel_label)] = signal
             spks = np.array(list(filter(lambda x: signal[x]>=threshold_to, spks)))
+            spks = _drop_extra_spike(spks, fs_reduced, pre, post, signal.shape[0])
             cutouts = _get_signal_cutouts(signal, fs_reduced, spks, pre, post)
 
         if len(spks)<1:
@@ -542,9 +543,6 @@ def _get_spikes_dataframe_to_extract(electrode_stream, channel_ids, from_in_s, s
             labels = labels + 1
         else:
             labels = np.ones(len(spks))
-        spks = _drop_extra_spike(spks, fs_reduced, pre, post, to_idx)
-        print(spks[-1],fs,fs_reduced)
-
         to_be_spikes[spks] = labels
         spikes_df["spikes"+str(channel_label)] = to_be_spikes
         spikes_in_second = spks/fs_reduced
