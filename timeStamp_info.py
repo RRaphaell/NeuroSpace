@@ -50,12 +50,15 @@ def _get_signal_cutouts(signal, fs, spikes_idx, pre, post):
             return np.stack(cutouts)
     return cutouts
 
-def _drop_extra_spike(spks, fs, pre, post, signal_time):
-    first_s = spks[0]/fs
-    last_s = spks[-1]/fs
-    if first_s <= pre :
+def _drop_extra_spike(spks, fs, pre, post, signal_idx):
+    first_idx = spks[0]
+    last_idx = spks[-1]
+    pre_idx = pre*fs
+    post_idx = post*fs
+
+    if first_idx-pre_idx >= 0:  
         spks = spks[1:]
-    elif (signal_time-last_s) <= post:
+    elif last_idx+post_idx <= signal_idx:
         spks = spks[:-1]
     return spks
 
@@ -539,8 +542,8 @@ def _get_spikes_dataframe_to_extract(electrode_stream, channel_ids, from_in_s, s
             labels = labels + 1
         else:
             labels = np.ones(len(spks))
-        
-        spks = _drop_extra_spike(spks, fs_reduced, pre, post, to_idx/fs_reduced)
+        spks = _drop_extra_spike(spks, fs_reduced, pre, post, to_idx)
+        print(spks[-1],fs,fs_reduced)
 
         to_be_spikes[spks] = labels
         spikes_df["spikes"+str(channel_label)] = to_be_spikes
@@ -630,7 +633,7 @@ def plot_tab2(electrode_stream, channel_id, from_in_s, to_in_s, high_pass, low_p
     signal = signal_in_uV/1000000 
     threshold_from, threshold_to = _get_proper_threshold(signal, threshold_from, threshold_to, True)
     spks = _get_spike_info(signal, fs, threshold_from, threshold_to, dead_time)
-    spks = _drop_extra_spike(spks, fs, pre, post, to_idx/fs)
+    spks = _drop_extra_spike(spks, fs, pre, post, to_idx)
     spks = np.array(list(filter(lambda x: signal[x]>=threshold_to, spks))) 
 
     if check_boxes[0].isChecked():
