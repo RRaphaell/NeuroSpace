@@ -16,6 +16,10 @@ from scipy.signal import butter, sosfilt
 
 # helper functions
 DETECT_CROSSINGS_TYPE = "Slow"
+def myround(x, base):
+    x = x-base/2
+    return base * round(x/base)
+
 def _check_time_range(analog_stream, sampling_frequency, from_in_s, to_in_s):
     signal_shape = analog_stream.channel_data.shape[1]
 
@@ -51,6 +55,9 @@ def _get_signal_cutouts(signal, fs, spikes_idx, pre, post):
     return cutouts
 
 def _drop_extra_spike(spks, fs, pre, post, signal_idx):
+    if not len(spks):
+        return []
+
     first_idx = spks[0]
     last_idx = spks[-1]
     pre_idx = int(pre*fs)
@@ -500,7 +507,7 @@ def _get_spikes_dataframe_to_extract(electrode_stream, channel_ids, from_in_s, s
 
     if bin_width:
         bin_ranges = [bin_width*i for i in list(range(int(np.ceil((to_idx-from_idx+1)/fs/bin_width))))]
-        bins_df["bin_ranges"] = np.array(bin_ranges)+ from_in_s
+        bins_df["bin_ranges"] = np.array(bin_ranges) + from_in_s
 
     for channel_id in channel_ids:
         if len(signal_if_avg)>0:
@@ -509,6 +516,7 @@ def _get_spikes_dataframe_to_extract(electrode_stream, channel_ids, from_in_s, s
             if reduce_num and reduce_num > 0:
                 signal_if_avg, fs_reduced = _reduce_signal(signal_if_avg, fs, int(reduce_num))
                 time_in_sec = np.arange(0, len(signal_if_avg))/fs_reduced
+                time_in_sec += from_in_s
             signal_if_avg = _filter_base_freqeuncy(signal_if_avg, fs_reduced, high_pass, low_pass)
             spikes_df["time"] = time_in_sec+from_in_s
             spikes_df["signal_avg"] = signal_if_avg  # This part is for average signal, to save the voltage of average signal
@@ -523,8 +531,9 @@ def _get_spikes_dataframe_to_extract(electrode_stream, channel_ids, from_in_s, s
             if reduce_num and reduce_num > 0:
                 signal, fs_reduced = _reduce_signal(signal, fs, int(reduce_num))
                 time_in_sec = np.arange(0, len(signal))/fs_reduced
+                time_in_sec += from_in_s
             signal = _filter_base_freqeuncy(signal, fs_reduced, high_pass, low_pass)
-            spikes_df["time"] = time_in_sec+from_in_s
+            spikes_df["time"] = time_in_sec
             threshold_from, threshold_to = _get_proper_threshold(signal, threshold_from, threshold_to, True)       
             spks = _get_spike_info(signal, fs_reduced, threshold_from, threshold_to, dead_time)
             spikes_df["signal_"+str(channel_label)] = signal
@@ -550,7 +559,15 @@ def _get_spikes_dataframe_to_extract(electrode_stream, channel_ids, from_in_s, s
 
         if bin_width:
             spike_in_bins = _count_spike_in_bins(spikes_in_second, bin_width, from_in_s)
-            bins_df["spike_num_"+str(channel_label)] = pd.Series(spike_in_bins)
+            bins_df["spike_frequency_"+str(channel_label)] = pd.Series(spike_in_bins)
+
+            stimulus_bin = (np.array(stimulus) * fs_reduced).astype(int)
+            stimulus_in_range_bin = stimulus[(stimulus_bin >= from_idx_reduced) & (stimulus_bin <= to_idx_reduced)]
+            stimulus_in_range_bin_round = list(map(lambda x: myround(x, bin_width), stimulus_in_range_bin))
+            bins_df["stimulus"] = bins_df["bin_ranges"].apply(lambda x: int(x in stimulus_in_range_bin_round))
+
+
+
 
         if (not (None in [max_start, max_end, min_between, min_duration, min_number_spike])):
             spikes_in_second -= from_in_s
@@ -566,7 +583,7 @@ def _get_spikes_dataframe_to_extract(electrode_stream, channel_ids, from_in_s, s
         from_idx_reduced = from_idx / reduce_num
         to_idx_reduced = to_idx / reduce_num
 
-    if len(stimulus) > 0 :
+    if len(stimulus) > 0:
         stimulus = (np.array(stimulus)*fs_reduced).astype(int)
         stimulus_in_range = stimulus[(stimulus >= from_idx_reduced) & (stimulus <= to_idx_reduced)]
         stimulus_in_range -= int(from_idx_reduced)
@@ -750,7 +767,7 @@ def extract_spike(file_path, analog_stream, file_save_path, channel_id, from_in_
     if len(channel_id) == 1 :
         if channel_id[0] == "all":
             channel_ids = [key for key, value in analog_stream.channel_infos.items()]
-            spikes_df,bins_df = _get_spikes_dataframe_to_extract(analog_stream, channel_ids, from_in_s, [], to_in_s, threshold_from, threshold_to, high_pass, low_pass, dead_time,
+            spikes_df, bins_df = _get_spikes_dataframe_to_extract(analog_stream, channel_ids, from_in_s, [], to_in_s, threshold_from, threshold_to, high_pass, low_pass, dead_time,
                                                                     bin_width, max_start, max_end, min_between, min_duration, min_number_spike, stimulus, pre, post, n_cpmponents, reduce_num)
         else:
             channel_id_converted = [_get_channel_ID(analog_stream, int(channel_id[0]))]
@@ -763,13 +780,13 @@ def extract_spike(file_path, analog_stream, file_save_path, channel_id, from_in_
                                                                     bin_width, max_start, max_end, min_between, min_duration, min_number_spike, stimulus, pre, post, n_cpmponents, reduce_num)
     
     # save part of DataFrames
-    if spikes_df.size > 0 :
+    if spikes_df.size > 0:
         spikes_df["channel"] = "-".join([str(value) for value in channel_id])
         spikes_df["stimulus_type"] = file_save_path.split("_")[-1]
         spikes_df["file_name"] = os.path.basename(file_path).split(".")[0]
-        spikes_df.to_csv(file_save_path+"_spikes.csv", index = False)
-    if bins_df.size > 0 :
-        bins_df.to_csv(file_save_path+"_bins.csv", index = False)
+        spikes_df.to_csv(file_save_path+"_spikes.csv", index=False)
+    if bins_df.size > 0:
+        bins_df.to_csv(file_save_path+"_bins.csv", index=False)
 
     gc.collect()
 
