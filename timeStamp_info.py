@@ -16,9 +16,6 @@ from scipy.signal import butter, sosfilt
 
 # helper functions
 DETECT_CROSSINGS_TYPE = "Slow"
-def myround(x, base):
-    x = x-base/2
-    return base * round(x/base)
 
 def _check_time_range(analog_stream, sampling_frequency, from_in_s, to_in_s):
     signal_shape = analog_stream.channel_data.shape[1]
@@ -211,24 +208,13 @@ def _detect_threshold_crossings_stimulus(signal, fs, threshold, dead_time):
         threshold_crossings = np.insert(threshold_crossings,len(threshold_crossings),last_stimulus_index)
     return threshold_crossings
 
-def _count_spike_in_bins(spike_in_s, bin_width, from_in_s):
-    temp_bin = bin_width
+def _count_spike_in_bins(spike_in_s, bin_width, from_in_s, bins):
     spike_len_in_bins = []
     if not from_in_s:
         from_in_s = 0
-    spike_idx = 0
-    count_spike = 0
-    while spike_idx < len(spike_in_s):
-        if (spike_in_s[spike_idx]-from_in_s) < temp_bin:
-            count_spike += 1
-            spike_idx += 1
-        else:
-            spike_len_in_bins.append(count_spike)
-            count_spike = 0
-            temp_bin += bin_width
+    for bin in bins:
+        spike_len_in_bins.append(len(spike_in_s[(spike_in_s>bin) & (spike_in_s<bin+bin_width)]))
 
-    if count_spike != 0:
-        spike_len_in_bins.append(count_spike)
     spike_len_in_bins = list(map(lambda x: int(x/bin_width), spike_len_in_bins))
     return spike_len_in_bins
 
@@ -454,7 +440,7 @@ def _plot_bins(channel_id, spikes_in_second, fs, canvas, from_in_s, to_in_s, fro
     df = pd.DataFrame()
     bin_ranges = [bin_width*i for i in list(range(int(np.ceil((to_idx-from_idx+1)/fs/bin_width))))]
     df["bin_ranges"] = np.array(bin_ranges)+ from_in_s
-    spike_in_bins = _count_spike_in_bins(spikes_in_second, bin_width, from_in_s)
+    spike_in_bins = _count_spike_in_bins(spikes_in_second, bin_width, from_in_s, df["bin_ranges"])
     df["spike_num_"] = pd.Series(spike_in_bins)
     x = df.iloc[:,0]
     y = [0 if math.isnan(value) else int(value) for value in df.iloc[:,1]]
@@ -558,16 +544,14 @@ def _get_spikes_dataframe_to_extract(electrode_stream, channel_ids, from_in_s, s
         spikes_in_second += from_in_s
 
         if bin_width:
-            spike_in_bins = _count_spike_in_bins(spikes_in_second, bin_width, from_in_s)
+            spike_in_bins = _count_spike_in_bins(spikes_in_second, bin_width, from_in_s, bins_df["bin_ranges"])
             bins_df["spike_frequency_"+str(channel_label)] = pd.Series(spike_in_bins)
-
-            stimulus_bin = (np.array(stimulus) * fs_reduced).astype(int)
-            stimulus_in_range_bin = stimulus[(stimulus_bin >= from_idx_reduced) & (stimulus_bin <= to_idx_reduced)]
-            stimulus_in_range_bin_round = list(map(lambda x: myround(x, bin_width), stimulus_in_range_bin))
-            bins_df["stimulus"] = bins_df["bin_ranges"].apply(lambda x: int(x in stimulus_in_range_bin_round))
-
-
-
+            if len(stimulus):
+                stimulus_bin = (np.array(stimulus) * fs_reduced).astype(int)
+                stimulus_in_range_bin = stimulus[(stimulus_bin >= from_idx_reduced) & (stimulus_bin <= to_idx_reduced)]
+                stimulus_idxs = list(map(lambda x: (np.absolute(bins_df["bin_ranges"].values - x)).argmin(), stimulus_in_range_bin))
+                bins_df["stimulus"] = np.zeros(len(bins_df["bin_ranges"]))
+                bins_df["stimulus"].values[stimulus_idxs] = 1
 
         if (not (None in [max_start, max_end, min_between, min_duration, min_number_spike])):
             spikes_in_second -= from_in_s

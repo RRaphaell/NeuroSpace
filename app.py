@@ -893,31 +893,6 @@ class MEA_app(QtWidgets.QMainWindow):
                 _file = 0
             return _file
 
-    # def combine_spikes(self, num_col=8):
-    #     dir_name = QtWidgets.QFileDialog.getExistingDirectory(self, "Select Directory")
-    #
-    #     if dir_name:
-    #         if os.path.exists(os.path.join(dir_name, "combined.csv")):
-    #             os.remove(os.path.join(dir_name, "combined.csv"))
-    #         files = os.listdir(dir_name)
-    #         if not len(files):
-    #             return
-    #
-    #         combined = None
-    #         combined_columns = ["time", "signal", "spike", "burst", "stimulus", "channel", "stimulus_type", "file_name"]
-    #         for file in files:
-    #             temp_df = pd.read_csv(os.path.join(dir_name, file))
-    #             if len(temp_df.columns) != num_col:
-    #                 self.info_popup(f"some files columns quantity did not match so we combined only last {num_col} columns", "Columns length")
-    #             temp_df = temp_df[temp_df.columns[-num_col:]]
-    #             if combined is None:
-    #                 combined = temp_df
-    #             else:
-    #                 combined = pd.DataFrame(np.concatenate([combined.values, temp_df.values]), columns=combined_columns)
-    #
-    #         combined.to_csv(os.path.join(dir_name, "combined.csv"), index = False)
-    #         self.info_popup("Data Created Succesfully", "Data saved")
-
     def combine_spikes(self):
         dir_name = QtWidgets.QFileDialog.getExistingDirectory(self, "Select Directory")
 
