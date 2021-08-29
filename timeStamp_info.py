@@ -371,9 +371,8 @@ def _plot_signal_with_spikes_or_stimulus(signal_in_uV, time_in_sec, channel_id, 
     else:    
         spikes_voltage = signal[spks]*1000000
 
-    spikes_in_range = spks / fs
-    spikes_in_range = np.array(spikes_in_range)
-    spikes_in_range += from_in_s
+    indices_colors_for_bursts = []
+    spikes_in_range = np.array(spks / fs) + from_in_s
     axes = canvas.figure.get_axes()
     ax = axes[suplot_num]
     ax.clear()
@@ -384,7 +383,9 @@ def _plot_signal_with_spikes_or_stimulus(signal_in_uV, time_in_sec, channel_id, 
             unique = np.unique(np.array(labels))
             for i in unique:
                 indices = [j for j, x in enumerate(labels) if x == i]
-                ax.plot(spikes_in_range[indices], spikes_voltage[indices], 'ro', ms=2 , zorder=1, color=plt.rcParams['axes.prop_cycle'].by_key()['color'][i])
+                ax.plot(spikes_in_range[indices], spikes_voltage[indices], 'ro', ms=2, zorder=1, color=plt.rcParams['axes.prop_cycle'].by_key()['color'][i])
+                indices_colors_for_bursts.append((indices, plt.rcParams['axes.prop_cycle'].by_key()['color'][i]))
+
         burst_legend = Line2D([], [], color='darkorange', marker='|', linestyle='None', markersize=10, markeredgewidth=2.5, label='Burst')
         stimulus_legend = Line2D([], [], color='lime', marker='|', linestyle='None', markersize=10, markeredgewidth=2.5, label='Stimulus')
         spike_legend = Line2D([], [], color='red', marker='o', linestyle='None', markersize=5, markeredgewidth=1, label='Spike')
@@ -399,19 +400,21 @@ def _plot_signal_with_spikes_or_stimulus(signal_in_uV, time_in_sec, channel_id, 
             to_in_s = time_in_sec[len(time_in_sec)-1]
 
         if stimul>=from_in_s and stimul<=to_in_s:
-            ax.axvspan(stimul, stimul+5*40/1000000, facecolor='0.2', alpha=0.7, color='lime')
+            for st in stimulus:
+                ax.annotate('-------', (st, 0), xycoords=("data", "axes fraction"), rotation=90, va='top',
+                        arrowprops={'width': 2, 'headwidth': 4, 'linestyle': '--'}, color="red")
+            # ax.axvspan(stimul, stimul+5*40/1000000, facecolor='0.2', alpha=0.7, color='lime')
 
     if (not (None in [max_start, max_end, min_between, min_duration, min_number_spike])):
-        spikes_in_second = spks/fs
 
-        bursts_starts, bursts_ends = _get_burst(spikes_in_second, max_start, max_end, min_between, min_duration, min_number_spike)
-        bursts_df = pd.DataFrame({"burst_start":bursts_starts, "burst_end":bursts_ends})
-        bursts_df += from_in_s
-
-        for idx in range(bursts_df.shape[0]):
-            temp_burst_start = bursts_df.iloc[idx].burst_start
-            temp_burst_end = bursts_df.iloc[idx].burst_end
-            ax.axvspan(temp_burst_start, temp_burst_end, facecolor='0.2', alpha=0.7, color='darkorange')
+        for indices, color in indices_colors_for_bursts:
+            spikes_in_second = spikes_in_range[indices]
+            bursts_starts, bursts_ends = _get_burst(spikes_in_second, max_start, max_end, min_between, min_duration, min_number_spike)
+            bursts_df = pd.DataFrame({"burst_start":bursts_starts, "burst_end":bursts_ends})
+            for idx in range(bursts_df.shape[0]):
+                temp_burst_start = bursts_df.iloc[idx].burst_start
+                temp_burst_end = bursts_df.iloc[idx].burst_end
+                ax.axvspan(temp_burst_start, temp_burst_end, facecolor='0.2', alpha=0.7, color=color)
     
     ax.set_xlabel('Time (%s)' % ureg.s)
     ax.set_ylabel('Voltage (%s)' % ureg.uV)

@@ -106,7 +106,7 @@ class MEA_app(QtWidgets.QMainWindow):
         height = screen_rect.height()
         width = screen_rect.width()
         self.setGeometry(0, 30, width, height-30)
-        self.setWindowTitle("MEA System Analyzer")
+        self.setWindowTitle("NeuroSpace")
         self.setCentralWidget(self.tabs)
         self.showMaximized()
 
