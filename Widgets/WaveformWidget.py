@@ -1,9 +1,10 @@
 from PyQt5 import QtWidgets, QtGui
 from Widgets.utils import merge_widgets, line_edit_with_label, move_center
+import dictionary
 
+CHOSEN_LANG = "EN"
 
 class WaveformWidget(QtWidgets.QMainWindow):
-
     def __init__(self, from_s="", to_s="", high_pass="", low_pass=""):
         super().__init__()
 
@@ -11,19 +12,16 @@ class WaveformWidget(QtWidgets.QMainWindow):
         self._to_s = None
         self._high_pass = None
         self._low_pass = None
-
-        self.setWindowTitle("Waveform")
+        self.setWindowTitle(dictionary.WAVEFORM[CHOSEN_LANG])
         self.move(move_center(self.frameGeometry()).topLeft())
         self.setFixedSize(800, 400)
 
         layout = QtWidgets.QGridLayout()
 
         waveform_text = QtWidgets.QLabel()
-        waveform_text.setText("აქ შეგიძლიატ ააგოთ სიგნალი და დააკვირდეთ მას "
-                              "აქ შეგიძლიატ ააგოთ სიგნალი და დააკვირდეთ მას"
-                              "აქ შეგიძლიატ ააგოთ სიგნალი და დააკვირდეთ მას")
+        waveform_text.setText(dictionary.WAVEFORM_TAB_TEXT[CHOSEN_LANG])
         temp = QtWidgets.QPushButton()
-        temp.setText("TEMP BUTTON")
+        temp.setText(dictionary.BUTTON[CHOSEN_LANG])
 
         time_range_widget = self._create_time_range_widgets(from_s, to_s)
         filter_widget = self._create_filter_widgets(high_pass, low_pass)
@@ -40,28 +38,46 @@ class WaveformWidget(QtWidgets.QMainWindow):
         self.setCentralWidget(widget)
 
     def _create_time_range_widgets(self, from_s, to_s):
-        self._from_s, from_s_label = line_edit_with_label("From", "Choose time range", from_s)
-        self._to_s, to_s_label = line_edit_with_label("To", "Choose time range", to_s)
+        self._from_s, from_s_label = line_edit_with_label(
+            dictionary.FROM[CHOSEN_LANG], dictionary.CHOOSE[CHOSEN_LANG] +
+            dictionary.TIME_RANGE[CHOSEN_LANG], from_s)
+        self._to_s, to_s_label = line_edit_with_label(
+            dictionary.TO[CHOSEN_LANG], dictionary.CHOOSE[CHOSEN_LANG] +
+            dictionary.TIME_RANGE[CHOSEN_LANG], to_s)
 
-        time_range_widget = merge_widgets(from_s_label, self._from_s, to_s_label, self._to_s, vertical=False)
+        time_range_widget = merge_widgets(from_s_label,
+                                          self._from_s,
+                                          to_s_label,
+                                          self._to_s,
+                                          vertical=False)
         return time_range_widget
 
     def _create_filter_widgets(self, high_pass, low_pass):
-        self._high_pass, high_pass_label = line_edit_with_label("High pass", "Choose high pass filter", high_pass)
-        self._low_pass, low_pass_label = line_edit_with_label("Low pass", "choose low_pass filter", low_pass)
+        self._high_pass, high_pass_label = line_edit_with_label(
+            dictionary.HIGH_PASS[CHOSEN_LANG], dictionary.CHOOSE[CHOSEN_LANG] +
+            dictionary.HIGH_PASS[CHOSEN_LANG] + dictionary.FILTER[CHOSEN_LANG],
+            high_pass)
+        self._low_pass, low_pass_label = line_edit_with_label(
+            dictionary.LOW_PASS[CHOSEN_LANG], dictionary.CHOOSE[CHOSEN_LANG] +
+            dictionary.LOW_PASS[CHOSEN_LANG] + dictionary.FILTER[CHOSEN_LANG],
+            low_pass)
 
-        filter_widget = merge_widgets(high_pass_label, self._high_pass, low_pass_label, self._low_pass, vertical=False)
+        filter_widget = merge_widgets(high_pass_label,
+                                      self._high_pass,
+                                      low_pass_label,
+                                      self._low_pass,
+                                      vertical=False)
         return filter_widget
 
     def _create_plot_extract_buttons(self):
         self._plot = QtWidgets.QPushButton()
-        self._plot.setText("Plot Waveform")
+        self._plot.setText(dictionary.PLOT[CHOSEN_LANG] +
+                           dictionary.WAVEFORM[CHOSEN_LANG])
 
         self._extract = QtWidgets.QPushButton()
-        self._extract.setText("Extract")
+        self._extract.setText(dictionary.EXTRACT[CHOSEN_LANG])
 
-        buttons_widget = merge_widgets(self._plot, self._extract, vertical=False)
+        buttons_widget = merge_widgets(self._plot,
+                                       self._extract,
+                                       vertical=False)
         return buttons_widget
-
-
-
