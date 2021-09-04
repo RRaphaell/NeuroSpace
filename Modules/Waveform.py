@@ -1,4 +1,4 @@
-from Modules.utils import filter_base_frequency, plot_signal, get_signal_time
+from Modules.utils import extract_signal, filter_base_frequency, plot_signal, get_signal_and_time
 
 
 class Waveform:
@@ -10,7 +10,7 @@ class Waveform:
         self._signal_time = electrode_stream.channel_data.shape[1] / self.fs
         self.from_s = from_s
         self.to_s = to_s
-        self._signal, self._signal_time_range = get_signal_time(self._electrode_stream, self._channels, self.fs, self.from_s, self.to_s)
+        self._signal, self._signal_time_range = self.get_signal()
         self.high_pass = high_pass
         self.low_pass = low_pass
         self._canvas = canvas
@@ -114,6 +114,9 @@ class Waveform:
             return True
         except ValueError:
             return None
+    
+    def get_signal(self):
+        return get_signal_and_time(self._electrode_stream, self._channels, self.fs, self._from_idx, self._to_idx)
 
     def get_filtered_signal(self):
         filtered_signal = filter_base_frequency(self.signal, self.fs, self.high_pass, self.low_pass)
@@ -122,3 +125,7 @@ class Waveform:
     def plot_waveform(self):
         filtered_signal = self.get_filtered_signal()
         plot_signal(filtered_signal, "Waveform", self._signal_time_range, self._canvas)
+    
+    def extract_signal(self, file_save_path):
+        signal, time = self.get_signal()
+        extract_signal(signal,time,file_save_path)

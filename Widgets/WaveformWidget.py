@@ -77,7 +77,7 @@ class WaveformWidget(QtWidgets.QMainWindow):
         self._extract.setText("Extract")
         self._extract.setMinimumHeight(40)
         self._extract.setStyleSheet("border: 1px solid black;border-radius: 10px;")
-
+        self._extract.clicked.connect(self._extract_clicked)
         buttons_widget = merge_widgets(self._plot_btn, QtWidgets.QSpacerItem(60, 20, QtWidgets.QSizePolicy.Expanding),
                                        self._extract, vertical=False, stretches=[2, 1, 1])
         return buttons_widget
@@ -103,6 +103,15 @@ class WaveformWidget(QtWidgets.QMainWindow):
             self._mdi.addSubWindow(plot_window)
             self._plot_widg.show()
             self._plot_clicked()
+
+    def _extract_clicked(self):
+        name, _ = QtWidgets.QFileDialog.getSaveFileName(self,'Save File', options=QtWidgets.QFileDialog.DontUseNativeDialog)
+        if name:
+            self._waveform = Waveform(self._file.recordings[0].analog_streams[0],
+                                        self._channel_widget.marked_channels, self._canvas,
+                                        self._from_s.text(), self._to_s.text(),
+                                        self._high_pass.text(), self._low_pass.text())
+            self._waveform.extract_signal(file_save_path=name)
 
     def _create_plot_window(self, subplot_num):
         plot_widget = QtWidgets.QWidget()
