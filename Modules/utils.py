@@ -1,5 +1,32 @@
 from scipy.signal import butter, sosfilt
-from McsPy import ureg
+from McsPy import ureg, Q_
+from functools import reduce
+import numpy as np
+
+
+def check_time_range(electrode_stream, sampling_frequency, from_in_s, to_in_s):
+    signal_shape = electrode_stream.channel_data.shape[1]
+
+    from_idx = max(0, int(from_in_s * sampling_frequency))
+    from_idx = min(signal_shape, from_idx)
+    if to_in_s is None:
+        to_idx = signal_shape
+    else:
+        to_idx = min(signal_shape, int(to_in_s * sampling_frequency))
+        to_idx = max(0, to_idx)
+    if from_idx == to_idx:
+        from_idx -= 1
+    return from_idx, to_idx
+
+
+def get_signal_time(electrode_stream, channels, sampling_frequency, from_in_s, to_in_s):
+    from_idx, to_idx = check_time_range(electrode_stream, sampling_frequency, from_in_s, to_in_s)
+    time = electrode_stream.get_channel_sample_timestamps(channels[0], from_idx, to_idx)
+    signal_summed = reduce(lambda a, b: a+b, map(lambda ch: np.array(electrode_stream.get_channel_in_range(ch, from_idx, to_idx)), channels))
+    signal_avg = signal_summed / len(channels)
+    scale_factor_for_second = Q_(1, time[1]).to(ureg.s).magnitude
+    time_in_sec = time[0] * scale_factor_for_second
+    return signal_avg[0], time_in_sec
 
 
 def filter_base_frequency(signal, fs, high_pass, low_pass):

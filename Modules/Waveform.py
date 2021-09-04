@@ -1,15 +1,16 @@
-from Modules.utils import filter_base_frequency, plot_signal
-from Modules.scripts import get_signal_time
+from Modules.utils import filter_base_frequency, plot_signal, get_signal_time
 
 
 class Waveform:
 
-    def __init__(self, electrode_stream, fs, ch, canvas, high_pass=None, low_pass=None, from_s=None, to_s=None):
+    def __init__(self, electrode_stream, channels, canvas, from_s="", to_s="", high_pass="", low_pass=""):
         self._electrode_stream = electrode_stream
+        self._channels = list(map(int, channels))
         self._fs = int(self._electrode_stream.channel_infos[0].sampling_frequency.magnitude)
-        self.from_s = 0 if from_s is None else from_s
-        self._signal, self._signal_time = get_signal_time(self._electrode_stream, ch, self.from_s, to_s)
-        self.to_s = len(self.signal) / fs if to_s is None else to_s
+        self._signal_time = electrode_stream.channel_data.shape[1] / self.fs
+        self.from_s = from_s
+        self.to_s = to_s
+        self._signal, self._signal_time_range = get_signal_time(self._electrode_stream, self._channels, self.fs, self.from_s, self.to_s)
         self.high_pass = high_pass
         self.low_pass = low_pass
         self._canvas = canvas
@@ -28,8 +29,13 @@ class Waveform:
 
     @from_s.setter
     def from_s(self, from_s):
-        if not (Waveform.is_number(self.from_s) and self.from_s > 0):
-            raise ValueError('"From" should ne positive')
+        from_s = 0 if from_s == "" else from_s
+        if not Waveform.is_number(from_s):
+            raise ValueError ('"From" should be number')
+        from_s = float(from_s)
+
+        if not ((from_s >= 0) and (from_s < self._signal_time)):
+            raise ValueError('"From" should be positive')
         self._from_s = from_s
         self._from_idx = int(self.from_s * self.fs)
 
@@ -39,8 +45,17 @@ class Waveform:
 
     @to_s.setter
     def to_s(self, to_s):
-        if not (Waveform.is_number(self.to_s) and self.to_s > 0):
+        to_s = self._signal_time if to_s == "" else to_s
+        if not Waveform.is_number(to_s):
+            raise ValueError('"To" should be number')
+        to_s = float(to_s)
+
+        if not ((to_s > 0) and (to_s <= self._signal_time)):
             raise ValueError('"To" should be positive')
+
+        if to_s <= self.from_s:
+            raise ValueError('"To" should be greater than "from"')
+
         self._to_s = to_s
         self._to_idx = int(self.to_s * self.fs)
 
@@ -50,9 +65,14 @@ class Waveform:
 
     @high_pass.setter
     def high_pass(self, high_pass):
-        if not (self.high_pass is None or Waveform.is_number(self.high_pass)):
-            raise ValueError('"high_pass" should be integer')
-        self._high_pass = high_pass
+        if high_pass == "":
+            self._high_pass = None
+        elif not Waveform.is_number(high_pass):
+            raise ValueError('"High pass" should be number')
+        elif int(high_pass) < 0:
+            raise ValueError('"High pass" should be positive')
+        else:
+            self._high_pass = int(high_pass)
 
     @property
     def low_pass(self):
@@ -60,9 +80,16 @@ class Waveform:
 
     @low_pass.setter
     def low_pass(self, low_pass):
-        if not (self.low_pass is None or Waveform.is_number(self.low_pass)):
-            raise ValueError('"low_pass" should be integer')
-        self._low_pass = low_pass
+        if low_pass == "":
+            self._low_pass = None
+        elif not Waveform.is_number(low_pass):
+            raise ValueError('"Low pass" should be number')
+        elif int(low_pass) < 0:
+            raise ValueError('"Low pass" should be positive')
+        elif int(low_pass) < self.high_pass:
+            raise ValueError('"Low pass" should be greater than High pass')
+        else:
+            self._low_pass = int(low_pass)
 
     @property
     def _from_idx(self):
@@ -84,13 +111,14 @@ class Waveform:
     def is_number(x):
         try:
             float(x)
+            return True
         except ValueError:
             return None
 
-    def get_processed_signal(self, from_idx, to_idx):
+    def get_filtered_signal(self):
         filtered_signal = filter_base_frequency(self.signal, self.fs, self.high_pass, self.low_pass)
-        return filtered_signal[from_idx, to_idx]
+        return filtered_signal
 
     def plot_waveform(self):
-        filtered_signal = self.get_processed_signal()
-        plot_signal(filtered_signal, "Waveform", self._signal_time, self._canvas)
+        filtered_signal = self.get_filtered_signal()
+        plot_signal(filtered_signal, "Waveform", self._signal_time_range, self._canvas)
