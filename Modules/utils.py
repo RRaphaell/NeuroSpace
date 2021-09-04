@@ -4,12 +4,20 @@ import numpy as np
 import pandas as pd
 
 
+def get_channel_id(electrode_stream, channel_label):
+    channel_info = electrode_stream.channel_infos
+    my_dict = {}
+    for ch in channel_info:
+        my_dict[int(channel_info.get(ch).info['Label'])] = int(ch)
+    return my_dict.get(channel_label)
+
+
 def get_signal_and_time(electrode_stream, channels, fs, from_idx, to_idx):
-    signal_summed = reduce(lambda a, b: a+b, map(lambda ch: np.array(electrode_stream.get_channel_in_range(ch, from_idx, to_idx)), channels))
+    channels = list(map(lambda ch: get_channel_id(electrode_stream, ch), channels))
+    signal_summed = reduce(lambda a, b: a+b, map(lambda ch: np.array(electrode_stream.get_channel_in_range(ch, from_idx, to_idx)[0]), channels))
     signal_avg = signal_summed / len(channels)
     time_in_sec = np.array(range(from_idx,to_idx+1))/fs
-    return signal_avg[0], time_in_sec
-
+    return signal_avg, time_in_sec
 
 
 def filter_base_frequency(signal, fs, high_pass, low_pass):
@@ -30,19 +38,17 @@ def filter_base_frequency(signal, fs, high_pass, low_pass):
     return filtered
 
 
-def plot_signal(signal, title, time_in_sec, canvas):
+def plot_signal(signal, time_in_sec, canvas, ax_idx, x_label, y_label):
 
     axes = canvas.figure.get_axes()
-    ax = axes[0]
+    ax = axes[ax_idx]
     ax.clear()
     signal_in_uv = signal*1000000
     ax.plot(time_in_sec, signal_in_uv, linewidth=0.5)
 
-    ax.set_xlabel('Time in s')
-    ax.set_ylabel('Voltage in uV')
-    ax.set_title(title)
+    canvas.figure.text(0.5, 0.01, x_label, ha='center')
+    canvas.figure.text(0.01, 0.5, y_label, va='center', rotation='vertical')
 
-    canvas.figure.tight_layout()
     canvas.draw()
 
 def extract_signal(signal, time, file_save_path):

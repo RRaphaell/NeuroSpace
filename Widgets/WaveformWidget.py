@@ -1,5 +1,5 @@
 from PyQt5 import QtWidgets, QtCore
-from Widgets.utils import merge_widgets, line_edit_with_label, move_center, create_widget_description
+from Widgets.utils import merge_widgets, line_edit_with_label, move_center, create_widget_description, calculate_row_col_adjustment
 from Widgets.ChannelIdsWidget import ChannelIdsWidget
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
@@ -84,18 +84,31 @@ class WaveformWidget(QtWidgets.QMainWindow):
 
     def _plot_clicked(self):
         if self._plot_widg:
-            self._waveform = Waveform(self._file.recordings[0].analog_streams[0],
-                                      self._channel_widget.marked_channels, self._canvas,
-                                      self._from_s.text(), self._to_s.text(),
-                                      self._high_pass.text(), self._low_pass.text())
-            self._waveform.plot_waveform()
+            marked_channels = self._channel_widget.marked_channels
+            if len(marked_channels) == 0:
+                raise ValueError("At least one channel should be marked")
+            if self._channel_widget.is_avg:
+                self._waveform = Waveform(self._file.recordings[0].analog_streams[0],
+                                          marked_channels, self._canvas,
+                                          self._from_s.text(), self._to_s.text(),
+                                          self._high_pass.text(), self._low_pass.text())
+                self._waveform.plot_waveform(0)
+            else:
+                for i, ch in enumerate(marked_channels):
+                    self._waveform = Waveform(self._file.recordings[0].analog_streams[0],
+                                              [ch], self._canvas,
+                                              self._from_s.text(), self._to_s.text(),
+                                              self._high_pass.text(), self._low_pass.text())
+                    self._waveform.plot_waveform(i)
+            self._canvas.figure.tight_layout()
 
         if self._is_dialog:
             self._is_dialog.accept()
             self._is_dialog = None
 
             plot_window = QtWidgets.QMdiSubWindow()
-            self._plot_widg = self._create_plot_window(1)
+            subplot_num = 1 if self._channel_widget.is_avg else len(self._channel_widget.marked_channels)
+            self._plot_widg = self._create_plot_window(subplot_num)
             self._plot_widg.mousePressEvent = lambda x: self._plot_window_clicked_func()
             plot_window.closeEvent = lambda x: self._plot_window_close_func()
             plot_window.setWidget(self._plot_widg)
@@ -116,7 +129,8 @@ class WaveformWidget(QtWidgets.QMainWindow):
     def _create_plot_window(self, subplot_num):
         plot_widget = QtWidgets.QWidget()
 
-        figure, _ = plt.subplots(nrows=int(subplot_num ** 0.5), ncols=int(subplot_num/int(subplot_num ** 0.5)))
+        nrows, ncols = calculate_row_col_adjustment(subplot_num)
+        figure, _ = plt.subplots(nrows=nrows, ncols=ncols)
         self._canvas = FigureCanvas(figure)
         self._canvas.mousePressEvent = lambda x: self._plot_window_clicked_func()
         toolbar = NavigationToolbar(self._canvas, self)

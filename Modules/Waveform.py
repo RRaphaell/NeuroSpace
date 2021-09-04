@@ -122,10 +122,10 @@ class Waveform:
         filtered_signal = filter_base_frequency(self.signal, self.fs, self.high_pass, self.low_pass)
         return filtered_signal
 
-    def plot_waveform(self):
+    def plot_waveform(self, ax_idx):
         filtered_signal = self.get_filtered_signal()
-        plot_signal(filtered_signal, "Waveform", self._signal_time_range, self._canvas)
-    
+        plot_signal(filtered_signal, self._signal_time_range, self._canvas, ax_idx, "Time (seconds)", "Signal (uV)")
+
     def extract_signal(self, file_save_path):
         signal, time = self.get_signal()
         extract_signal(signal,time,file_save_path)

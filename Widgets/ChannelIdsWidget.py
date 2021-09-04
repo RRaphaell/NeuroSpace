@@ -56,6 +56,10 @@ class ChannelIdsWidget(QtWidgets.QGroupBox):
                 button.setStyleSheet("background-color : light grey")
             button.setChecked(on)
 
+    @ property
+    def is_avg(self):
+        return self._average_butt.isChecked()
+
     @property
     def marked_channels(self):
         marked_buttons = []
