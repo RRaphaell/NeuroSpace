@@ -1,148 +1,64 @@
-from PyQt5 import QtWidgets, QtCore
-from Widgets.utils import merge_widgets, line_edit_with_label, move_center, create_widget_description, calculate_row_col_adjustment
+from PyQt5 import QtWidgets
+from Widgets.utils import move_center, calculate_row_col_adjustment, create_widget_layout
+from Widgets.default_widgets import (create_widget_description
+                                     , create_time_range_widgets
+                                     , create_filter_widgets
+                                     , create_plot_extract_buttons)
 from Widgets.ChannelIdsWidget import ChannelIdsWidget
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
-from Modules.Waveform import Waveform
 
 
 class WaveformWidget(QtWidgets.QMainWindow):
 
-    def __init__(self, file, mdi, from_s="", to_s="", high_pass="", low_pass="", dialog=None):
+    def __init__(self, mdi, from_s="", to_s="", high_pass="", low_pass=""):
         super().__init__()
 
-        self._waveform = None
-        self._from_s = None
-        self._to_s = None
-        self._high_pass = None
-        self._low_pass = None
-        self._plot_widg = None
-        self._canvas = None
-        self._is_dialog = dialog
+        self.plot_widget = None
+        self.plot_window = None
+        self.canvas = None
         self._mdi = mdi
-        self._plot_window_clicked_func = None
-        self._plot_window_close_func = None
-        self._file = file
 
+        waveform_text = create_widget_description("აღწერა \n აქ შეგიძლიათ აირჩიოთ სხვადასხვა არხი და ააგოთ სიგნალი. ააგოთ როგორც არხების საშუალო ასევე სხვადასხვა არხებიც ცალ-ცალკე")
+        self.channel_widget = ChannelIdsWidget()
+        self.from_s, self.to_s, time_range_widget = create_time_range_widgets(from_s, to_s)
+        self.high_pass, self.low_pass, filter_widget = create_filter_widgets(high_pass, low_pass)
+        self._plot_btn, self._extract_btn, buttons_widget = create_plot_extract_buttons()
+
+        widget = create_widget_layout(waveform_text, self.channel_widget,
+                                      time_range_widget, filter_widget, buttons_widget)
+        self.setCentralWidget(widget)
         self.setWindowTitle("Waveform")
         self.move(move_center(self.frameGeometry()).topLeft())
 
-        layout = QtWidgets.QVBoxLayout()
-        layout.setAlignment(QtCore.Qt.AlignHCenter)
+    def get_path_for_save(self):
+        name, _ = QtWidgets.QFileDialog.getSaveFileName(self, 'Save File', options=QtWidgets.QFileDialog.DontUseNativeDialog)
+        return name
 
-        waveform_text = create_widget_description("აღწერა \n აქ შეგიძლიათ აირჩიოთ სხვადასხვა არხი და ააგოთ სიგნალი. ააგოთ როგორც არხების საშუალო ასევე სხვადასხვა არხებიც ცალ-ცალკე")
-        self._channel_widget = ChannelIdsWidget()
-        time_range_widget = self._create_time_range_widgets(from_s, to_s)
-        filter_widget = self._create_filter_widgets(high_pass, low_pass)
-        buttons_widget = self._create_plot_extract_buttons()
+    def set_plot_func(self, func):
+        self._plot_btn.clicked.connect(func)
 
-        layout.addWidget(waveform_text)
-        layout.addWidget(self._channel_widget)
-        layout.addWidget(time_range_widget)
-        layout.addWidget(filter_widget)
-        layout.addWidget(buttons_widget)
-        layout.setAlignment(QtCore.Qt.AlignRight)
+    def set_extract_func(self, func):
+        self._extract_btn.clicked.connect(func)
 
-        widget = QtWidgets.QWidget()
-        widget.setLayout(layout)
-        self.setCentralWidget(widget)
-
-    def _create_time_range_widgets(self, from_s, to_s):
-        self._from_s, from_s_label = line_edit_with_label("From", "Choose time range", from_s)
-        self._to_s, to_s_label = line_edit_with_label("To", "Choose time range", to_s)
-        self._from_s.setMaximumWidth(80)
-        self._to_s.setMaximumWidth(80)
-
-        time_range_widget = merge_widgets(from_s_label, self._from_s, to_s_label, self._to_s, vertical=False)
-        return time_range_widget
-
-    def _create_filter_widgets(self, high_pass, low_pass):
-        self._high_pass, high_pass_label = line_edit_with_label("High pass", "Choose high pass filter", high_pass)
-        self._low_pass, low_pass_label = line_edit_with_label("Low pass", "choose low_pass filter", low_pass)
-        self._high_pass.setMaximumWidth(80)
-        self._low_pass.setMaximumWidth(80)
-
-        filter_widget = merge_widgets(high_pass_label, self._high_pass, low_pass_label, self._low_pass, vertical=False)
-        return filter_widget
-
-    def _create_plot_extract_buttons(self):
-        self._plot_btn = QtWidgets.QPushButton()
-        self._plot_btn.setText("Plot Waveform")
-        self._plot_btn.setMinimumHeight(40)
-        self._plot_btn.setStyleSheet("border: 1px solid black;border-radius: 10px;")
-        self._plot_btn.clicked.connect(self._plot_clicked)
-
-        self._extract = QtWidgets.QPushButton()
-        self._extract.setText("Extract")
-        self._extract.setMinimumHeight(40)
-        self._extract.setStyleSheet("border: 1px solid black;border-radius: 10px;")
-        self._extract.clicked.connect(self._extract_clicked)
-        buttons_widget = merge_widgets(self._plot_btn, QtWidgets.QSpacerItem(60, 20, QtWidgets.QSizePolicy.Expanding),
-                                       self._extract, vertical=False, stretches=[2, 1, 1])
-        return buttons_widget
-
-    def _plot_clicked(self):
-        if self._plot_widg:
-            marked_channels = self._channel_widget.marked_channels
-            if len(marked_channels) == 0:
-                raise ValueError("At least one channel should be marked")
-            if self._channel_widget.is_avg:
-                self._waveform = Waveform(self._file.recordings[0].analog_streams[0],
-                                          marked_channels, self._canvas,
-                                          self._from_s.text(), self._to_s.text(),
-                                          self._high_pass.text(), self._low_pass.text())
-                self._waveform.plot_waveform(0)
-            else:
-                for i, ch in enumerate(marked_channels):
-                    self._waveform = Waveform(self._file.recordings[0].analog_streams[0],
-                                              [ch], self._canvas,
-                                              self._from_s.text(), self._to_s.text(),
-                                              self._high_pass.text(), self._low_pass.text())
-                    self._waveform.plot_waveform(i)
-            self._canvas.figure.tight_layout()
-
-        if self._is_dialog:
-            self._is_dialog.accept()
-            self._is_dialog = None
-
-            plot_window = QtWidgets.QMdiSubWindow()
-            subplot_num = 1 if self._channel_widget.is_avg else len(self._channel_widget.marked_channels)
-            self._plot_widg = self._create_plot_window(subplot_num)
-            self._plot_widg.mousePressEvent = lambda x: self._plot_window_clicked_func()
-            plot_window.closeEvent = lambda x: self._plot_window_close_func()
-            plot_window.setWidget(self._plot_widg)
-            plot_window.setWindowTitle("Waveform")
-            self._mdi.addSubWindow(plot_window)
-            self._plot_widg.show()
-            self._plot_clicked()
-
-    def _extract_clicked(self):
-        name, _ = QtWidgets.QFileDialog.getSaveFileName(self,'Save File', options=QtWidgets.QFileDialog.DontUseNativeDialog)
-        if name:
-            self._waveform = Waveform(self._file.recordings[0].analog_streams[0],
-                                        self._channel_widget.marked_channels, self._canvas,
-                                        self._from_s.text(), self._to_s.text(),
-                                        self._high_pass.text(), self._low_pass.text())
-            self._waveform.extract_signal(file_save_path=name)
-
-    def _create_plot_window(self, subplot_num):
+    def create_plot_widget(self, subplot_num):
         plot_widget = QtWidgets.QWidget()
-
-        nrows, ncols = calculate_row_col_adjustment(subplot_num)
-        figure, _ = plt.subplots(nrows=nrows, ncols=ncols)
-        self._canvas = FigureCanvas(figure)
-        self._canvas.mousePressEvent = lambda x: self._plot_window_clicked_func()
-        toolbar = NavigationToolbar(self._canvas, self)
-
+        n_rows, n_cols = calculate_row_col_adjustment(subplot_num)
+        figure, _ = plt.subplots(nrows=n_rows, ncols=n_cols)
+        self.canvas = FigureCanvas(figure)
+        toolbar = NavigationToolbar(self.canvas, self)
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(toolbar)
-        layout.addWidget(self._canvas)
+        layout.addWidget(self.canvas)
         plot_widget.setLayout(layout)
         return plot_widget
 
-    def set_plot_window_clicked_func(self, func):
-        self._plot_window_clicked_func = func
-
-    def set_plot_window_close_func(self, func):
-        self._plot_window_close_func = func
+    def create_plot_window(self):
+        self.plot_window = QtWidgets.QMdiSubWindow()
+        subplot_num = 1 if self.channel_widget.is_avg else len(self.channel_widget.marked_channels)
+        self.plot_widget = self.create_plot_widget(subplot_num)
+        self.plot_window.setWidget(self.plot_widget)
+        self.plot_window.setWindowTitle("Waveform")
+        self._mdi.addSubWindow(self.plot_window)
+        self.plot_widget.show()

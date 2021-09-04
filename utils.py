@@ -10,15 +10,6 @@ def path_valid(file_name):
     return file
 
 
-def partial_dock_widget(dock, widget):
-    dock = dock
-    widget = widget
-
-    def inner():
-        dock.setWidget(widget)
-    return inner
-
-
 def get_default_widget():
     waveform_widget = WaveformWidget(None, None)
     waveform_widget.setDisabled(True)

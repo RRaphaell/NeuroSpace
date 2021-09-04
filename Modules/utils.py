@@ -16,7 +16,7 @@ def get_signal_and_time(electrode_stream, channels, fs, from_idx, to_idx):
     channels = list(map(lambda ch: get_channel_id(electrode_stream, ch), channels))
     signal_summed = reduce(lambda a, b: a+b, map(lambda ch: np.array(electrode_stream.get_channel_in_range(ch, from_idx, to_idx)[0]), channels))
     signal_avg = signal_summed / len(channels)
-    time_in_sec = np.array(range(from_idx,to_idx+1))/fs
+    time_in_sec = np.array(range(from_idx, to_idx+1))/fs
     return signal_avg, time_in_sec
 
 
@@ -38,7 +38,7 @@ def filter_base_frequency(signal, fs, high_pass, low_pass):
     return filtered
 
 
-def plot_signal(signal, time_in_sec, canvas, ax_idx, x_label, y_label):
+def plot_signal(signal, time_in_sec, canvas, x_label, y_label, ax_idx=0):
 
     axes = canvas.figure.get_axes()
     ax = axes[ax_idx]
@@ -51,8 +51,12 @@ def plot_signal(signal, time_in_sec, canvas, ax_idx, x_label, y_label):
 
     canvas.draw()
 
-def extract_signal(signal, time, file_save_path):
-    waveform_dataFrame = pd.DataFrame()
-    waveform_dataFrame["Time"] = time
-    waveform_dataFrame["Signal in v"] = signal
-    waveform_dataFrame.to_csv(file_save_path+".csv", index=False)
+
+def round_to_closest(value, time_stamp):
+    if value and value > 0:
+        remainder = value % time_stamp
+        if remainder > time_stamp / 2:
+            value += time_stamp - remainder
+        else:
+            value -= remainder
+    return value

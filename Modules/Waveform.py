@@ -1,19 +1,20 @@
-from Modules.utils import extract_signal, filter_base_frequency, plot_signal, get_signal_and_time
+from Modules.utils import (filter_base_frequency
+                           , get_signal_and_time
+                           , round_to_closest)
 
 
 class Waveform:
 
-    def __init__(self, electrode_stream, channels, canvas, from_s="", to_s="", high_pass="", low_pass=""):
+    def __init__(self, electrode_stream, channels, from_s="", to_s="", high_pass="", low_pass=""):
         self._electrode_stream = electrode_stream
         self._channels = list(map(int, channels))
         self._fs = int(self._electrode_stream.channel_infos[0].sampling_frequency.magnitude)
-        self._signal_time = electrode_stream.channel_data.shape[1] / self.fs
-        self.from_s = from_s
-        self.to_s = to_s
-        self._signal, self._signal_time_range = self.get_signal()
+        self.signal_time = electrode_stream.channel_data.shape[1] / self.fs
+        self._from_idx, self._to_idx = None, None
+        self.from_s, self.to_s = from_s, to_s
         self.high_pass = high_pass
         self.low_pass = low_pass
-        self._canvas = canvas
+        self._signal, self.signal_time_range = self.get_signal()
 
     @property
     def signal(self):
@@ -32,9 +33,9 @@ class Waveform:
         from_s = 0 if from_s == "" else from_s
         if not Waveform.is_number(from_s):
             raise ValueError ('"From" should be number')
-        from_s = float(from_s)
+        from_s = round_to_closest(float(from_s), 1/self.fs)
 
-        if not ((from_s >= 0) and (from_s < self._signal_time)):
+        if not ((from_s >= 0) and (from_s < self.signal_time)):
             raise ValueError('"From" should be positive')
         self._from_s = from_s
         self._from_idx = int(self.from_s * self.fs)
@@ -45,12 +46,12 @@ class Waveform:
 
     @to_s.setter
     def to_s(self, to_s):
-        to_s = self._signal_time if to_s == "" else to_s
+        to_s = self.signal_time if to_s == "" else to_s
         if not Waveform.is_number(to_s):
             raise ValueError('"To" should be number')
-        to_s = float(to_s)
+        to_s = round_to_closest(float(to_s), 1/self.fs)
 
-        if not ((to_s > 0) and (to_s <= self._signal_time)):
+        if not ((to_s > 0) and (to_s <= self.signal_time)):
             raise ValueError('"To" should be positive')
 
         if to_s <= self.from_s:
@@ -86,7 +87,7 @@ class Waveform:
             raise ValueError('"Low pass" should be number')
         elif int(low_pass) < 0:
             raise ValueError('"Low pass" should be positive')
-        elif int(low_pass) < self.high_pass:
+        elif self.high_pass and int(low_pass) < self.high_pass:
             raise ValueError('"Low pass" should be greater than High pass')
         else:
             self._low_pass = int(low_pass)
@@ -122,10 +123,3 @@ class Waveform:
         filtered_signal = filter_base_frequency(self.signal, self.fs, self.high_pass, self.low_pass)
         return filtered_signal
 
-    def plot_waveform(self, ax_idx):
-        filtered_signal = self.get_filtered_signal()
-        plot_signal(filtered_signal, self._signal_time_range, self._canvas, ax_idx, "Time (seconds)", "Signal (uV)")
-
-    def extract_signal(self, file_save_path):
-        signal, time = self.get_signal()
-        extract_signal(signal,time,file_save_path)

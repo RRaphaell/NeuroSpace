@@ -1,41 +1,48 @@
-import sys
 from PyQt5 import QtWidgets, QtGui, QtCore
-from Widgets.WaveformWidget import WaveformWidget
-from utils import path_valid, partial_dock_widget, get_default_widget
+from utils import path_valid, get_default_widget
+from functools import partial
+from Controllers.WaveformController import WaveformController
 
 
 class NeuroSpace(QtWidgets.QMainWindow):
 
     def __init__(self):
         super().__init__()
-
+        # initialize parameters
         self._file = None
-        self._parameters_dock = None
-        self._parameters_widget = None
-        self._toolbar = None
+        self.parameters_dock = None
+        self.parameters_widget = None
+        self.toolbar = None
+        self.mdi = None
+        self.window_key = 0
+        self.open_windows_dict = {}
 
         self._add_menubar()
         self._add_toolbar()
+        self._add_mdi()
+        self._add_parameters_dock()
+        self._add_properties_dock()
 
+        self._set_geometry()
+        self.setWindowTitle("NeuroSpace")
+        self.showMaximized()
+        self.setCentralWidget(self.mdi)
+
+    def _set_geometry(self):
+        desktop = QtWidgets.QApplication.desktop()
+        screen_rect = desktop.screenGeometry()
+        height, width = screen_rect.height(), screen_rect.width()
+        self.setGeometry(0, 30, width, height - 30)
+
+    def _add_mdi(self):
         brush = QtGui.QBrush(QtGui.QColor(159, 159, 159))
         brush.setStyle(QtCore.Qt.Dense5Pattern)
         self.mdi = QtWidgets.QMdiArea()
         self.mdi.setBackground(brush)
 
-        self._add_parameters_dock()
-        self._add_properties_dock()
-
-        desktop = QtWidgets.QApplication.desktop()
-        screen_rect = desktop.screenGeometry()
-        height, width = screen_rect.height(), screen_rect.width()
-        self.setGeometry(0, 30, width, height-30)
-        self.setWindowTitle("NeuroSpace")
-        self.showMaximized()
-        self.setCentralWidget(self.mdi)
-
     def resizeEvent(self, event):
         self._properties_dock.setFixedSize(int(self.width()*0.2), int(self.height()*0.4))
-        self._parameters_dock.setFixedWidth(int(self.width() * 0.2))
+        self.parameters_dock.setFixedWidth(int(self.width() * 0.2))
 
     def _add_menubar(self):
         menu_bar = self.menuBar()
@@ -45,27 +52,26 @@ class NeuroSpace(QtWidgets.QMainWindow):
         file_menu.addAction(open_action)
 
     def _add_toolbar(self):
-        self._toolbar = QtWidgets.QToolBar(self)
+        self.toolbar = QtWidgets.QToolBar(self)
         waveform = QtWidgets.QAction(QtGui.QIcon("icons/waveform.png"), "Waveform", self)
-        waveform.triggered.connect(self._show_waveform_widget)
+        waveform.triggered.connect(self._on_waveform_icon_clicked)
         spacer = QtWidgets.QWidget()
         spacer.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Preferred)
 
-        self._toolbar.addAction(waveform)
-        self._toolbar.addWidget(spacer)
-        self._toolbar.setDisabled(True)
-        self.addToolBar(self._toolbar)
+        self.toolbar.addAction(waveform)
+        self.toolbar.addWidget(spacer)
+        self.toolbar.setDisabled(True)
+        self.addToolBar(self.toolbar)
 
     def _add_parameters_dock(self):
-        self._parameters_dock = QtWidgets.QDockWidget("", self)
-        self._parameters_dock.setFeatures(QtWidgets.QDockWidget.DockWidgetMovable)
-        self.addDockWidget(QtCore.Qt.DockWidgetArea(1), self._parameters_dock)
-        self._parameters_dock.setWidget(get_default_widget())
+        self.parameters_dock = QtWidgets.QDockWidget("", self)
+        self.parameters_dock.setFeatures(QtWidgets.QDockWidget.DockWidgetMovable)
+        self.addDockWidget(QtCore.Qt.DockWidgetArea(1), self.parameters_dock)
+        self.parameters_dock.setWidget(get_default_widget())
 
     def _add_properties_dock(self):
         self._properties_view = QtWidgets.QTreeWidget()
         self._properties_view.setHeaderLabels(["properties", "value"])
-
         self._properties_dock = QtWidgets.QDockWidget("", self)
         self._properties_dock.setWidget(self._properties_view)
         self._properties_dock.setFeatures(QtWidgets.QDockWidget.DockWidgetMovable)
@@ -91,22 +97,24 @@ class NeuroSpace(QtWidgets.QMainWindow):
         property_dct["clr date"] = self._file.__dict__["clr_date"]
         property_dct["duration"] = self._file.recordings[0].__dict__["duration"]
         self._set_properties(property_dct)
-        self._toolbar.setEnabled(True)
+        self.toolbar.setEnabled(True)
 
-    def _show_waveform_widget(self):
+    def _on_icon_clicked(self, obj):
         self.setDisabled(True)
         dialog = QtWidgets.QDialog()
-        self.waveform_widget = WaveformWidget(self._file, self.mdi, dialog=dialog)
-        plot_partial = partial_dock_widget(self._parameters_dock, self.waveform_widget)
-        close_partial = partial_dock_widget(self._parameters_dock, get_default_widget())
-        self.waveform_widget.set_plot_window_clicked_func(plot_partial)
-        self.waveform_widget.set_plot_window_close_func(close_partial)
-
+        controller = obj(dialog)
+        self.open_windows_dict[self.window_key] = controller
+        self.window_key += 1
         lay = QtWidgets.QVBoxLayout()
-        lay.addWidget(self.waveform_widget)
+        lay.addWidget(controller.view)
         dialog.setLayout(lay)
         dialog.show()
         res = dialog.exec_()
         if res == QtWidgets.QDialog.Accepted:
-            self._parameters_dock.setWidget(self.waveform_widget)
+            self.parameters_dock.setWidget(controller.view)
         self.setEnabled(True)
+
+    def _on_waveform_icon_clicked(self):
+        waveform_controller = partial(WaveformController, self._file, self.window_key, self.open_windows_dict,
+                                      self.mdi, self.parameters_dock)
+        self._on_icon_clicked(waveform_controller)

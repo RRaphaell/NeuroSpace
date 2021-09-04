@@ -21,12 +21,16 @@ def merge_widgets(*args, vertical=False, stretches=[]):
     return widget
 
 
-def line_edit_with_label(label, status, default_value):
-    line_edit = QtWidgets.QLineEdit(default_value)
-    line_edit.setStatusTip(status)
-    label = QtWidgets.QLabel(label)
+def create_widget_layout(*widgets, vertical=True):
+    layout = QtWidgets.QVBoxLayout() if vertical else QtWidgets.QHBoxLayout()
+    layout.setAlignment(QtCore.Qt.AlignHCenter)
+    for widget in widgets:
+        layout.addWidget(widget)
 
-    return line_edit, label
+    layout.setAlignment(QtCore.Qt.AlignRight)
+    widget = QtWidgets.QWidget()
+    widget.setLayout(layout)
+    return widget
 
 
 def move_center(frame_gm):
@@ -68,11 +72,3 @@ def calculate_row_col_adjustment(plot_num):
     col_adjustment = int(plot_num / row_adjustment)
     return row_adjustment, col_adjustment
 
-
-def create_widget_description(txt):
-    description = QtWidgets.QLabel()
-    description.setText(txt)
-    description.setStyleSheet("border: 1px solid black; padding :10px")
-    description.setWordWrap(True)
-    description.setAlignment(QtCore.Qt.AlignCenter)
-    return description
