@@ -12,7 +12,7 @@ from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as Navigatio
 
 class WaveformWidget(QtWidgets.QMainWindow):
 
-    def __init__(self, title="Waveform", from_s="", to_s="", high_pass="", low_pass=""):
+    def __init__(self, title="Waveform", from_s="", to_s="", high_pass="", low_pass="", stimulus_option=False):
         super().__init__()
 
         self.plot_widget = None
@@ -20,16 +20,17 @@ class WaveformWidget(QtWidgets.QMainWindow):
         self.canvas = None
 
         waveform_text = create_widget_description("აღწერა \n აქ შეგიძლიათ აირჩიოთ სხვადასხვა არხი და ააგოთ სიგნალი. ააგოთ როგორც არხების საშუალო ასევე სხვადასხვა არხებიც ცალ-ცალკე")
-        self.channel_widget = ChannelIdsWidget(stimulus_option=False)
+        self.channel_widget = ChannelIdsWidget(stimulus_option=stimulus_option)
         self.from_s, self.to_s, time_range_widget = create_time_range_widgets(from_s, to_s)
         self.high_pass, self.low_pass, filter_widget = create_filter_widgets(high_pass, low_pass)
-        self._plot_btn, self._extract_btn, buttons_widget = create_plot_extract_buttons()
+        self._plot_btn, self._extract_btn, self.buttons_widget = create_plot_extract_buttons()
 
         self.widget = create_widget_layout(waveform_text, self.channel_widget,
-                                           time_range_widget, filter_widget, buttons_widget)
+                                           time_range_widget, filter_widget, self.buttons_widget)
         self.setCentralWidget(self.widget)
         self.setWindowTitle(title)
         self.move(move_center(self.frameGeometry()).topLeft())
+        self.setMaximumSize(700, 800)
 
     def get_path_for_save(self):
         name, _ = QtWidgets.QFileDialog.getSaveFileName(self, 'Save File', options=QtWidgets.QFileDialog.DontUseNativeDialog)
