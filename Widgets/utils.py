@@ -9,7 +9,7 @@ def merge_widgets(*args, vertical=False, stretches=[]):
     for i, arg in enumerate(args):
         if isinstance(arg, QtWidgets.QWidget):
             if len(stretches):
-                size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
+                size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed)
                 size_policy.setHorizontalStretch(stretches[i])
                 arg.setSizePolicy(size_policy)
             layout.addWidget(arg)

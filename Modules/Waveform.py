@@ -1,7 +1,8 @@
 from Modules.utils import (convert_channel_label_to_id
                            , filter_base_frequency
                            , get_signal_and_time
-                           , round_to_closest)
+                           , round_to_closest
+                           , is_number)
 
 
 class Waveform:
@@ -32,7 +33,7 @@ class Waveform:
     @from_s.setter
     def from_s(self, from_s):
         from_s = 0 if from_s == "" else from_s
-        if not Waveform.is_number(from_s):
+        if not is_number(from_s):
             raise ValueError ('"From" should be number')
         from_s = round_to_closest(float(from_s), 1/self.fs)
 
@@ -48,7 +49,7 @@ class Waveform:
     @to_s.setter
     def to_s(self, to_s):
         to_s = self.signal_time if to_s == "" else to_s
-        if not Waveform.is_number(to_s):
+        if not is_number(to_s):
             raise ValueError('"To" should be number')
         to_s = round_to_closest(float(to_s), 1/self.fs)
 
@@ -69,7 +70,7 @@ class Waveform:
     def high_pass(self, high_pass):
         if high_pass == "":
             self._high_pass = None
-        elif not Waveform.is_number(high_pass):
+        elif not is_number(high_pass):
             raise ValueError('"High pass" should be number')
         elif int(float(high_pass)) < 0:
             raise ValueError('"High pass" should be positive')
@@ -84,7 +85,7 @@ class Waveform:
     def low_pass(self, low_pass):
         if low_pass == "":
             self._low_pass = None
-        elif not Waveform.is_number(low_pass):
+        elif not is_number(low_pass):
             raise ValueError('"Low pass" should be number')
         elif int(float(low_pass)) < 0:
             raise ValueError('"Low pass" should be positive')
@@ -108,14 +109,6 @@ class Waveform:
     @_to_idx.setter
     def _to_idx(self, to_idx):
         self.__to_idx = to_idx
-
-    @staticmethod
-    def is_number(x):
-        try:
-            float(x)
-            return True
-        except ValueError:
-            return None
     
     def get_signal(self):
         return get_signal_and_time(self._electrode_stream, self._channels, self.fs, self._from_idx, self._to_idx)

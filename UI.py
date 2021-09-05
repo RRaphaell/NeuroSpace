@@ -107,6 +107,7 @@ class NeuroSpace(QtWidgets.QMainWindow):
         self.setDisabled(True)
         dialog = QtWidgets.QDialog()
         dialog.setWindowTitle(dialog_title)
+        dialog.setMinimumSize(700, 800)
         controller = obj(dialog)
         self.open_windows_dict[self.window_key] = controller
         self.window_key += 1

@@ -5,7 +5,7 @@ from PyQt5 import QtWidgets, QtCore
 def line_edit_with_label(label, status, default_value):
     line_edit = QtWidgets.QLineEdit(default_value)
     line_edit.setStatusTip(status)
-    line_edit.setMaximumWidth(80)
+    line_edit.setMaximumWidth(70)
     label = QtWidgets.QLabel(label)
     return line_edit, label
 
@@ -13,8 +13,6 @@ def line_edit_with_label(label, status, default_value):
 def create_pair_line_edit(label1, label2, status1, status2, default1="", default2=""):
     line_edit1, line_label1 = line_edit_with_label(label1, status1, default1)
     line_edit2, line_label2 = line_edit_with_label(label2, status2, default2)
-    line_edit1.setMaximumWidth(80)
-    line_edit2.setMaximumWidth(80)
     widget = merge_widgets(line_label1, line_edit1, line_label2, line_edit2, vertical=False)
     return line_edit1, line_edit2, widget
 
@@ -34,7 +32,7 @@ def create_filter_widgets(high_pass="", low_pass=""):
 
 
 def create_threshold_widgets(threshold_from="", threshold_to=""):
-    _threshold_from, _threshold_to, threshold_widget = create_pair_line_edit("Threshold from", "to",
+    _threshold_from, _threshold_to, threshold_widget = create_pair_line_edit("Threshold From", "To",
                                                                              "Choose threshold range",
                                                                              "Choose threshold range",
                                                                              default1=threshold_from,

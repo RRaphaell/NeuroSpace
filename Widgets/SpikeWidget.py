@@ -23,6 +23,7 @@ class SpikeWidget(WaveformWidget):
         self.tab2 = self._create_spike_tab()
         with open("styles/style.qss", "r") as file:
             self.setStyleSheet(file.read())
+            self.tabs.setStyleSheet(file.read())
 
         self.tabs.addTab(self.tab1, "General")
         self.tabs.addTab(self.tab2, "Spikes")
@@ -56,30 +57,33 @@ class SpikeWidget(WaveformWidget):
         group_box_layout = QtWidgets.QGridLayout()
 
         line_edit, label = line_edit_with_label("Dead time", "Select Dead Time", "")
-        line_edit.setMaximumWidth(80)
+        widget = QtWidgets.QWidget()
+        layout = QtWidgets.QHBoxLayout()
+        layout.addWidget(label)
+        layout.addWidget(line_edit)
+        widget.setLayout(layout)
+
         threshold_from, threshold_to, threshold_widget = create_threshold_widgets()
 
         spacer = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Minimum)
-
-        group_box_layout.addWidget(label, 0, 0, 1, 1)
-        group_box_layout.addWidget(line_edit, 0, 1, 1, 1)
+        group_box_layout.addWidget(widget, 0, 0, 1, 2)
         group_box_layout.addItem(spacer, 0, 2, 1, 1)
-        group_box_layout.addWidget(threshold_widget, 1, 0, 1, 3)
+        group_box_layout.addWidget(threshold_widget, 2, 0, 1, 4)
         group_box.setLayout(group_box_layout)
-        group_box.setMaximumHeight(200)
         return line_edit, threshold_from, threshold_to, group_box
 
     def _create_burst_group(self):
         group_box = QtWidgets.QGroupBox("Burst")
+        group_box.setCheckable(True)
         with open("styles/style.qss", "r") as file:
             group_box.setStyleSheet(file.read())
         group_box_layout = QtWidgets.QGridLayout()
 
         self.burst_max_start, start_label = line_edit_with_label("Max Start", "Select burst parameter", "")
-        self.burst_max_end, end_label = line_edit_with_label("End", "Select burst parameter", "")
-        self.burst_betw, between_label = line_edit_with_label("Min between", "Select burst parameter", "")
-        self.burst_dur, duration_label = line_edit_with_label("duration", "Select burst parameter", "")
-        self.burst_numb, numb_label = line_edit_with_label("number spike", "Select burst parameter", "")
+        self.burst_max_end, end_label = line_edit_with_label("Max End", "Select burst parameter", "")
+        self.burst_betw, between_label = line_edit_with_label("Min Between", "Select burst parameter", "")
+        self.burst_dur, duration_label = line_edit_with_label("Min Duration", "Select burst parameter", "")
+        self.burst_numb, numb_label = line_edit_with_label("Min Number Spike", "Select burst parameter", "")
 
         start_end = merge_widgets(start_label, self.burst_max_start, end_label, self.burst_max_end)
         between_dur_number = merge_widgets(between_label, self.burst_betw, duration_label,
@@ -90,5 +94,4 @@ class SpikeWidget(WaveformWidget):
         group_box_layout.addItem(spacer, 0, 1, 1, 1)
         group_box_layout.addWidget(between_dur_number, 1, 0, 1, 3)
         group_box.setLayout(group_box_layout)
-        group_box.setMaximumHeight(200)
         return group_box

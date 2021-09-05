@@ -58,3 +58,35 @@ def round_to_closest(value, time_stamp):
         else:
             value -= remainder
     return value
+
+
+def calculate_threshold_based_on_signal(signal):
+    noise_std= np.std(signal)
+    noise_mad = np.median(np.absolute(signal))
+    if noise_mad <= noise_std:
+        return -5 * noise_mad
+    else:
+        return -5 * noise_std
+
+
+def calculate_min_voltage_of_signal(signal):
+    return np.min(signal)
+
+
+def is_number(x):
+    try:
+        float(x)
+        return True
+    except ValueError:
+        return None
+
+
+def calculate_spikes(signal, threshold_from, threshold_to, dead_time_idx):
+    last_idx = -dead_time_idx
+    threshold_crossings = []
+    for idx in range(len(signal)):
+        if (idx > 0) and (signal[idx-1] > threshold_from) and (signal[idx] <= threshold_from) and \
+                (signal[idx] >= threshold_to) and (idx - last_idx > dead_time_idx + 1):
+            threshold_crossings.append(idx)
+            last_idx = idx
+    return np.array(threshold_crossings)

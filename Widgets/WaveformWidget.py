@@ -30,7 +30,6 @@ class WaveformWidget(QtWidgets.QMainWindow):
         self.setCentralWidget(self.widget)
         self.setWindowTitle(title)
         self.move(move_center(self.frameGeometry()).topLeft())
-        self.setMaximumSize(700, 800)
 
     def get_path_for_save(self):
         name, _ = QtWidgets.QFileDialog.getSaveFileName(self, 'Save File', options=QtWidgets.QFileDialog.DontUseNativeDialog)

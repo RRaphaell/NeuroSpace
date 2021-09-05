@@ -3,6 +3,7 @@ QGroupBox {
     border: 1px solid silver;
     border-radius: 6px;
     margin-top: 10px;
+    margin-bottom: 20px;
     padding-top: 10px;
 }
 
