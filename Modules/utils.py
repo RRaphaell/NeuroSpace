@@ -3,16 +3,15 @@ from functools import reduce
 import numpy as np
 
 
-def get_channel_id(electrode_stream, channel_label):
+def convert_channel_label_to_id(electrode_stream, channel_label):
     channel_info = electrode_stream.channel_infos
     my_dict = {}
     for ch in channel_info:
         my_dict[int(channel_info.get(ch).info['Label'])] = int(ch)
-    return my_dict.get(channel_label)
+    return my_dict.get(int(channel_label))
 
 
 def get_signal_and_time(electrode_stream, channels, fs, from_idx, to_idx):
-    channels = list(map(lambda ch: get_channel_id(electrode_stream, ch), channels))
     signal_summed = reduce(lambda a, b: a+b, map(lambda ch: np.array(electrode_stream.get_channel_in_range(ch, from_idx, to_idx)[0]), channels))
     signal_avg = signal_summed / len(channels)
     time_in_sec = np.array(range(from_idx, to_idx+1))/fs

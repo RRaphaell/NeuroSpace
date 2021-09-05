@@ -1,4 +1,5 @@
-from Modules.utils import (filter_base_frequency
+from Modules.utils import (convert_channel_label_to_id
+                           , filter_base_frequency
                            , get_signal_and_time
                            , round_to_closest)
 
@@ -7,9 +8,9 @@ class Waveform:
 
     def __init__(self, electrode_stream, channels, from_s="", to_s="", high_pass="", low_pass=""):
         self._electrode_stream = electrode_stream
-        self._channels = list(map(int, channels))
+        self._channels = list(map(lambda ch: convert_channel_label_to_id(electrode_stream, ch), channels))
         self._fs = int(self._electrode_stream.channel_infos[0].sampling_frequency.magnitude)
-        self.signal_time = electrode_stream.channel_data.shape[1] / self.fs
+        self.signal_time = (electrode_stream.channel_data.shape[1]-1) / self.fs
         self._from_idx, self._to_idx = None, None
         self.from_s, self.to_s = from_s, to_s
         self.high_pass = high_pass
@@ -70,10 +71,10 @@ class Waveform:
             self._high_pass = None
         elif not Waveform.is_number(high_pass):
             raise ValueError('"High pass" should be number')
-        elif int(high_pass) < 0:
+        elif int(float(high_pass)) < 0:
             raise ValueError('"High pass" should be positive')
         else:
-            self._high_pass = int(high_pass)
+            self._high_pass = int(float(high_pass))
 
     @property
     def low_pass(self):
@@ -85,12 +86,12 @@ class Waveform:
             self._low_pass = None
         elif not Waveform.is_number(low_pass):
             raise ValueError('"Low pass" should be number')
-        elif int(low_pass) < 0:
+        elif int(float(low_pass)) < 0:
             raise ValueError('"Low pass" should be positive')
-        elif self.high_pass and int(low_pass) < self.high_pass:
+        elif self.high_pass and int(float(low_pass)) < self.high_pass:
             raise ValueError('"Low pass" should be greater than High pass')
         else:
-            self._low_pass = int(low_pass)
+            self._low_pass = int(float(low_pass))
 
     @property
     def _from_idx(self):
