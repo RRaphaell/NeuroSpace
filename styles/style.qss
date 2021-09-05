@@ -1,0 +1,17 @@
+QGroupBox {
+    font: bold;
+    border: 1px solid silver;
+    border-radius: 6px;
+    margin-top: 6px;
+}
+
+QGroupBox::title {
+    subcontrol-origin: margin;
+    subcontrol-position: top; 
+    left: 7px;
+    padding: 0px 5px 0px 5px;
+}
+
+QTabWidget::tab-bar {
+    alignment: center;
+}

@@ -1,7 +1,6 @@
 from scipy.signal import butter, sosfilt
 from functools import reduce
 import numpy as np
-import pandas as pd
 
 
 def get_channel_id(electrode_stream, channel_label):

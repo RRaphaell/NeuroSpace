@@ -12,24 +12,23 @@ from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as Navigatio
 
 class WaveformWidget(QtWidgets.QMainWindow):
 
-    def __init__(self, mdi, from_s="", to_s="", high_pass="", low_pass=""):
+    def __init__(self, title="Waveform", from_s="", to_s="", high_pass="", low_pass=""):
         super().__init__()
 
         self.plot_widget = None
         self.plot_window = None
         self.canvas = None
-        self._mdi = mdi
 
         waveform_text = create_widget_description("აღწერა \n აქ შეგიძლიათ აირჩიოთ სხვადასხვა არხი და ააგოთ სიგნალი. ააგოთ როგორც არხების საშუალო ასევე სხვადასხვა არხებიც ცალ-ცალკე")
-        self.channel_widget = ChannelIdsWidget()
+        self.channel_widget = ChannelIdsWidget(stimulus_option=False)
         self.from_s, self.to_s, time_range_widget = create_time_range_widgets(from_s, to_s)
         self.high_pass, self.low_pass, filter_widget = create_filter_widgets(high_pass, low_pass)
         self._plot_btn, self._extract_btn, buttons_widget = create_plot_extract_buttons()
 
-        widget = create_widget_layout(waveform_text, self.channel_widget,
-                                      time_range_widget, filter_widget, buttons_widget)
-        self.setCentralWidget(widget)
-        self.setWindowTitle("Waveform")
+        self.widget = create_widget_layout(waveform_text, self.channel_widget,
+                                           time_range_widget, filter_widget, buttons_widget)
+        self.setCentralWidget(self.widget)
+        self.setWindowTitle(title)
         self.move(move_center(self.frameGeometry()).topLeft())
 
     def get_path_for_save(self):
@@ -56,9 +55,7 @@ class WaveformWidget(QtWidgets.QMainWindow):
 
     def create_plot_window(self):
         self.plot_window = QtWidgets.QMdiSubWindow()
-        subplot_num = 1 if self.channel_widget.is_avg else len(self.channel_widget.marked_channels)
+        subplot_num = 1 if self.channel_widget.is_avg else len(self.channel_widget.marked_spike_channels)
         self.plot_widget = self.create_plot_widget(subplot_num)
         self.plot_window.setWidget(self.plot_widget)
         self.plot_window.setWindowTitle("Waveform")
-        self._mdi.addSubWindow(self.plot_window)
-        self.plot_widget.show()

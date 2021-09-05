@@ -1,6 +1,6 @@
 import sys
 from PyQt5 import QtWidgets
-from ui_main import NeuroSpace
+from UI import NeuroSpace
 
 
 def restart_program():

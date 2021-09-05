@@ -25,9 +25,8 @@ def create_widget_layout(*widgets, vertical=True):
     layout = QtWidgets.QVBoxLayout() if vertical else QtWidgets.QHBoxLayout()
     layout.setAlignment(QtCore.Qt.AlignHCenter)
     for widget in widgets:
-        layout.addWidget(widget)
+        layout.addWidget(widget, 0, QtCore.Qt.AlignHCenter)
 
-    layout.setAlignment(QtCore.Qt.AlignRight)
     widget = QtWidgets.QWidget()
     widget.setLayout(layout)
     return widget

@@ -1,5 +1,4 @@
 import pandas as pd
-
 from Modules.Waveform import Waveform
 from Widgets.WaveformWidget import WaveformWidget
 from utils import get_default_widget
@@ -13,8 +12,9 @@ class WaveformController:
         self.open_window_dict = open_window_dict
         self.parameters_dock = parameters_dock
         self._dialog = dialog
+        self.mdi = mdi
 
-        self.view = WaveformWidget(mdi, dialog)
+        self.view = WaveformWidget(title="Waveform")
         self.view.set_plot_func(self.plot_clicked)
         self.view.set_extract_func(self.extract_clicked)
 
@@ -23,12 +23,14 @@ class WaveformController:
             self._dialog.accept()
             self._dialog = None
             self.view.create_plot_window()
+            self.mdi.addSubWindow(self.view.plot_window)
+            self.view.plot_window.show()
             self.view.plot_widget.mousePressEvent = lambda x: self.parameters_dock.setWidget(self.view)
             self.view.plot_window.closeEvent = lambda x: self._remove_me()
             self.view.canvas.mousePressEvent = lambda x: self.parameters_dock.setWidget(self.view)
             self.plot_clicked()
         else:
-            marked_channels = self.view.channel_widget.marked_channels
+            marked_channels = self.view.channel_widget.marked_spike_channels
             if len(marked_channels) == 0:
                 raise ValueError("At least one channel should be marked")
 

@@ -2,15 +2,20 @@ from PyQt5 import QtWidgets
 from functools import partial
 from Widgets.utils import merge_widgets
 
+RED = "background-color : rgb(255,51,51)"
+GREEN = "background-color : rgb(51,255,51)"
+GRAY = "background-color : light grey"
+
 
 class ChannelIdsWidget(QtWidgets.QGroupBox):
-    def __init__(self):
+    def __init__(self, stimulus_option=False):
         super().__init__("Channel id")
 
         layout = QtWidgets.QVBoxLayout()
         self._check_all_butt = None
         self._average_butt = None
         self._buttons = []
+        self.button_positions = [GRAY, GREEN, RED] if stimulus_option else [GRAY, GREEN]
 
         channel_widget = QtWidgets.QWidget()
         self._channel_layout = QtWidgets.QGridLayout()
@@ -21,12 +26,12 @@ class ChannelIdsWidget(QtWidgets.QGroupBox):
         layout.addWidget(channel_widget)
         layout.addWidget(button_widget)
         self.setLayout(layout)
-        # self.setFixedWidth(300)
+        self.setFixedSize(300, 400)
 
     def _create_checkable_buttons(self):
         self._check_all_butt = QtWidgets.QCheckBox("Clear")
         self._check_all_butt.clicked.connect(self._check_all)
-        self._average_butt = QtWidgets.QCheckBox("Use Average")
+        self._average_butt = QtWidgets.QCheckBox("Average")
 
         buttons_widget = merge_widgets(self._check_all_butt, QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding),
                                        self._average_butt,  vertical=False)
@@ -36,44 +41,50 @@ class ChannelIdsWidget(QtWidgets.QGroupBox):
         if not ChannelIdsWidget.is_square(channel_num):
             raise ValueError("Channel quantity should be square")
 
+        button_idx = 0
         root = int(channel_num**0.5)
         corner_buttons = [(1, 1), (1, root), (root, 1), (root, root)]
         for row in range(1, root+1):
             for col in range(1, root + 1):
                 if (col, row) not in corner_buttons:
                     button = QtWidgets.QPushButton(f"{col}{row}")
-                    button.setCheckable(True)
                     button.setFixedSize(30, 30)
-                    button.clicked.connect(partial(ChannelIdsWidget._change_color, button))
+                    button.clicked.connect(partial(self._change_color, button_idx))
                     self._channel_layout.addWidget(button, row - 1, col - 1)
-                    self._buttons.append(button)
+                    self._buttons.append([button, 0])
+                    button_idx += 1
 
     def _check_all(self, on):
-        for button in self._buttons:
-            if on:
-                button.setStyleSheet("background-color : rgb(102,255,102)")
-            else:
-                button.setStyleSheet("background-color : light grey")
-            button.setChecked(on)
+        for i in range(len(self._buttons)):
+            self._buttons[i][1] = on
+            self._buttons[i][0].setStyleSheet(self.button_positions[on])
 
     @ property
     def is_avg(self):
         return self._average_butt.isChecked()
 
     @property
-    def marked_channels(self):
+    def marked_spike_channels(self):
+        return self._get_channel_based_on_color(GREEN)
+
+    @property
+    def marked_stimulus_channels(self):
+        return self._get_channel_based_on_color(RED)
+
+    def _get_channel_based_on_color(self, color):
         marked_buttons = []
-        for button in self._buttons:
-            if button.isChecked():
+        for i in range(len(self._buttons)):
+            button = self._buttons[i][0]
+            position = self._buttons[i][1]
+            if self.button_positions[position] == color:
                 marked_buttons.append(button.text())
         return marked_buttons
 
-    @staticmethod
-    def _change_color(button):
-        if button.isChecked():
-            button.setStyleSheet("background-color : rgb(102,255,102)")
-        else:
-            button.setStyleSheet("background-color : light grey")
+    def _change_color(self, button_idx):
+        button, position = self._buttons[button_idx]
+        position = (position + 1) % len(self.button_positions)
+        button.setStyleSheet(self.button_positions[position])
+        self._buttons[button_idx][1] = position
 
     @staticmethod
     def is_square(num):

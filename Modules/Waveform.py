@@ -122,4 +122,3 @@ class Waveform:
     def get_filtered_signal(self):
         filtered_signal = filter_base_frequency(self.signal, self.fs, self.high_pass, self.low_pass)
         return filtered_signal
-
