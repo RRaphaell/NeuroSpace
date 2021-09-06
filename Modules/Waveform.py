@@ -1,3 +1,4 @@
+from numpy import timedelta64
 from Modules.utils import (convert_channel_label_to_id
                            , filter_base_frequency
                            , get_signal_and_time
@@ -16,11 +17,21 @@ class Waveform:
         self.from_s, self.to_s = from_s, to_s
         self.high_pass = high_pass
         self.low_pass = low_pass
-        self._signal, self.signal_time_range = self.get_signal()
+        self._signal_time_range = None, None
 
     @property
     def signal(self):
-        return self._signal
+        return self._get_filtered_signal()
+
+    @property
+    def _signal(self):
+        signal, time = get_signal_and_time(self._electrode_stream, self._channels, self.fs, self._from_idx, self._to_idx)
+        self._signal_time_range = time
+        return signal
+
+    @property
+    def signal_time_range(self):
+        return self._signal_time_range
 
     @property
     def fs(self):
@@ -110,9 +121,7 @@ class Waveform:
     def _to_idx(self, to_idx):
         self.__to_idx = to_idx
     
-    def get_signal(self):
-        return get_signal_and_time(self._electrode_stream, self._channels, self.fs, self._from_idx, self._to_idx)
 
-    def get_filtered_signal(self):
-        filtered_signal = filter_base_frequency(self.signal, self.fs, self.high_pass, self.low_pass)
+    def _get_filtered_signal(self):
+        filtered_signal = filter_base_frequency(self._signal, self.fs, self.high_pass, self.low_pass)
         return filtered_signal

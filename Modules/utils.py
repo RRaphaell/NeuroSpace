@@ -90,3 +90,39 @@ def calculate_spikes(signal, threshold_from, threshold_to, dead_time_idx):
             threshold_crossings.append(idx)
             last_idx = idx
     return np.array(threshold_crossings)
+
+def calculate_bursts(spikes_in_s, max_start, max_end, min_between, min_duration, min_number_spike):
+    spikes_in_s = np.array(spikes_in_s)
+    all_burst = []
+    i = 0
+    while i < len(spikes_in_s)-1:
+        if (spikes_in_s[i+1]-spikes_in_s[i]) <= max_start:
+            burst_start_in_s = spikes_in_s[i]
+            while (i < len(spikes_in_s)-1) and ((spikes_in_s[i+1]-spikes_in_s[i]) < max_end):
+                i += 1
+            burst_end_in_s = spikes_in_s[i]   
+            all_burst.append([burst_start_in_s, burst_end_in_s])
+            i+=1
+        else:
+            i+=1
+    if not all_burst:
+        return [], []
+
+    merged_bursts=[]
+    temp_burst = all_burst[0]
+    for i in range(1, len(all_burst)):
+        if (all_burst[i][0] - temp_burst[1]) < min_between:
+            temp_burst[1] = all_burst[i][1]
+        else:
+            merged_bursts.append(temp_burst)
+            temp_burst = all_burst[i]
+    merged_bursts.append(temp_burst)
+
+    bursts_starts = []
+    bursts_ends = []
+    for burst in merged_bursts:
+        num_spike_in_burst = len(spikes_in_s[(spikes_in_s>=burst[0]) & (spikes_in_s<=burst[1])])
+        if (((burst[1]-burst[0]) >= min_duration) and (num_spike_in_burst >= min_number_spike)):
+            bursts_starts.append(burst[0])
+            bursts_ends.append(burst[1])
+    return bursts_starts, bursts_ends
