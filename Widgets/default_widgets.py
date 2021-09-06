@@ -63,3 +63,26 @@ def create_plot_extract_buttons():
                                    extract_btn, vertical=False, stretches=[2, 1, 1])
     return plot_btn, extract_btn, buttons_widget
 
+
+def create_group_dead_time_threshold(title):
+    group_box = QtWidgets.QGroupBox(title)
+    with open("styles/style.qss", "r") as file:
+        group_box.setStyleSheet(file.read())
+    group_box_layout = QtWidgets.QGridLayout()
+
+    line_edit, label = line_edit_with_label("Dead time", "Select Dead Time", "")
+    widget = QtWidgets.QWidget()
+    layout = QtWidgets.QHBoxLayout()
+    layout.addWidget(label)
+    layout.addWidget(line_edit)
+    widget.setLayout(layout)
+
+    threshold_from, threshold_to, threshold_widget = create_threshold_widgets()
+
+    spacer = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Minimum)
+    group_box_layout.addWidget(widget, 0, 0, 1, 2)
+    group_box_layout.addItem(spacer, 0, 2, 1, 1)
+    group_box_layout.addWidget(threshold_widget, 2, 0, 1, 4)
+    group_box.setLayout(group_box_layout)
+    return line_edit, threshold_from, threshold_to, group_box
+

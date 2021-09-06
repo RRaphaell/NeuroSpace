@@ -1,7 +1,9 @@
 from Widgets.WaveformWidget import WaveformWidget
 from PyQt5 import QtWidgets
-from Widgets.default_widgets import line_edit_with_label, create_threshold_widgets
-from Widgets.default_widgets import merge_widgets
+from Widgets.default_widgets import (line_edit_with_label,
+                                     create_threshold_widgets,
+                                     create_group_dead_time_threshold,
+                                     merge_widgets)
 
 
 class SpikeWidget(WaveformWidget):
@@ -33,44 +35,21 @@ class SpikeWidget(WaveformWidget):
         widget = QtWidgets.QWidget()
 
         (self.spike_dead_time, self.spike_threshold_from,
-         self.spike_threshold_to, self.spike_group_box) = SpikeWidget._create_spike_or_stimulus_group("Spike")
+         self.spike_threshold_to, self.spike_group_box) = create_group_dead_time_threshold("Spike")
 
         (self.stimulus_dead_time, self.stimulus_threshold_from,
-         self.stimulus_threshold_to, self.stimulus_group_box) = SpikeWidget._create_spike_or_stimulus_group("Stimulus")
+         self.stimulus_threshold_to, self.stimulus_group_box) = create_group_dead_time_threshold("Stimulus")
         self.stimulus_group_box.setDisabled(True)
 
-        burst_group_box = self._create_burst_group()
+        self.burst_group_box = self._create_burst_group()
 
         spacer = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         layout.addWidget(self.spike_group_box, 0, 0, 1, 1)
         layout.addWidget(self.stimulus_group_box, 0, 1, 1, 1)
-        layout.addWidget(burst_group_box, 1, 0, 1, 2)
+        layout.addWidget(self.burst_group_box, 1, 0, 1, 2)
         layout.addItem(spacer, 3, 0, 1, 2)
         widget.setLayout(layout)
         return widget
-
-    @staticmethod
-    def _create_spike_or_stimulus_group(title):
-        group_box = QtWidgets.QGroupBox(title)
-        with open("styles/style.qss", "r") as file:
-            group_box.setStyleSheet(file.read())
-        group_box_layout = QtWidgets.QGridLayout()
-
-        line_edit, label = line_edit_with_label("Dead time", "Select Dead Time", "")
-        widget = QtWidgets.QWidget()
-        layout = QtWidgets.QHBoxLayout()
-        layout.addWidget(label)
-        layout.addWidget(line_edit)
-        widget.setLayout(layout)
-
-        threshold_from, threshold_to, threshold_widget = create_threshold_widgets()
-
-        spacer = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Minimum)
-        group_box_layout.addWidget(widget, 0, 0, 1, 2)
-        group_box_layout.addItem(spacer, 0, 2, 1, 1)
-        group_box_layout.addWidget(threshold_widget, 2, 0, 1, 4)
-        group_box.setLayout(group_box_layout)
-        return line_edit, threshold_from, threshold_to, group_box
 
     def _create_burst_group(self):
         group_box = QtWidgets.QGroupBox("Burst")
@@ -95,3 +74,6 @@ class SpikeWidget(WaveformWidget):
         group_box_layout.addWidget(between_dur_number, 1, 0, 1, 3)
         group_box.setLayout(group_box_layout)
         return group_box
+
+    def set_plot_func(self, func):
+        self._plot_btn.clicked.connect(func)

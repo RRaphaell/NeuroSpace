@@ -3,6 +3,7 @@ from utils import path_valid, get_default_widget
 from functools import partial
 from Controllers.WaveformController import WaveformController
 from Controllers.SpikeController import SpikeController
+from Controllers.BinController import BinController
 
 
 class NeuroSpace(QtWidgets.QMainWindow):
@@ -58,11 +59,14 @@ class NeuroSpace(QtWidgets.QMainWindow):
         waveform.triggered.connect(self._on_waveform_icon_clicked)
         spike = QtWidgets.QAction(QtGui.QIcon("icons/spike.png"), "Spike", self)
         spike.triggered.connect(self._on_spike_icon_clicked)
+        bin_ = QtWidgets.QAction(QtGui.QIcon("icons/bin.png"), "Bin", self)
+        bin_.triggered.connect(self._on_bin_icon_clicked)
         spacer = QtWidgets.QWidget()
         spacer.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Preferred)
 
         self.toolbar.addAction(waveform)
         self.toolbar.addAction(spike)
+        self.toolbar.addAction(bin_)
         self.toolbar.addWidget(spacer)
         self.toolbar.setDisabled(True)
         self.addToolBar(self.toolbar)
@@ -129,3 +133,8 @@ class NeuroSpace(QtWidgets.QMainWindow):
         spike_controller = partial(SpikeController, self._file, self.window_key, self.open_windows_dict,
                                    self.mdi, self.parameters_dock)
         self._on_icon_clicked(spike_controller, dialog_title="Spike")
+
+    def _on_bin_icon_clicked(self):
+        spike_controller = partial(BinController, self._file, self.window_key, self.open_windows_dict,
+                                   self.mdi, self.parameters_dock)
+        self._on_icon_clicked(spike_controller, dialog_title="Bin")
