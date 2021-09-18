@@ -19,8 +19,16 @@ class Spikes(Waveform):
         # self.stimulus_threshold_to = stimulus_threshold_to
     
     @property
-    def spikes(self):
-        return calculate_spikes(self.signal, self.spike_threshold_from, self.spike_threshold_to, self.dead_time_idx)
+    def spikes_indexes(self):
+        return calculate_spikes(self.signal, self.spike_threshold_from, self.spike_threshold_to, self.fs, self.dead_time_idx)
+
+    @property
+    def spikes_time_range(self):
+        indexes = self.spikes_indexes
+        if len(indexes) > 1 :
+            time_range = indexes/self.fs + self.from_s
+            return time_range
+        return indexes
 
     @property
     def spike_dead_time(self):
@@ -48,7 +56,7 @@ class Spikes(Waveform):
             raise ValueError('"Spikes Threshold from" should be number')
         elif not (int(float(spike_threshold_from)) >= 0):
             raise ValueError('"Spikes Threshold from" should be positive')
-        self._spike_threshold_from = int(float(spike_threshold_from))
+        self._spike_threshold_from = float(spike_threshold_from)
 
     @property
     def spike_threshold_to(self):
@@ -109,4 +117,5 @@ class Spikes(Waveform):
             raise ValueError ('"Threshold " should be number')
         elif not (int(float(threshold)) >= 0):
             raise ValueError('"Threshold " should be positive')
-        return int(float(threshold))
+        return float(threshold)
+    

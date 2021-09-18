@@ -1,3 +1,5 @@
+import numpy as np
+from Modules.utils import plot_bins
 from Widgets.BinWidget import BinWidget
 from Modules.Bin import Bin
 from utils import get_default_widget
@@ -14,7 +16,7 @@ class BinController:
 
         self.view = BinWidget()
         self.view.tabs.currentChanged.connect(self._enable_stimulus_if_checked)
-        self.view.set_plot_func = self.plot_clicked
+        self.view.set_plot_func(self.plot_clicked)
 
     def _enable_stimulus_if_checked(self):
         if len(self.view.channel_widget.marked_stimulus_channels):
@@ -39,20 +41,24 @@ class BinController:
                 raise ValueError("At least one channel should be marked")
 
             if self.view.channel_widget.is_avg:
-                waveform = self._create_waveform(marked_channels)
-                filtered_signal = waveform.get_filtered_signal()
-                plot_signal(filtered_signal, waveform.signal_time_range, self.view.canvas,
-                            "Time (seconds)", "Signal (uV)", ax_idx=0)
+                bin = self._create_bin(marked_channels)
+                bin_range = np.arange(bin.from_s, bin.to_s, bin.bin_width)
+                pad_len = len(bin_range) - len(bin.bins)
+                bins = np.concatenate([bin.bins, [0]*pad_len])
+                plot_bins(bins, bin_range, bin.bin_width, self.view.canvas, 
+                            "Bin Timestamp (sec)", "Bin Frequency", ax_idx=0)
             else:
                 for i, ch in enumerate(marked_channels):
-                    waveform = self._create_waveform([ch])
-                    filtered_signal = waveform.get_filtered_signal()
-                    plot_signal(filtered_signal, waveform.signal_time_range, self.view.canvas,
-                                "Time (seconds)", "Signal (uV)", ax_idx=i)
+                    bin = self._create_bin([ch])
+                    bin_range = np.arange(bin.from_s, bin.to_s, bin.bin_width)
+                    pad_len = len(bin_range) - len(bin.bins)
+                    bins = np.concatenate([bin.bins, [0]*pad_len])
+                    plot_bins(bins, bin_range, bin.bin_width, self.view.canvas, 
+                                "Bin Timestamp (sec)", "Bin Frequency", ax_idx=i)
             self.view.canvas.figure.tight_layout()
 
-    def _create_waveform(self, channels):
-        return Bin(self.view.bin_width, self.file.recordings[0].analog_streams[0], channels, self.view.from_s.text(),
+    def _create_bin(self, channels):
+        return Bin(self.view.bin_width.text(), self.view.spike_dead_time.text(), self.view.spike_threshold_from.text(), self.view.spike_threshold_to.text(), self.file.recordings[0].analog_streams[0], channels, self.view.from_s.text(),
                         self.view.to_s.text(), self.view.high_pass.text(), self.view.low_pass.text())
 
     def _remove_me(self):

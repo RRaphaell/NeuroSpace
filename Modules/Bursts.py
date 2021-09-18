@@ -15,7 +15,7 @@ class Bursts:
     
     @property
     def bursts(self):
-        return calculate_bursts(self._spikes_obj.spikes, self.burst_max_start, self.burst_max_end, 
+        return calculate_bursts(self._spikes_obj.spikes_time_range, self.burst_max_start, self.burst_max_end, 
                                 self.burst_betw, self.burst_dur, self.burst_numb)
 
     @property

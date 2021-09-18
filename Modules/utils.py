@@ -1,7 +1,9 @@
 from scipy.signal import butter, sosfilt
 from functools import reduce
 import numpy as np
-
+import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
+import pandas as pd
 
 def convert_channel_label_to_id(electrode_stream, channel_label):
     channel_info = electrode_stream.channel_infos
@@ -49,6 +51,55 @@ def plot_signal(signal, time_in_sec, canvas, x_label, y_label, ax_idx=0):
 
     canvas.draw()
 
+def plot_signal_with_spikes_and_bursts(signal, time_in_sec,  canvas, x_label, y_label, fs, spikes_in_range, spikes_indexes,
+                                         ax_idx = 0,bursts_starts=None, bursts_ends=None):
+        
+    signal_in_uV = signal* 1000000
+    if not len(spikes_indexes):
+        spikes_voltage = []
+    else:    
+        spikes_voltage = signal[spikes_indexes]*1000000
+
+    axes = canvas.figure.get_axes()
+    ax = axes[ax_idx]
+    ax.clear()
+    ax.plot(time_in_sec, signal_in_uV, linewidth=0.5, color = "darkmagenta")
+    burst_legend = Line2D([], [], color='darkorange', marker='|', linestyle='None', markersize=10, markeredgewidth=2.5, label='Burst')
+    spike_legend = Line2D([], [], color='green', marker='o', linestyle='None', markersize=5, markeredgewidth=1, label='Spike')
+    ax.legend(handles =[spike_legend, burst_legend])
+    ax.plot(spikes_in_range, spikes_voltage, 'ro', ms=2,  color='green')
+    if bursts_starts and bursts_ends:
+        bursts_df = pd.DataFrame({"burst_start":bursts_starts, "burst_end":bursts_ends})
+        for idx in range(bursts_df.shape[0]):
+            temp_burst_start = bursts_df.iloc[idx].burst_start
+            temp_burst_end = bursts_df.iloc[idx].burst_end
+            ax.axvspan(temp_burst_start, temp_burst_end, facecolor='0.2', alpha=0.7, color='purple')
+    canvas.figure.tight_layout()
+    canvas.draw()
+    canvas.figure.text(0.5, 0.01, x_label, ha='center')
+    canvas.figure.text(0.01, 0.5, y_label, va='center', rotation='vertical')
+    return spikes_in_range
+
+def plot_bins(spike_in_bins, bin_ranges, bin_width, canvas, x_label, y_label, ax_idx=0):    
+    x = bin_ranges
+    y = [int(value) for value in spike_in_bins]
+
+    axes = canvas.figure.get_axes()
+    ax = axes[ax_idx]
+    ax.clear()
+    ax.bar(x, y, width=bin_width, align='edge', alpha=0.4, facecolor='blue', edgecolor='red', linewidth=2)
+    ax.grid(color='#95a5a6', linestyle='--', linewidth=1, axis='y', alpha=0.7)
+
+    # for stimul in stimulus:
+    #     if not to_in_s:
+    #         to_in_s = time_in_sec[len(time_in_sec)-1]
+
+    #     if stimul>=from_in_s and stimul<=to_in_s:
+    #         ax.axvspan(stimul, stimul+5*40/1000000, facecolor='0.2', alpha=0.7, color='lime')
+
+    canvas.figure.text(0.5, 0.01, x_label, ha='center')
+    canvas.figure.text(0.01, 0.5, y_label, va='center', rotation='vertical')
+    canvas.draw()
 
 def round_to_closest(value, time_stamp):
     if value and value > 0:
@@ -81,7 +132,7 @@ def is_number(x):
         return None
 
 
-def calculate_spikes(signal, threshold_from, threshold_to, dead_time_idx):
+def calculate_spikes(signal, threshold_from, threshold_to, fs, dead_time_idx):
     last_idx = -dead_time_idx
     threshold_crossings = []
     for idx in range(len(signal)):
@@ -89,7 +140,19 @@ def calculate_spikes(signal, threshold_from, threshold_to, dead_time_idx):
                 (signal[idx] >= threshold_to) and (idx - last_idx > dead_time_idx + 1):
             threshold_crossings.append(idx)
             last_idx = idx
+    threshold_crossings = _align_to_minimum(signal,threshold_crossings,fs)
     return np.array(threshold_crossings)
+
+def _get_next_minimum(signal, index, max_samples_to_search):
+    search_end_idx = min(index + max_samples_to_search, signal.shape[0])
+    min_idx = np.argmin(signal[index:search_end_idx])
+    return index + min_idx
+
+def _align_to_minimum(signal, threshold_crossings, fs):
+    search_range = 0.002
+    search_end = int(search_range*fs)
+    aligned_spikes = np.array([_get_next_minimum(signal, t, search_end) for t in threshold_crossings])
+    return aligned_spikes
 
 def calculate_bursts(spikes_in_s, max_start, max_end, min_between, min_duration, min_number_spike):
     spikes_in_s = np.array(spikes_in_s)
@@ -126,3 +189,4 @@ def calculate_bursts(spikes_in_s, max_start, max_end, min_between, min_duration,
             bursts_starts.append(burst[0])
             bursts_ends.append(burst[1])
     return bursts_starts, bursts_ends
+
