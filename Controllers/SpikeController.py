@@ -90,7 +90,8 @@ class SpikeController:
         spikes_df["signal"] = signal
         
         to_be_spikes = np.zeros(len(spikes_df))
-        to_be_spikes[spikes] = 1
+        if len(spikes)>0:
+            to_be_spikes[spikes] = 1
         spikes_df[f"spikes {marked_channels}"] = to_be_spikes
         if self.view.burst_group_box:
             bursts_obj = Bursts(spike_obj, self.view.burst_max_start.text(), self.view.burst_max_end.text(),
