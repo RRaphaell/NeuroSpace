@@ -35,13 +35,13 @@ class SpikeTogetherController:
                 spike_obj = self._create_spiketogether_module(marked_channels)
                 plot_spikes_together(spike_obj.cutouts, spike_obj.labels, spike_obj.fs,
                                      spike_obj.component_number, spike_obj.pre, spike_obj.post, number_spikes=None,
-                                     canvas=self.view.canvas, ax_idx=0)
+                                     canvas=self.view.canvas, title=marked_channels, ax_idx=0)
             else:
                 for i, ch in enumerate(marked_channels):
                     spike_obj = self._create_spiketogether_module([ch])
                     plot_spikes_together(spike_obj.cutouts, spike_obj.labels, spike_obj.fs,
                                          spike_obj.component_number, spike_obj.pre, spike_obj.post, number_spikes=None,
-                                         canvas=self.view.canvas, ax_idx=i)
+                                         canvas=self.view.canvas, title=ch, ax_idx=i)
             self.view.canvas.figure.tight_layout()
 
     def _create_spiketogether_module(self, marked_channels):

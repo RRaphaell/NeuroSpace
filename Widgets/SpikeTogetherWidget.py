@@ -18,6 +18,7 @@ class SpikeTogetherWidget(WaveformWidget):
     def _add_tabs(self):
         self.tabs = QtWidgets.QTabWidget()
         self.tab1 = self.widget
+        self._extract_btn.setDisabled(True)     # spike together can't have extract function
         self.tab2 = self._create_spiketogether_tab()
         with open("styles/style.qss", "r") as file:
             self.setStyleSheet(file.read())
@@ -45,15 +46,15 @@ class SpikeTogetherWidget(WaveformWidget):
         return widget
 
     def _create_pre_post_group(self):
-        group_box = QtWidgets.QGroupBox("Burst")
-        group_box.setCheckable(True)
+        group_box = QtWidgets.QGroupBox("Spike separation params")
         with open("styles/style.qss", "r") as file:
             group_box.setStyleSheet(file.read())
         group_box_layout = QtWidgets.QGridLayout()
-        self.pre, pre_label = line_edit_with_label("Pre", "Select time parameter", "")
-        self.post, post_label = line_edit_with_label("Post", "Select time parameter", "")
+        self.pre, pre_label = line_edit_with_label("Pre Spike", "Select time parameter", "")
+        self.post, post_label = line_edit_with_label("Post Spike", "Select time parameter", "")
         _pre_widget = merge_widgets(pre_label, self.pre, vertical=False)
         _post_widget = merge_widgets(post_label, self.post, vertical=False)
+
         spacer = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Minimum)
         group_box_layout.addWidget(_pre_widget, 0, 0, 1, 2)
         group_box_layout.addWidget(_post_widget, 1, 0, 1, 2)

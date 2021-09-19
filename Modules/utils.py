@@ -110,7 +110,7 @@ def plot_bins(spike_in_bins, bin_ranges, bin_width, canvas, x_label, y_label, ax
     canvas.draw()
 
 
-def _plot_each_spike(ax, cutouts, fs, pre, post, n=100, color='k'):
+def _plot_each_spike(ax, cutouts, fs, pre, post, n=100, color='k', title=""):
     if n is None:
         n = cutouts.shape[0]
     else:
@@ -126,21 +126,23 @@ def _plot_each_spike(ax, cutouts, fs, pre, post, n=100, color='k'):
 
     ax.set_xlabel('Time (s)')
     ax.set_ylabel('Voltage (uV)')
-    ax.set_title('Spike together')
+    ax.set_title(title)
 
 
-def plot_spikes_together(cutouts, labels, fs, n_components, pre, post, number_spikes, canvas, ax_idx):
+def plot_spikes_together(cutouts, labels, fs, n_components, pre, post, number_spikes, canvas, title, ax_idx):
     axes = canvas.figure.get_axes()
     ax = axes[ax_idx]
     ax.clear()
+
     if len(cutouts) < 2:
         ax.set_title('No Spike')
-        return []
+        canvas.draw()
+        return
 
     for i in range(int(n_components)):
         idx = labels == i
         color = plt.rcParams['axes.prop_cycle'].by_key()['color'][i]
-        _plot_each_spike(ax, cutouts[idx, :], fs, pre, post, n=number_spikes, color=color)
+        _plot_each_spike(ax, cutouts[idx, :], fs, pre, post, n=number_spikes, color=color, title=title)
     canvas.draw()
 
 

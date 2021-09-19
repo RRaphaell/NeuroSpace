@@ -1,3 +1,4 @@
+import json
 import pandas as pd
 from Modules.Waveform import Waveform
 from Widgets.WaveformWidget import WaveformWidget
@@ -14,7 +15,11 @@ class WaveformController:
         self._dialog = dialog
         self.mdi = mdi
 
-        self.view = WaveformWidget(title="Waveform")
+        with open("default_parameters.json", "r") as file:
+            j = file.read()
+        j = json.loads(j)
+
+        self.view = WaveformWidget(**j["Waveform"], title="Waveform")
         self.view.set_plot_func(self.plot_clicked)
         self.view.set_extract_func(self.extract_clicked)
 

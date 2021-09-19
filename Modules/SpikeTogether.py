@@ -5,7 +5,6 @@ from Modules.utils import get_signal_cutouts, get_pca_labels, is_number
 class SpikeTogether(Spikes):
 
     def __init__(self,  pre, post, component_number, *args, **kwargs):
-
         super().__init__(*args, **kwargs)
         self.pre = pre
         self.post = post
@@ -45,6 +44,9 @@ class SpikeTogether(Spikes):
 
     @property
     def labels(self):
+        if not len(self.cutouts):
+            return []
+
         labels = get_pca_labels(self.cutouts, self.component_number)
         return labels
 
