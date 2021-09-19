@@ -35,23 +35,40 @@ class SpikeWidget(WaveformWidget):
 
         (self.spike_dead_time, self.spike_threshold_from,
          self.spike_threshold_to, self.spike_group_box) = create_group_dead_time_threshold("Spike")
-        self.spike_comp_num, spike_comp_num_label = line_edit_with_label("Comp num", "Select Component number", "")
-        _widget = merge_widgets(spike_comp_num_label, self.spike_comp_num, vertical=False)
-        self.spike_group_box.layout().addWidget(_widget, 0, 2, 1, 2)
 
         (self.stimulus_dead_time, self.stimulus_threshold_from,
          self.stimulus_threshold_to, self.stimulus_group_box) = create_group_dead_time_threshold("Stimulus")
         self.stimulus_group_box.setDisabled(True)
 
         self.burst_group_box = self._create_burst_group()
+        self.pca_group_box = self._create_pca_tab()
 
         spacer = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         layout.addWidget(self.spike_group_box, 0, 0, 1, 1)
         layout.addWidget(self.stimulus_group_box, 0, 1, 1, 1)
         layout.addWidget(self.burst_group_box, 1, 0, 1, 2)
+        layout.addWidget(self.pca_group_box, 2, 0, 1, 2)
         layout.addItem(spacer, 3, 0, 1, 2)
         widget.setLayout(layout)
         return widget
+
+    def _create_pca_tab(self):
+        group_box = QtWidgets.QGroupBox("Spike separation params")
+        group_box.setCheckable(True)
+        with open("styles/style.qss", "r") as file:
+            group_box.setStyleSheet(file.read())
+
+        group_box_layout = QtWidgets.QHBoxLayout()
+        self.pre, pre_label = line_edit_with_label("Pre", "Select time parameter", "")
+        self.post, post_label = line_edit_with_label("Post", "Select time parameter", "")
+        self.spike_comp_num, spike_comp_num_label = line_edit_with_label("Comp num", "Select Component number", "")
+        spacer = QtWidgets.QSpacerItem(20, 10, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
+
+        widget = merge_widgets(pre_label, self.pre, spacer, post_label, self.post, spacer, spike_comp_num_label, self.spike_comp_num, vertical=False)
+       
+        group_box_layout.addWidget(widget)
+        group_box.setLayout(group_box_layout)
+        return group_box
 
     def _create_burst_group(self):
         group_box = QtWidgets.QGroupBox("Burst")
