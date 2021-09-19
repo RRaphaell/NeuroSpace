@@ -1,0 +1,53 @@
+{
+  "Waveform": {
+    "from_s": "",
+    "to_s": "",
+    "high_pass": "200",
+    "low_pass": ""
+  },
+
+  "Spike": {
+    "from_s": "",
+    "to_s": "",
+    "high_pass": "200",
+    "low_pass": "",
+    "spike_dead_time": "0.003",
+    "spike_threshold_from": "-0.0001",
+    "spike_threshold_to": "",
+    "stimulus_dead_time": "0.003",
+    "stimulus_threshold_from": "-0.001",
+    "stimulus_threshold_to": "",
+    "max_start": "0.001",
+    "max_end": "0.001",
+    "min_between": "0.001",
+    "burst_duration": "0.002",
+    "min_number": "4"
+  },
+
+  "Bin": {
+    "from_s": "",
+    "to_s": "",
+    "high_pass": "200",
+    "low_pass": "",
+    "spike_dead_time": "0.003",
+    "spike_threshold_from": "-0.0001",
+    "spike_threshold_to": "",
+    "stimulus_dead_time": "0.003",
+    "stimulus_threshold_from": "-0.001",
+    "stimulus_threshold_to": "",
+    "bin_range": ""
+  },
+
+  "SpikeTogether": {
+    "from_s": "",
+    "to_s": "",
+    "high_pass": "200",
+    "low_pass": "",
+    "spike_dead_time": "0.003",
+    "spike_threshold_from": "-0.0001",
+    "spike_threshold_to": "",
+    "component_number": "1",
+    "pre": "0.001",
+    "post": "0.001"
+  }
+}
