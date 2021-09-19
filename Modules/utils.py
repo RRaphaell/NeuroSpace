@@ -1,8 +1,12 @@
+from matplotlib import pyplot as plt
 from scipy.signal import butter, sosfilt
 from functools import reduce
 import numpy as np
 from matplotlib.lines import Line2D
 import pandas as pd
+from sklearn.mixture import GaussianMixture
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
 
 
 def convert_channel_label_to_id(electrode_stream, channel_label):
@@ -106,6 +110,40 @@ def plot_bins(spike_in_bins, bin_ranges, bin_width, canvas, x_label, y_label, ax
     canvas.draw()
 
 
+def _plot_each_spike(ax, cutouts, fs, pre, post, n=100, color='k'):
+    if n is None:
+        n = cutouts.shape[0]
+    else:
+        n = int(n)
+    n = min(n, cutouts.shape[0])
+
+    pre = int(pre * fs) / fs
+    post = int(post * fs) / fs
+    time_in_us = np.arange(-pre * 1000, post * 1000, 1e3 / fs)
+
+    for i in range(n):
+        ax.plot(time_in_us, cutouts[i]*1e6, color, linewidth=1, alpha=0.3)
+
+    ax.set_xlabel('Time (s)')
+    ax.set_ylabel('Voltage (uV)')
+    ax.set_title('Spike together')
+
+
+def plot_spikes_together(cutouts, labels, fs, n_components, pre, post, number_spikes, canvas, ax_idx):
+    axes = canvas.figure.get_axes()
+    ax = axes[ax_idx]
+    ax.clear()
+    if len(cutouts) < 2:
+        ax.set_title('No Spike')
+        return []
+
+    for i in range(int(n_components)):
+        idx = labels == i
+        color = plt.rcParams['axes.prop_cycle'].by_key()['color'][i]
+        _plot_each_spike(ax, cutouts[idx, :], fs, pre, post, n=number_spikes, color=color)
+    canvas.draw()
+
+
 def round_to_closest(value, time_stamp):
     if value and value > 0:
         remainder = value % time_stamp
@@ -197,3 +235,33 @@ def calculate_bursts(spikes_in_s, max_start, max_end, min_between, min_duration,
             bursts_starts.append(burst[0])
             bursts_ends.append(burst[1])
     return bursts_starts, bursts_ends
+
+
+def get_signal_cutouts(signal, fs, spikes_idx, pre, post):
+    cutouts = []
+    pre_idx = int(pre * fs)
+    post_idx = int(post * fs)
+    if pre_idx > 0 and post_idx > 0:
+        for index in spikes_idx:
+            if index - pre_idx >= 0 and index + post_idx <= signal.shape[0]:
+                cutout = signal[(index - pre_idx):(index + post_idx)]
+                cutouts.append(cutout)
+
+        if len(cutouts) > 0:
+            return np.stack(cutouts)
+    return cutouts
+
+
+def get_pca_labels(cutouts, n_components):
+    if n_components >= len(cutouts):
+        n_components = 1
+    pca = PCA()
+    pca.n_components = int(2)
+    scaler = StandardScaler()
+    scaled_cutouts = scaler.fit_transform(abs(cutouts))
+    scaled_cutouts *= 2
+
+    transformed = pca.fit_transform(scaled_cutouts)
+    gmm = GaussianMixture(n_components=int(n_components), n_init=10)
+    return gmm.fit_predict(transformed)
+

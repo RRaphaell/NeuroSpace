@@ -1,4 +1,6 @@
 from PyQt5 import QtWidgets, QtGui, QtCore
+
+from Controllers.SpikeTogetherController import SpikeTogetherController
 from utils import path_valid, get_default_widget
 from functools import partial
 from Controllers.WaveformController import WaveformController
@@ -10,7 +12,7 @@ class NeuroSpace(QtWidgets.QMainWindow):
 
     def __init__(self):
         super().__init__()
-        # initialize parameters
+
         self._file = None
         self.parameters_dock = None
         self.parameters_widget = None
@@ -61,12 +63,16 @@ class NeuroSpace(QtWidgets.QMainWindow):
         spike.triggered.connect(self._on_spike_icon_clicked)
         bin_ = QtWidgets.QAction(QtGui.QIcon("icons/bin.png"), "Bin", self)
         bin_.triggered.connect(self._on_bin_icon_clicked)
+        spike_together = QtWidgets.QAction(QtGui.QIcon("icons/spike_together.jpg"), "Spike Together", self)
+        spike_together.triggered.connect(self._on_spike_together_icon_clicked)
+
         spacer = QtWidgets.QWidget()
         spacer.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Preferred)
 
         self.toolbar.addAction(waveform)
         self.toolbar.addAction(spike)
         self.toolbar.addAction(bin_)
+        self.toolbar.addAction(spike_together)
         self.toolbar.addWidget(spacer)
         self.toolbar.setDisabled(True)
         self.addToolBar(self.toolbar)
@@ -138,3 +144,8 @@ class NeuroSpace(QtWidgets.QMainWindow):
         spike_controller = partial(BinController, self._file, self.window_key, self.open_windows_dict,
                                    self.mdi, self.parameters_dock)
         self._on_icon_clicked(spike_controller, dialog_title="Bin")
+
+    def _on_spike_together_icon_clicked(self):
+        spike_together = partial(SpikeTogetherController, self._file, self.window_key, self.open_windows_dict,
+                                 self.mdi, self.parameters_dock)
+        self._on_icon_clicked(spike_together, dialog_title="SpikeTogether")
