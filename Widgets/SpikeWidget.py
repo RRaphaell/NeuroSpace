@@ -35,6 +35,9 @@ class SpikeWidget(WaveformWidget):
 
         (self.spike_dead_time, self.spike_threshold_from,
          self.spike_threshold_to, self.spike_group_box) = create_group_dead_time_threshold("Spike")
+        self.spike_comp_num, spike_comp_num_label = line_edit_with_label("Comp num", "Select Component number", "")
+        _widget = merge_widgets(spike_comp_num_label, self.spike_comp_num, vertical=False)
+        self.spike_group_box.layout().addWidget(_widget, 0, 2, 1, 2)
 
         (self.stimulus_dead_time, self.stimulus_threshold_from,
          self.stimulus_threshold_to, self.stimulus_group_box) = create_group_dead_time_threshold("Stimulus")
