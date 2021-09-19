@@ -73,7 +73,7 @@ class BinController:
                 bins = np.concatenate([bin.bins, [0]*pad_len])
 
                 bin_dataframe["range"] = bin_range
-                bin_dataframe[f"Spikes_quantity_in_bins {marked_channels}"] = bins
+                bin_dataframe[f"Spikes_frequency_in_bins {marked_channels}"] = bins
                 bin_dataframe.to_csv(path + "bins.csv", index=False)
 
             else:
@@ -85,7 +85,7 @@ class BinController:
                     bins = np.concatenate([bin.bins, [0]*pad_len])
                     if i == 0:
                         bin_dataframe["range"] = bin_range
-                    bin_dataframe[f"Spikes_quantity_in_bins {ch}"] = bins
+                    bin_dataframe[f"Spikes_frequency_in_bins {ch}"] = bins
                 bin_dataframe.to_csv(path + "bins.csv", index=False)
 
     def _create_bin(self, channels):

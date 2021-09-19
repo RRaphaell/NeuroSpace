@@ -16,7 +16,7 @@ class Waveform:
         self.from_s, self.to_s = from_s, to_s
         self.high_pass = high_pass
         self.low_pass = low_pass
-        self._signal_time_range = None, None
+        self._signal_time_range = None
 
     @property
     def signal(self):

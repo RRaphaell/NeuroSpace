@@ -79,3 +79,6 @@ class SpikeWidget(WaveformWidget):
 
     def set_plot_func(self, func):
         self._plot_btn.clicked.connect(func)
+    
+    def set_extract_func(self, func):
+        self._extract_btn.clicked.connect(func)
