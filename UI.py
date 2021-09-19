@@ -43,8 +43,8 @@ class NeuroSpace(QtWidgets.QMainWindow):
         self.mdi.setBackground(brush)
 
     def resizeEvent(self, event):
-        self._properties_dock.setFixedSize(int(self.width()*0.15), int(self.height()*0.4))
-        self.parameters_dock.setFixedWidth(int(self.width() * 0.15))
+        self._properties_dock.setFixedSize(int(self.width()*0.2), int(self.height()*0.4))
+        self.parameters_dock.setFixedWidth(int(self.width()*0.2))
 
     def _add_menubar(self):
         menu_bar = self.menuBar()

@@ -56,6 +56,9 @@ class BinWidget(WaveformWidget):
         group_box_layout.addWidget(self.bin_width)
         group_box.setLayout(group_box_layout)
         return group_box
+    
+    def set_extract_func(self, func):
+        self._extract_btn.clicked.connect(func)
 
     @property
     def plot_func(self):

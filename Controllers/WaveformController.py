@@ -50,7 +50,7 @@ class WaveformController:
     def extract_clicked(self):
         path = self.view.get_path_for_save()
         if path:
-            marked_channels = self.view.channel_widget.marked_channels
+            marked_channels = self.view.channel_widget.marked_spike_channels
             if len(marked_channels) == 0:
                 raise ValueError("At least one channel should be marked")
 
