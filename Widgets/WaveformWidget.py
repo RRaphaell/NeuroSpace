@@ -1,9 +1,9 @@
 from PyQt5 import QtWidgets
 from Widgets.utils import move_center, calculate_row_col_adjustment, create_widget_layout
-from Widgets.default_widgets import (create_widget_description
-                                     , create_time_range_widgets
-                                     , create_filter_widgets
-                                     , create_plot_extract_buttons)
+from Widgets.default_widgets import (create_widget_description,
+                                     create_time_range_widgets,
+                                     create_filter_widgets,
+                                     create_plot_extract_buttons)
 from Widgets.ChannelIdsWidget import ChannelIdsWidget
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas

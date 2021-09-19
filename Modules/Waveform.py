@@ -1,4 +1,3 @@
-from numpy import timedelta64
 from Modules.utils import (convert_channel_label_to_id
                            , filter_base_frequency
                            , get_signal_and_time
@@ -45,7 +44,7 @@ class Waveform:
     def from_s(self, from_s):
         from_s = 0 if from_s == "" else from_s
         if not is_number(from_s):
-            raise ValueError ('"From" should be number')
+            raise ValueError('"From" should be number')
         from_s = round_to_closest(float(from_s), 1/self.fs)
 
         if not ((from_s >= 0) and (from_s < self.signal_time)):
@@ -120,7 +119,6 @@ class Waveform:
     @_to_idx.setter
     def _to_idx(self, to_idx):
         self.__to_idx = to_idx
-    
 
     def _get_filtered_signal(self):
         filtered_signal = filter_base_frequency(self._signal, self.fs, self.high_pass, self.low_pass)

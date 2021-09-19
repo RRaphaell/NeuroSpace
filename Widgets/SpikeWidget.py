@@ -1,7 +1,6 @@
 from Widgets.WaveformWidget import WaveformWidget
 from PyQt5 import QtWidgets
 from Widgets.default_widgets import (line_edit_with_label,
-                                     create_threshold_widgets,
                                      create_group_dead_time_threshold,
                                      merge_widgets)
 

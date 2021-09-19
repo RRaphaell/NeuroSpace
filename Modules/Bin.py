@@ -1,4 +1,3 @@
-import numpy as np
 from Modules.Spikes import Spikes
 
 

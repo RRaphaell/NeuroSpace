@@ -7,8 +7,8 @@ from Modules.Waveform import Waveform
 
 class Spikes(Waveform):
 
-    def __init__(self,  spike_dead_time, spike_threshold_from="", 
-                spike_threshold_to="",*args, **kwargs):
+    def __init__(self,  spike_dead_time, spike_threshold_from="",
+                 spike_threshold_to="", *args, **kwargs):
 
         super().__init__(*args, **kwargs)
         self.spike_dead_time = spike_dead_time
@@ -67,7 +67,7 @@ class Spikes(Waveform):
         if spike_threshold_to == "":
             self._spike_threshold_to = calculate_min_voltage_of_signal(self.signal)
         else:
-            self._spike_threshold_to = self.threshold_checker(spike_threshold_to)
+            self._spike_threshold_to = Spikes.threshold_checker(spike_threshold_to)
 
     # @property
     # def stimulus_dead_time(self):
@@ -104,17 +104,18 @@ class Spikes(Waveform):
     #     if self.stimulus_ticked and stimulus_threshold_to == "":
     #         self._stimulus_threshold_to = calculate_min_voltage_of_signal(self.signal)
     #     elif stimulus_threshold_to != "":
-    #         self._stimulus_threshold_to = self.threshold_checker(stimulus_threshold_to)
+    #         self._stimulus_threshold_to = Spikes.threshold_checker(stimulus_threshold_to)
     #     else :
     #         self._stimulus_threshold_to = ""
 
     @property
     def dead_time_idx(self):
         return self._dead_time_idx
-    
-    def threshold_checker(self, threshold):
-        if  not is_number(threshold):
-            raise ValueError ('"Threshold " should be number')
+
+    @staticmethod
+    def threshold_checker(threshold):
+        if not is_number(threshold):
+            raise ValueError('"Threshold " should be number')
         elif not (int(float(threshold)) >= 0):
             raise ValueError('"Threshold " should be positive')
         return float(threshold)

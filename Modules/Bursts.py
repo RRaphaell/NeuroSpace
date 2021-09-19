@@ -4,8 +4,8 @@ from Modules.utils import calculate_bursts, is_number
 
 class Bursts:
     def __init__(self, spikes_obj, burst_max_start="",
-                burst_max_end="", burst_betw="", burst_dur="",
-                burst_numb=""):
+                 burst_max_end="", burst_betw="", burst_dur="",
+                 burst_numb=""):
         self._spikes_obj = spikes_obj
         self.burst_max_start = burst_max_start
         self.burst_max_end = burst_max_end
@@ -24,7 +24,7 @@ class Bursts:
     
     @burst_max_start.setter
     def burst_max_start(self, burst_max_start):
-        self._burst_max_start = self.burst_param_check(burst_max_start, "burst max start")
+        self._burst_max_start = Bursts.burst_param_check(burst_max_start, "burst max start")
 
     @property
     def burst_max_end(self):
@@ -32,7 +32,7 @@ class Bursts:
     
     @burst_max_end.setter
     def burst_max_end(self, burst_max_end):
-        self._burst_max_end = self.burst_param_check(burst_max_end, "burst max end")
+        self._burst_max_end = Bursts.burst_param_check(burst_max_end, "burst max end")
 
     @property
     def burst_betw(self):
@@ -40,7 +40,7 @@ class Bursts:
     
     @burst_betw.setter
     def burst_betw(self, burst_betw):
-        self._burst_betw = self.burst_param_check(burst_betw, "burst betw")
+        self._burst_betw = Bursts.burst_param_check(burst_betw, "burst betw")
 
     @property
     def burst_dur(self):
@@ -48,7 +48,7 @@ class Bursts:
     
     @burst_dur.setter
     def burst_dur(self, burst_dur):
-        self._burst_dur = self.burst_param_check(burst_dur, "burst dur")
+        self._burst_dur = Bursts.burst_param_check(burst_dur, "burst dur")
 
     @property
     def burst_numb(self):
@@ -56,11 +56,12 @@ class Bursts:
     
     @burst_numb.setter
     def burst_numb(self, burst_numb):
-        self._burst_numb = int(self.burst_param_check(burst_numb, "burst numb"))
+        self._burst_numb = int(Bursts.burst_param_check(burst_numb, "burst numb"))
 
-    def burst_param_check(self, param, param_name):
-        if  not is_number(param):
-            return ValueError (f'"{param_name}" should be number')
-        elif  not (float(param) >= 0):
+    @staticmethod
+    def burst_param_check(param, param_name):
+        if not is_number(param):
+            return ValueError(f'"{param_name}" should be number')
+        elif not (float(param) >= 0):
             return ValueError(f'"{param_name}" should be positive')
         return float(param)

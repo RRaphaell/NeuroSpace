@@ -45,21 +45,22 @@ class BinController:
                 bin_range = np.arange(bin.from_s, bin.to_s, bin.bin_width)
                 pad_len = len(bin_range) - len(bin.bins)
                 bins = np.concatenate([bin.bins, [0]*pad_len])
-                plot_bins(bins, bin_range, bin.bin_width, self.view.canvas, 
-                            "Bin Timestamp (sec)", "Bin Frequency", ax_idx=0)
+                plot_bins(bins, bin_range, bin.bin_width, self.view.canvas,
+                          "Bin Timestamp (sec)", "Bin Frequency", ax_idx=0)
             else:
                 for i, ch in enumerate(marked_channels):
                     bin = self._create_bin([ch])
                     bin_range = np.arange(bin.from_s, bin.to_s, bin.bin_width)
                     pad_len = len(bin_range) - len(bin.bins)
                     bins = np.concatenate([bin.bins, [0]*pad_len])
-                    plot_bins(bins, bin_range, bin.bin_width, self.view.canvas, 
-                                "Bin Timestamp (sec)", "Bin Frequency", ax_idx=i)
+                    plot_bins(bins, bin_range, bin.bin_width, self.view.canvas,
+                              "Bin Timestamp (sec)", "Bin Frequency", ax_idx=i)
             self.view.canvas.figure.tight_layout()
 
     def _create_bin(self, channels):
-        return Bin(self.view.bin_width.text(), self.view.spike_dead_time.text(), self.view.spike_threshold_from.text(), self.view.spike_threshold_to.text(), self.file.recordings[0].analog_streams[0], channels, self.view.from_s.text(),
-                        self.view.to_s.text(), self.view.high_pass.text(), self.view.low_pass.text())
+        return Bin(self.view.bin_width.text(), self.view.spike_dead_time.text(), self.view.spike_threshold_from.text(),
+                   self.view.spike_threshold_to.text(), self.file.recordings[0].analog_streams[0],
+                   channels, self.view.from_s.text(), self.view.to_s.text(), self.view.high_pass.text(), self.view.low_pass.text())
 
     def _remove_me(self):
         del self.open_window_dict[self._key]

@@ -70,4 +70,3 @@ def calculate_row_col_adjustment(plot_num):
     row_adjustment = divisors[len(divisors)//2]
     col_adjustment = int(plot_num / row_adjustment)
     return row_adjustment, col_adjustment
-

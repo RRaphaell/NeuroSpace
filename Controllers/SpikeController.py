@@ -46,11 +46,11 @@ class SpikeController:
                 spikes_time_range = spike_obj.spikes_time_range
                 if self.view.burst_group_box.isChecked():
                     bursts_obj = Bursts(spike_obj, self.view.burst_max_start.text(), self.view.burst_max_end.text(),
-                                self.view.burst_betw.text(), self.view.burst_dur.text(), self.view.burst_numb.text())
+                                        self.view.burst_betw.text(), self.view.burst_dur.text(), self.view.burst_numb.text())
                     burst_starts, burst_ends = bursts_obj.bursts
                 plot_signal_with_spikes_and_bursts(spike_obj.signal, spike_obj.signal_time_range, self.view.canvas,
-                                                "Time (seconds)","Signal voltage", spike_obj.fs,spikes_time_range, 
-                                                spikes_indexes, 0, burst_starts, burst_ends)
+                                                   "Time (seconds)", "Signal voltage", spikes_time_range,
+                                                   spikes_indexes, 0, burst_starts, burst_ends)
             else:
                 for i, ch in enumerate(marked_channels):
                     spike_obj = self._create_spike_module([ch])
@@ -59,18 +59,18 @@ class SpikeController:
                     burst_starts, burst_ends = None, None
                     if self.view.burst_group_box.isChecked():   
                         bursts_obj = Bursts(spike_obj, self.view.burst_max_start.text(), self.view.burst_max_end.text(),
-                                self.view.burst_betw.text(), self.jnhbview.burst_dur.text(), self.view.burst_numb.text())
+                                            self.view.burst_betw.text(), self.jnhbview.burst_dur.text(), self.view.burst_numb.text())
                         burst_starts, burst_ends = bursts_obj.bursts
                     plot_signal_with_spikes_and_bursts(spike_obj.signal, spike_obj.signal_time_range, self.view.canvas,
-                                                "Time (seconds)","Signal voltage", spike_obj.fs,spikes_time_range,
-                                                spikes_indexes, ax_idx = i, bursts_starts = burst_starts, bursts_ends = burst_ends)
+                                                       "Time (seconds)", "Signal voltage", spikes_time_range,
+                                                       spikes_indexes, ax_idx=i, bursts_starts=burst_starts,
+                                                       bursts_ends=burst_ends)
             self.view.canvas.figure.tight_layout()
 
     def _create_spike_module(self, marked_channels):
         return Spikes(self.view.spike_dead_time.text(), self.view.spike_threshold_from.text(), self.view.spike_threshold_to.text(),
-                    self.file.recordings[0].analog_streams[0], marked_channels, self.view.from_s.text(), 
-                    self.view.to_s.text(), self.view.high_pass.text(), self.view.low_pass.text())
-
+                      self.file.recordings[0].analog_streams[0], marked_channels, self.view.from_s.text(),
+                      self.view.to_s.text(), self.view.high_pass.text(), self.view.low_pass.text())
 
     def _remove_me(self):
         del self.open_window_dict[self._key]

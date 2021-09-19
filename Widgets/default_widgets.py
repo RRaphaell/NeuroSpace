@@ -85,4 +85,3 @@ def create_group_dead_time_threshold(title):
     group_box_layout.addWidget(threshold_widget, 2, 0, 1, 4)
     group_box.setLayout(group_box_layout)
     return line_edit, threshold_from, threshold_to, group_box
-
