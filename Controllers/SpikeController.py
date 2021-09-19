@@ -1,3 +1,5 @@
+import numpy as np
+import pandas as pd
 from utils import get_default_widget
 from Modules.utils import plot_signal_with_spikes_and_bursts
 from Modules.Spikes import Spikes
@@ -17,7 +19,7 @@ class SpikeController:
         self.view = SpikeWidget()
         self.view.tabs.currentChanged.connect(self._enable_stimulus_if_checked)
         self.view.set_plot_func(self.plot_clicked)
-        # self.view.set_extract_func(self.extract_clicked)
+        self.view.set_extract_func(self.extract_clicked)
 
     def _enable_stimulus_if_checked(self):
         if len(self.view.channel_widget.marked_stimulus_channels):
@@ -67,6 +69,43 @@ class SpikeController:
                                                        spikes_indexes, ax_idx=i, bursts_starts=burst_starts,
                                                        bursts_ends=burst_ends)
             self.view.canvas.figure.tight_layout()
+
+    def extract_clicked(self):
+        path = self.view.get_path_for_save()
+        if path:
+            marked_channels = self.view.channel_widget.marked_spike_channels
+            if len(marked_channels) == 0:
+                raise ValueError("At least one channel should be marked")
+
+            if self.view.channel_widget.is_avg:
+                self.extract_spike_dataframe(path,marked_channels)
+
+            else:
+                for ch in marked_channels:
+                    self.extract_spike_dataframe(path, [ch])
+    
+    def extract_spike_dataframe(self, path, marked_channels):
+        spike_obj = self._create_spike_module(marked_channels)
+        spikes_df = pd.DataFrame()
+        signal = spike_obj.signal
+        time_in_sec = spike_obj.signal_time_range
+        spikes = spike_obj.spikes_indexes
+        spikes_df["time"] = time_in_sec
+        spikes_df["signal"] = signal
+        
+        to_be_spikes = np.zeros(len(spikes_df))
+        to_be_spikes[spikes] = 1
+        spikes_df[f"spikes {marked_channels}"] = to_be_spikes
+        if self.view.burst_group_box:
+            bursts_obj = Bursts(spike_obj, self.view.burst_max_start.text(), self.view.burst_max_end.text(),
+                                self.view.burst_betw.text(), self.view.burst_dur.text(), self.view.burst_numb.text())
+            bursts_starts, _ = bursts_obj.bursts_indexes
+            to_be_bursts = np.zeros(len(spikes_df))
+            to_be_bursts[bursts_starts] = 1
+            spikes_df[f"bursts {marked_channels}"] = to_be_bursts
+        else:
+            spikes_df[f"bursts {marked_channels}"] = np.zeros(len(spikes_df))
+        spikes_df.to_csv(path + "_spikes.csv", index=False)
 
     def _create_spike_module(self, marked_channels):
         return Spikes(self.view.spike_dead_time.text(), self.view.spike_threshold_from.text(), self.view.spike_threshold_to.text(),

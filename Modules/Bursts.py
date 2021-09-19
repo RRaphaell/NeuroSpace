@@ -19,6 +19,13 @@ class Bursts:
                                 self.burst_betw, self.burst_dur, self.burst_numb)
 
     @property
+    def bursts_indexes(self):
+        bursts_start, bursts_ends = self.bursts
+        bursts_start_idx = list(map(lambda x: int(x*self._spikes_obj.fs), bursts_start))
+        bursts_end_idx = list(map(lambda x: int(x*self._spikes_obj.fs), bursts_ends))
+        return bursts_start_idx, bursts_end_idx
+
+    @property
     def burst_max_start(self):
         return self._burst_max_start
     
