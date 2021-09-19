@@ -1,3 +1,4 @@
+from Modules.SpikeTogether import SpikeTogether
 import numpy as np
 import pandas as pd
 from utils import get_default_widget
@@ -43,28 +44,22 @@ class SpikeController:
             if len(marked_channels) == 0:
                 raise ValueError("At least one channel should be marked")
             if self.view.channel_widget.is_avg:            
-                spike_obj = self._create_spike_module(marked_channels)
-                burst_starts, burst_ends = None, None
-                if self.view.burst_group_box.isChecked():
-                    bursts_obj = Bursts(spike_obj, self.view.burst_max_start.text(), self.view.burst_max_end.text(),
-                                        self.view.burst_betw.text(), self.view.burst_dur.text(), self.view.burst_numb.text())
-                    burst_starts, burst_ends = bursts_obj.bursts
-                plot_signal_with_spikes_and_bursts(spike_obj.signal, spike_obj.signal_time_range, self.view.canvas,
-                                                   "Time (seconds)", "Signal voltage", spike_obj.spikes_time_range,
-                                                   spike_obj.spikes_indexes, 0, burst_starts, burst_ends)
+                self.plot_one_channel(marked_channels,0)
             else:
                 for i, ch in enumerate(marked_channels):
-                    spike_obj = self._create_spike_module([ch])
-                    burst_starts, burst_ends = None, None
-                    if self.view.burst_group_box.isChecked():   
-                        bursts_obj = Bursts(spike_obj, self.view.burst_max_start.text(), self.view.burst_max_end.text(),
-                                            self.view.burst_betw.text(), self.view.burst_dur.text(), self.view.burst_numb.text())
-                        burst_starts, burst_ends = bursts_obj.bursts
-                    plot_signal_with_spikes_and_bursts(spike_obj.signal, spike_obj.signal_time_range, self.view.canvas,
-                                                       "Time (seconds)", "Signal voltage", spike_obj.spikes_time_range,
-                                                       spike_obj.spikes_indexes, ax_idx=i, bursts_starts=burst_starts,
-                                                       bursts_ends=burst_ends)
+                    self.plot_one_channel([ch],i)
             self.view.canvas.figure.tight_layout()
+
+    def plot_one_channel(self, marked_channels, ax_idx):
+        spike_obj = self._create_spike_module(marked_channels)
+        burst_starts, burst_ends = None, None
+        if self.view.burst_group_box.isChecked():
+            bursts_obj = Bursts(spike_obj, self.view.burst_max_start.text(), self.view.burst_max_end.text(),
+                                        self.view.burst_betw.text(), self.view.burst_dur.text(), self.view.burst_numb.text())
+            burst_starts, burst_ends = bursts_obj.bursts
+        plot_signal_with_spikes_and_bursts(spike_obj.signal, spike_obj.signal_time_range, self.view.canvas,
+                                                   "Time (seconds)", "Signal voltage", spike_obj.spikes_time_range,
+                                                   spike_obj.spikes_indexes, ax_idx, burst_starts, burst_ends)
 
     def extract_clicked(self):
         path = self.view.get_path_for_save()
