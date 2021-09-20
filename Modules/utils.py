@@ -88,13 +88,14 @@ def plot_signal_with_spikes_and_bursts(signal, time_in_sec, canvas, x_label, y_l
     return spikes_in_range
 
 
-def plot_bins(spike_in_bins, bin_ranges, bin_width, canvas, x_label, y_label, ax_idx=0):    
+def plot_bins(spike_in_bins, bin_ranges, bin_width, canvas, title, x_label, y_label, ax_idx=0):
     x = bin_ranges
     y = [int(value) for value in spike_in_bins]
 
     axes = canvas.figure.get_axes()
     ax = axes[ax_idx]
     ax.clear()
+
     ax.bar(x, y, width=bin_width, align='edge', alpha=0.4, facecolor='blue', edgecolor='red', linewidth=2)
     ax.grid(color='#95a5a6', linestyle='--', linewidth=1, axis='y', alpha=0.7)
 
@@ -105,6 +106,7 @@ def plot_bins(spike_in_bins, bin_ranges, bin_width, canvas, x_label, y_label, ax
     #     if stimul>=from_in_s and stimul<=to_in_s:
     #         ax.axvspan(stimul, stimul+5*40/1000000, facecolor='0.2', alpha=0.7, color='lime')
 
+    ax.set_title(title)
     canvas.figure.text(0.5, 0.01, x_label, ha='center')
     canvas.figure.text(0.01, 0.5, y_label, va='center', rotation='vertical')
     canvas.draw()

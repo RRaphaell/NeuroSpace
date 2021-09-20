@@ -55,7 +55,7 @@ class SpikeController:
         burst_starts, burst_ends = None, None
         if self.view.burst_group_box.isChecked():
             bursts_obj = Bursts(spike_obj, self.view.burst_max_start.text(), self.view.burst_max_end.text(),
-                                        self.view.burst_betw.text(), self.view.burst_dur.text(), self.view.burst_numb.text())
+                                self.view.burst_between.text(), self.view.burst_duration.text(), self.view.burst_number.text())
             burst_starts, burst_ends = bursts_obj.bursts
         plot_signal_with_spikes_and_bursts(spike_obj.signal, spike_obj.signal_time_range, self.view.canvas,
                                                    "Time (seconds)", "Signal voltage", spike_obj.spikes_time_range,
@@ -90,7 +90,7 @@ class SpikeController:
         spikes_df[f"spikes {marked_channels}"] = to_be_spikes
         if self.view.burst_group_box:
             bursts_obj = Bursts(spike_obj, self.view.burst_max_start.text(), self.view.burst_max_end.text(),
-                                self.view.burst_betw.text(), self.view.burst_dur.text(), self.view.burst_numb.text())
+                                self.view.burst_between.text(), self.view.burst_duration.text(), self.view.burst_number.text())
             bursts_starts, _ = bursts_obj.bursts_indexes
             to_be_bursts = np.zeros(len(spikes_df))
             to_be_bursts[bursts_starts] = 1

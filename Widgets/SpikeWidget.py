@@ -3,6 +3,7 @@ from PyQt5 import QtWidgets
 from Widgets.default_widgets import (line_edit_with_label,
                                      create_group_dead_time_threshold,
                                      merge_widgets)
+from Widgets.utils import get_default_params
 
 
 class SpikeWidget(WaveformWidget):
@@ -13,9 +14,10 @@ class SpikeWidget(WaveformWidget):
         self.spike_threshold_from, self.stimulus_threshold_from = None, None
         self.spike_threshold_to, self.stimulus_threshold_to = None, None
         self.burst_max_start, self.burst_max_end = None, None
-        self.burst_betw, self.burst_dur, self.burst_numb = None, None, None
+        self.burst_between, self.burst_duration, self.burst_number = None, None, None
 
         self._add_tabs()
+        self._set_spike_default_params()
         self.setCentralWidget(self.tabs)
 
     def _add_tabs(self):
@@ -38,7 +40,6 @@ class SpikeWidget(WaveformWidget):
 
         (self.stimulus_dead_time, self.stimulus_threshold_from,
          self.stimulus_threshold_to, self.stimulus_group_box) = create_group_dead_time_threshold("Stimulus")
-        self.stimulus_group_box.setDisabled(True)
 
         self.burst_group_box = self._create_burst_group()
         self.pca_group_box = self._create_pca_tab()
@@ -59,12 +60,12 @@ class SpikeWidget(WaveformWidget):
             group_box.setStyleSheet(file.read())
 
         group_box_layout = QtWidgets.QHBoxLayout()
-        self.pre, pre_label = line_edit_with_label("Pre", "Select time parameter", "")
-        self.post, post_label = line_edit_with_label("Post", "Select time parameter", "")
-        self.spike_comp_num, spike_comp_num_label = line_edit_with_label("Comp num", "Select Component number", "")
+        self.pre, pre_label = line_edit_with_label("Pre", "Select time parameter")
+        self.post, post_label = line_edit_with_label("Post", "Select time parameter")
+        self.component_number, spike_comp_num_label = line_edit_with_label("Comp num", "Select Component number")
         spacer = QtWidgets.QSpacerItem(20, 10, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
 
-        widget = merge_widgets(pre_label, self.pre, spacer, post_label, self.post, spacer, spike_comp_num_label, self.spike_comp_num, vertical=False)
+        widget = merge_widgets(pre_label, self.pre, spacer, post_label, self.post, spacer, spike_comp_num_label, self.component_number, vertical=False)
        
         group_box_layout.addWidget(widget)
         group_box.setLayout(group_box_layout)
@@ -77,15 +78,15 @@ class SpikeWidget(WaveformWidget):
             group_box.setStyleSheet(file.read())
         group_box_layout = QtWidgets.QGridLayout()
 
-        self.burst_max_start, start_label = line_edit_with_label("Max Start", "Select burst parameter", "")
-        self.burst_max_end, end_label = line_edit_with_label("Max End", "Select burst parameter", "")
-        self.burst_betw, between_label = line_edit_with_label("Min Between", "Select burst parameter", "")
-        self.burst_dur, duration_label = line_edit_with_label("Min Duration", "Select burst parameter", "")
-        self.burst_numb, numb_label = line_edit_with_label("Min Number Spike", "Select burst parameter", "")
+        self.burst_max_start, start_label = line_edit_with_label("Max Start", "Select burst parameter")
+        self.burst_max_end, end_label = line_edit_with_label("Max End", "Select burst parameter")
+        self.burst_between, between_label = line_edit_with_label("Min Between", "Select burst parameter")
+        self.burst_duration, duration_label = line_edit_with_label("Min Duration", "Select burst parameter")
+        self.burst_number, numb_label = line_edit_with_label("Min Number Spike", "Select burst parameter")
 
         start_end = merge_widgets(start_label, self.burst_max_start, end_label, self.burst_max_end)
-        between_dur_number = merge_widgets(between_label, self.burst_betw, duration_label,
-                                           self.burst_dur, numb_label, self.burst_numb)
+        between_dur_number = merge_widgets(between_label, self.burst_between, duration_label,
+                                           self.burst_duration, numb_label, self.burst_number)
 
         spacer = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Minimum)
         group_box_layout.addWidget(start_end, 0, 0, 1, 2)
@@ -99,3 +100,10 @@ class SpikeWidget(WaveformWidget):
     
     def set_extract_func(self, func):
         self._extract_btn.clicked.connect(func)
+
+    def _set_spike_default_params(self):
+        params = get_default_params()
+        for key, value in params["Spike"].items():
+            att = getattr(self, str(key), None)
+            if att is not None:
+                att.setText(value)

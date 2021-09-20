@@ -1,3 +1,4 @@
+import json
 from PyQt5 import QtWidgets, QtCore
 
 
@@ -70,3 +71,10 @@ def calculate_row_col_adjustment(plot_num):
     row_adjustment = divisors[len(divisors)//2]
     col_adjustment = int(plot_num / row_adjustment)
     return row_adjustment, col_adjustment
+
+
+def get_default_params():
+    with open("default_parameters.json", "r") as file:
+        j = file.read()
+    j = json.loads(j)
+    return j

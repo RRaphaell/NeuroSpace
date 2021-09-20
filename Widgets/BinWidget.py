@@ -2,6 +2,8 @@ from Widgets.WaveformWidget import WaveformWidget
 from Widgets.default_widgets import create_group_dead_time_threshold, line_edit_with_label
 from PyQt5 import QtWidgets
 
+from Widgets.utils import get_default_params
+
 
 class BinWidget(WaveformWidget):
     def __init__(self):
@@ -10,6 +12,7 @@ class BinWidget(WaveformWidget):
         self.plot_func = None
 
         self._add_tabs()
+        self._set_bin_default_params()
         self.setCentralWidget(self.tabs)
 
     def _add_tabs(self):
@@ -50,7 +53,7 @@ class BinWidget(WaveformWidget):
             group_box.setStyleSheet(file.read())
         group_box_layout = QtWidgets.QHBoxLayout()
 
-        self.bin_width, bin_width_label = line_edit_with_label("Bin range", "Select Bin range", "")
+        self.bin_width, bin_width_label = line_edit_with_label("Bin range", "Select Bin range")
 
         group_box_layout.addWidget(bin_width_label)
         group_box_layout.addWidget(self.bin_width)
@@ -67,3 +70,10 @@ class BinWidget(WaveformWidget):
     @plot_func.setter
     def plot_func(self, func):
         self._plot_func = func
+
+    def _set_bin_default_params(self):
+        params = get_default_params()
+        for key, value in params["Bin"].items():
+            att = getattr(self, str(key), None)
+            if att is not None:
+                att.setText(value)

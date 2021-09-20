@@ -2,41 +2,36 @@ from Widgets.utils import merge_widgets
 from PyQt5 import QtWidgets, QtCore
 
 
-def line_edit_with_label(label, status, default_value):
-    line_edit = QtWidgets.QLineEdit(default_value)
+def line_edit_with_label(label, status):
+    line_edit = QtWidgets.QLineEdit()
     line_edit.setStatusTip(status)
     line_edit.setMaximumWidth(70)
     label = QtWidgets.QLabel(label)
     return line_edit, label
 
 
-def create_pair_line_edit(label1, label2, status1, status2, default1="", default2=""):
-    line_edit1, line_label1 = line_edit_with_label(label1, status1, default1)
-    line_edit2, line_label2 = line_edit_with_label(label2, status2, default2)
+def create_pair_line_edit(label1, label2, status1, status2):
+    line_edit1, line_label1 = line_edit_with_label(label1, status1)
+    line_edit2, line_label2 = line_edit_with_label(label2, status2)
     widget = merge_widgets(line_label1, line_edit1, line_label2, line_edit2, vertical=False)
     return line_edit1, line_edit2, widget
 
 
-def create_time_range_widgets(from_s="", to_s=""):
-    _from_s, _to_s, time_range_widget = create_pair_line_edit("From", "To",
-                                                              "Choose time range", "Choose time range",
-                                                              default1=from_s, default2=to_s)
+def create_time_range_widgets():
+    _from_s, _to_s, time_range_widget = create_pair_line_edit("From", "To", "Choose time range", "Choose time range")
     return _from_s, _to_s, time_range_widget
 
 
-def create_filter_widgets(high_pass="", low_pass=""):
-    _high_pass, _low_pass, filter_widget = create_pair_line_edit("High pass", "Low pass",
-                                                                 "Choose filter range", "Choose filter range",
-                                                                 default1=high_pass, default2=low_pass)
+def create_filter_widgets():
+    _high_pass, _low_pass, filter_widget = create_pair_line_edit("High pass", "Low pass", "Choose filter range",
+                                                                 "Choose filter range")
     return _high_pass, _low_pass, filter_widget
 
 
-def create_threshold_widgets(threshold_from="", threshold_to=""):
+def create_threshold_widgets():
     _threshold_from, _threshold_to, threshold_widget = create_pair_line_edit("Threshold From", "To",
                                                                              "Choose threshold range",
-                                                                             "Choose threshold range",
-                                                                             default1=threshold_from,
-                                                                             default2=threshold_to)
+                                                                             "Choose threshold range")
     return _threshold_from, _threshold_to, threshold_widget
 
 
@@ -70,7 +65,7 @@ def create_group_dead_time_threshold(title):
         group_box.setStyleSheet(file.read())
     group_box_layout = QtWidgets.QGridLayout()
 
-    line_edit, label = line_edit_with_label("Dead time", "Select Dead Time", "")
+    line_edit, label = line_edit_with_label("Dead time", "Select Dead Time")
     widget = QtWidgets.QWidget()
     layout = QtWidgets.QHBoxLayout()
     layout.addWidget(label)
