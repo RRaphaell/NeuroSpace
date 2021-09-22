@@ -171,14 +171,6 @@ def calculate_min_voltage_of_signal(signal):
     return np.min(signal)
 
 
-def is_number(x):
-    try:
-        float(x)
-        return True
-    except ValueError:
-        return None
-
-
 def calculate_spikes(signal, threshold_from, threshold_to, fs, dead_time_idx):
     last_idx = -dead_time_idx
     threshold_crossings = []
@@ -268,4 +260,3 @@ def get_pca_labels(cutouts, n_components):
     transformed = pca.fit_transform(scaled_cutouts)
     gmm = GaussianMixture(n_components=int(n_components), n_init=10)
     return gmm.fit_predict(transformed)
-

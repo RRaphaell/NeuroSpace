@@ -1,5 +1,5 @@
-
-from Modules.utils import calculate_bursts, is_number
+from Modules.ParamChecker import ParamChecker
+from Modules.utils import calculate_bursts
 
 
 class Bursts:
@@ -31,7 +31,7 @@ class Bursts:
     
     @burst_max_start.setter
     def burst_max_start(self, burst_max_start):
-        self._burst_max_start = Bursts.burst_param_check(burst_max_start, "burst max start")
+        self._burst_max_start = ParamChecker(burst_max_start, "burst max start").not_empty.positive.value
 
     @property
     def burst_max_end(self):
@@ -39,7 +39,7 @@ class Bursts:
     
     @burst_max_end.setter
     def burst_max_end(self, burst_max_end):
-        self._burst_max_end = Bursts.burst_param_check(burst_max_end, "burst max end")
+        self._burst_max_end = ParamChecker(burst_max_end, "burst max end").not_empty.positive.value
 
     @property
     def burst_betw(self):
@@ -47,7 +47,7 @@ class Bursts:
     
     @burst_betw.setter
     def burst_betw(self, burst_betw):
-        self._burst_betw = Bursts.burst_param_check(burst_betw, "burst betw")
+        self._burst_betw = ParamChecker(burst_betw, "burst betw").not_empty.positive.value
 
     @property
     def burst_dur(self):
@@ -55,7 +55,7 @@ class Bursts:
     
     @burst_dur.setter
     def burst_dur(self, burst_dur):
-        self._burst_dur = Bursts.burst_param_check(burst_dur, "burst dur")
+        self._burst_dur = ParamChecker(burst_dur, "burst dur").not_empty.positive.value
 
     @property
     def burst_numb(self):
@@ -63,12 +63,5 @@ class Bursts:
     
     @burst_numb.setter
     def burst_numb(self, burst_numb):
-        self._burst_numb = int(Bursts.burst_param_check(burst_numb, "burst numb"))
+        self._burst_numb = int(ParamChecker(burst_numb, "burst numb").positive.value)
 
-    @staticmethod
-    def burst_param_check(param, param_name):
-        if not is_number(param):
-            return ValueError(f'"{param_name}" should be number')
-        elif not (float(param) >= 0):
-            return ValueError(f'"{param_name}" should be positive')
-        return float(param)

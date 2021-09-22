@@ -1,7 +1,7 @@
+from Modules.ParamChecker import ParamChecker
 from Modules.utils import (calculate_min_voltage_of_signal,
                            calculate_spikes,
-                           calculate_threshold_based_on_signal,
-                           is_number)
+                           calculate_threshold_based_on_signal)
 from Modules.Waveform import Waveform
 
 
@@ -25,7 +25,7 @@ class Spikes(Waveform):
     @property
     def spikes_time_range(self):
         indexes = self.spikes_indexes
-        if len(indexes) > 1 :
+        if len(indexes) > 1:
             time_range = indexes/self.fs + self.from_s
             return time_range
         return indexes
@@ -36,8 +36,7 @@ class Spikes(Waveform):
     
     @spike_dead_time.setter
     def spike_dead_time(self, spike_dead_time):
-        if not is_number(spike_dead_time):
-            raise ValueError('"Spikes dead time" should be number')
+        _ = ParamChecker(spike_dead_time, "spike_dead_time").number
 
         if not ((float(spike_dead_time) >= 0) and (float(spike_dead_time) < self.signal_time)):
             raise ValueError('"Spikes dead time" should be positive')
@@ -52,10 +51,10 @@ class Spikes(Waveform):
     def spike_threshold_from(self, spike_threshold_from):
         if spike_threshold_from == "":
             self._spike_threshold_from = calculate_threshold_based_on_signal(self.signal)
-        elif not is_number(spike_threshold_from):
-            raise ValueError('"Spikes Threshold from" should be number')
-        elif not (int(float(spike_threshold_from)) >= 0):
-            raise ValueError('"Spikes Threshold from" should be positive')
+            _ = ParamChecker(self._spike_threshold_from, "spike_threshold_from").number
+
+        _ = ParamChecker(spike_threshold_from, "spike_threshold_from").number
+
         self._spike_threshold_from = float(spike_threshold_from)
 
     @property
@@ -66,8 +65,9 @@ class Spikes(Waveform):
     def spike_threshold_to(self, spike_threshold_to):
         if spike_threshold_to == "":
             self._spike_threshold_to = calculate_min_voltage_of_signal(self.signal)
-        else:
-            self._spike_threshold_to = Spikes.threshold_checker(spike_threshold_to)
+            _ = ParamChecker(self._spike_threshold_to, "spike_threshold_to").number
+
+        _ = ParamChecker(spike_threshold_to, "spike_threshold_to").number
 
     # @property
     # def stimulus_dead_time(self):
@@ -111,12 +111,4 @@ class Spikes(Waveform):
     @property
     def dead_time_idx(self):
         return self._dead_time_idx
-
-    @staticmethod
-    def threshold_checker(threshold):
-        if not is_number(threshold):
-            raise ValueError('"Threshold " should be number')
-        elif not (int(float(threshold)) >= 0):
-            raise ValueError('"Threshold " should be positive')
-        return float(threshold)
     

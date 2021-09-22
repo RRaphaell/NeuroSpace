@@ -1,3 +1,4 @@
+from Controllers.utils import catch_exception
 from Modules.SpikeTogether import SpikeTogether
 import numpy as np
 import pandas as pd
@@ -9,13 +10,14 @@ from Widgets.SpikeWidget import SpikeWidget
 
 
 class SpikeController:
-    def __init__(self, file, key, open_window_dict, mdi, parameters_dock, dialog):
+    def __init__(self, file, key, open_window_dict, mdi, parameters_dock, popup_handler, dialog):
         self.file = file
         self._key = key
         self.open_window_dict = open_window_dict
         self.parameters_dock = parameters_dock
         self._dialog = dialog
         self.mdi = mdi
+        self.popup_handler = popup_handler
 
         self.view = SpikeWidget()
         self.view.tabs.currentChanged.connect(self._enable_stimulus_if_checked)
@@ -27,28 +29,31 @@ class SpikeController:
             self.view.stimulus_group_box.setEnabled(True)
         else:
             self.view.stimulus_group_box.setDisabled(True)
-    
+
+    @catch_exception
     def plot_clicked(self):
+        marked_channels = self.view.channel_widget.marked_spike_channels
+        if len(marked_channels) == 0:
+            raise ValueError("At least one channel should be marked")
+
         if self._dialog:
             self._dialog.accept()
             self._dialog = None
-            self.view.create_plot_window()
-            self.mdi.addSubWindow(self.view.plot_window)
-            self.view.plot_window.show()
-            self.view.plot_widget.mousePressEvent = lambda x: self.parameters_dock.setWidget(self.view)
-            self.view.plot_window.closeEvent = lambda x: self._remove_me()
-            self.view.canvas.mousePressEvent = lambda x: self.parameters_dock.setWidget(self.view)
-            self.plot_clicked()
+
+        self.view.create_plot_window()
+        self.mdi.addSubWindow(self.view.plot_window)
+
+        if self.view.channel_widget.is_avg:
+            self.plot_one_channel(marked_channels, 0)
         else:
-            marked_channels = self.view.channel_widget.marked_spike_channels
-            if len(marked_channels) == 0:
-                raise ValueError("At least one channel should be marked")
-            if self.view.channel_widget.is_avg:            
-                self.plot_one_channel(marked_channels,0)
-            else:
-                for i, ch in enumerate(marked_channels):
-                    self.plot_one_channel([ch],i)
-            self.view.canvas.figure.tight_layout()
+            for i, ch in enumerate(marked_channels):
+                self.plot_one_channel([ch], i)
+
+        self.view.plot_window.show()
+        self.view.plot_widget.mousePressEvent = lambda x: self.parameters_dock.setWidget(self.view)
+        self.view.plot_window.closeEvent = lambda x: self._remove_me()
+        self.view.canvas.mousePressEvent = lambda x: self.parameters_dock.setWidget(self.view)
+        self.view.canvas.figure.tight_layout()
 
     def plot_one_channel(self, marked_channels, ax_idx):
         spike_obj = self._create_spike_module(marked_channels)
@@ -61,6 +66,7 @@ class SpikeController:
                                                    "Time (seconds)", "Signal voltage", spike_obj.spikes_time_range,
                                                    spike_obj.spikes_indexes, ax_idx, burst_starts, burst_ends)
 
+    @catch_exception
     def extract_clicked(self):
         path = self.view.get_path_for_save()
         if path:

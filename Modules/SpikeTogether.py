@@ -1,5 +1,6 @@
+from Modules.ParamChecker import ParamChecker
 from Modules.Spikes import Spikes
-from Modules.utils import get_signal_cutouts, get_pca_labels, is_number
+from Modules.utils import get_signal_cutouts, get_pca_labels
 
 
 class SpikeTogether(Spikes):
@@ -17,8 +18,7 @@ class SpikeTogether(Spikes):
 
     @pre.setter
     def pre(self, value):
-        SpikeTogether.valid_param(value, "pre")
-        self._pre = float(value)
+        self._pre = ParamChecker(value, "pre").not_empty.positive.value
 
     @property
     def post(self):
@@ -26,8 +26,7 @@ class SpikeTogether(Spikes):
 
     @post.setter
     def post(self, value):
-        SpikeTogether.valid_param(value, "post")
-        self._post = float(value)
+        self._post = ParamChecker(value, "post").not_empty.positive.value
 
     @property
     def component_number(self):
@@ -35,8 +34,7 @@ class SpikeTogether(Spikes):
 
     @component_number.setter
     def component_number(self, value):
-        SpikeTogether.valid_param(value, "component number")
-        self._component_number = int(value)
+        self._component_number = int(ParamChecker(value, "component number").not_empty.positive.value)
 
     @property
     def cutouts(self):
@@ -49,14 +47,3 @@ class SpikeTogether(Spikes):
 
         labels = get_pca_labels(self.cutouts, self.component_number)
         return labels
-
-    @staticmethod
-    #  check if value is not empty and also positive integer
-    def valid_param(value, param_name):
-        if value == "":
-            raise ValueError(f'please enter {param_name} value')
-        elif not is_number(value):
-            raise ValueError(f'{param_name} should be number')
-        elif not (int(float(value)) >= 0):
-            raise ValueError(f'{param_name} should be positive')
-

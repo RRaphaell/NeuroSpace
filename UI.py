@@ -1,6 +1,7 @@
 from PyQt5 import QtWidgets, QtGui, QtCore
 
 from Controllers.SpikeTogetherController import SpikeTogetherController
+from PopupHandler import PopupHandler
 from utils import path_valid, get_default_widget
 from functools import partial
 from Controllers.WaveformController import WaveformController
@@ -132,20 +133,20 @@ class NeuroSpace(QtWidgets.QMainWindow):
 
     def _on_waveform_icon_clicked(self):
         waveform_controller = partial(WaveformController, self._file, self.window_key, self.open_windows_dict,
-                                      self.mdi, self.parameters_dock)
+                                      self.mdi, self.parameters_dock, PopupHandler(self))
         self._on_icon_clicked(waveform_controller, dialog_title="Waveform")
 
     def _on_spike_icon_clicked(self):
         spike_controller = partial(SpikeController, self._file, self.window_key, self.open_windows_dict,
-                                   self.mdi, self.parameters_dock)
+                                   self.mdi, self.parameters_dock, PopupHandler(self))
         self._on_icon_clicked(spike_controller, dialog_title="Spike")
 
     def _on_bin_icon_clicked(self):
         spike_controller = partial(BinController, self._file, self.window_key, self.open_windows_dict,
-                                   self.mdi, self.parameters_dock)
+                                   self.mdi, self.parameters_dock, PopupHandler(self))
         self._on_icon_clicked(spike_controller, dialog_title="Bin")
 
     def _on_spike_together_icon_clicked(self):
         spike_together = partial(SpikeTogetherController, self._file, self.window_key, self.open_windows_dict,
-                                 self.mdi, self.parameters_dock)
+                                 self.mdi, self.parameters_dock, PopupHandler(self))
         self._on_icon_clicked(spike_together, dialog_title="SpikeTogether")

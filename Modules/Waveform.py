@@ -1,8 +1,8 @@
+from Modules.ParamChecker import ParamChecker
 from Modules.utils import (convert_channel_label_to_id
                            , filter_base_frequency
                            , get_signal_and_time
-                           , round_to_closest
-                           , is_number)
+                           , round_to_closest)
 
 
 class Waveform:
@@ -43,8 +43,7 @@ class Waveform:
     @from_s.setter
     def from_s(self, from_s):
         from_s = 0 if from_s == "" else from_s
-        if not is_number(from_s):
-            raise ValueError('"From" should be number')
+        _ = ParamChecker(from_s, "from_s").number
         from_s = round_to_closest(float(from_s), 1/self.fs)
 
         if not ((from_s >= 0) and (from_s < self.signal_time)):
@@ -59,8 +58,7 @@ class Waveform:
     @to_s.setter
     def to_s(self, to_s):
         to_s = self.signal_time if to_s == "" else to_s
-        if not is_number(to_s):
-            raise ValueError('"To" should be number')
+        _ = ParamChecker(to_s, "to_s").number
         to_s = round_to_closest(float(to_s), 1/self.fs)
 
         if not ((to_s > 0) and (to_s <= self.signal_time)):
@@ -80,11 +78,8 @@ class Waveform:
     def high_pass(self, high_pass):
         if high_pass == "":
             self._high_pass = None
-        elif not is_number(high_pass):
-            raise ValueError('"High pass" should be number')
-        elif int(float(high_pass)) < 0:
-            raise ValueError('"High pass" should be positive')
         else:
+            _ = ParamChecker(high_pass, "high_pass").number.positive
             self._high_pass = int(float(high_pass))
 
     @property
@@ -95,13 +90,11 @@ class Waveform:
     def low_pass(self, low_pass):
         if low_pass == "":
             self._low_pass = None
-        elif not is_number(low_pass):
-            raise ValueError('"Low pass" should be number')
-        elif int(float(low_pass)) < 0:
-            raise ValueError('"Low pass" should be positive')
-        elif self.high_pass and int(float(low_pass)) < self.high_pass:
-            raise ValueError('"Low pass" should be greater than High pass')
         else:
+            _ = ParamChecker(low_pass, "low_pass").number.positive
+            if self.high_pass and int(float(low_pass)) < self.high_pass:
+                raise ValueError('"Low pass" should be greater than High pass')
+
             self._low_pass = int(float(low_pass))
 
     @property

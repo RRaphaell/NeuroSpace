@@ -1,5 +1,7 @@
 import numpy as np
 import pandas as pd
+
+from Controllers.utils import catch_exception
 from Modules.utils import plot_bins
 from Widgets.BinWidget import BinWidget
 from Modules.Bin import Bin
@@ -7,13 +9,14 @@ from utils import get_default_widget
 
 
 class BinController:
-    def __init__(self, file, key, open_window_dict, mdi, parameters_dock, dialog):
+    def __init__(self, file, key, open_window_dict, mdi, parameters_dock, popup_handler, dialog):
         self.file = file
         self._key = key
         self.open_window_dict = open_window_dict
         self.parameters_dock = parameters_dock
         self._dialog = dialog
         self.mdi = mdi
+        self.popup_handler = popup_handler
 
         self.view = BinWidget()
         self.view.tabs.currentChanged.connect(self._enable_stimulus_if_checked)
@@ -26,29 +29,30 @@ class BinController:
         else:
             self.view.stimulus_group_box.setDisabled(True)
 
-    
+    @catch_exception
     def plot_clicked(self):
+        marked_channels = self.view.channel_widget.marked_spike_channels
+        if len(marked_channels) == 0:
+            raise ValueError("At least one channel should be marked")
+
         if self._dialog:
             self._dialog.accept()
             self._dialog = None
-            self.view.create_plot_window()
-            self.mdi.addSubWindow(self.view.plot_window)
-            self.view.plot_window.show()
-            self.view.plot_widget.mousePressEvent = lambda x: self.parameters_dock.setWidget(self.view)
-            self.view.plot_window.closeEvent = lambda x: self._remove_me()
-            self.view.canvas.mousePressEvent = lambda x: self.parameters_dock.setWidget(self.view)
-            self.plot_clicked()
-        else:
-            marked_channels = self.view.channel_widget.marked_spike_channels
-            if len(marked_channels) == 0:
-                raise ValueError("At least one channel should be marked")
 
-            if self.view.channel_widget.is_avg:
-                self.plt_bin_in_channel(marked_channels, 0)
-            else:
-                for i, ch in enumerate(marked_channels):
-                    self.plt_bin_in_channel([ch], i)
-            self.view.canvas.figure.tight_layout()
+        self.view.create_plot_window()
+        self.mdi.addSubWindow(self.view.plot_window)
+
+        if self.view.channel_widget.is_avg:
+            self.plt_bin_in_channel(marked_channels, 0)
+        else:
+            for i, ch in enumerate(marked_channels):
+                self.plt_bin_in_channel([ch], i)
+
+        self.view.plot_window.show()
+        self.view.plot_widget.mousePressEvent = lambda x: self.parameters_dock.setWidget(self.view)
+        self.view.plot_window.closeEvent = lambda x: self._remove_me()
+        self.view.canvas.mousePressEvent = lambda x: self.parameters_dock.setWidget(self.view)
+        self.view.canvas.figure.tight_layout()
 
     def plt_bin_in_channel(self, ch, i):
         _bin = self._create_bin(ch)
@@ -57,7 +61,7 @@ class BinController:
         bins = np.concatenate([_bin.bins, [0] * pad_len])
         plot_bins(bins, bin_range, _bin.bin_width, self.view.canvas, ch, "Bin Timestamp (s)", "Bin Freq (hz)", ax_idx=i)
 
-
+    @catch_exception
     def extract_clicked(self):
         path = self.view.get_path_for_save()
         if path:

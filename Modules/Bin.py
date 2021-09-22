@@ -1,12 +1,13 @@
+from Modules.ParamChecker import ParamChecker
 from Modules.Spikes import Spikes
 
 
 class Bin(Spikes):
     def __init__(self, bin_width, *args, **kwargs):
         super().__init__(*args, **kwargs)
-
+        print(bin_width)
         self._plot_func = None
-        self.bin_width = float(bin_width)
+        self.bin_width = bin_width
         
     @property
     def bins(self):
@@ -18,7 +19,7 @@ class Bin(Spikes):
 
     @bin_width.setter
     def bin_width(self, width):
-        self._bin_width = width
+        self._bin_width = ParamChecker(width, "bin width").not_empty.number.positive.value
         self._bins = self._calculate_bins()
 
     def _calculate_bins(self):
