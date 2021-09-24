@@ -78,3 +78,8 @@ def get_default_params():
         j = file.read()
     j = json.loads(j)
     return j
+
+
+def clear_qlines(*args):
+    for item in args:
+        item.setText("")

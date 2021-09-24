@@ -18,7 +18,7 @@ class SpikeTogether(Spikes):
 
     @pre.setter
     def pre(self, value):
-        self._pre = ParamChecker(value, "pre").not_empty.positive.value
+        self._pre = ParamChecker(value, "pre").not_empty.number.positive.value
 
     @property
     def post(self):
@@ -26,7 +26,7 @@ class SpikeTogether(Spikes):
 
     @post.setter
     def post(self, value):
-        self._post = ParamChecker(value, "post").not_empty.positive.value
+        self._post = ParamChecker(value, "post").not_empty.number.positive.value
 
     @property
     def component_number(self):
@@ -34,7 +34,7 @@ class SpikeTogether(Spikes):
 
     @component_number.setter
     def component_number(self, value):
-        self._component_number = int(ParamChecker(value, "component number").not_empty.positive.value)
+        self._component_number = int(ParamChecker(value, "component number").not_empty.number.positive.value)
 
     @property
     def cutouts(self):

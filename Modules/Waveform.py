@@ -43,11 +43,10 @@ class Waveform:
     @from_s.setter
     def from_s(self, from_s):
         from_s = 0 if from_s == "" else from_s
-        _ = ParamChecker(from_s, "from_s").number
-        from_s = round_to_closest(float(from_s), 1/self.fs)
+        from_s = round_to_closest(ParamChecker(from_s, "from_s").number.positive.value, 1/self.fs)
 
         if not ((from_s >= 0) and (from_s < self.signal_time)):
-            raise ValueError('"From" should be positive')
+            raise ValueError('Parameter "From" should be positive')
         self._from_s = from_s
         self._from_idx = int(self.from_s * self.fs)
 
@@ -58,14 +57,13 @@ class Waveform:
     @to_s.setter
     def to_s(self, to_s):
         to_s = self.signal_time if to_s == "" else to_s
-        _ = ParamChecker(to_s, "to_s").number
-        to_s = round_to_closest(float(to_s), 1/self.fs)
+        to_s = round_to_closest(ParamChecker(to_s, "to_s").number.positive.value, 1/self.fs)
 
         if not ((to_s > 0) and (to_s <= self.signal_time)):
-            raise ValueError('"To" should be positive')
+            raise ValueError('Parameter "To" should be positive')
 
         if to_s <= self.from_s:
-            raise ValueError('"To" should be greater than "from"')
+            raise ValueError('Parameter "To" should be greater than parameter "From"')
 
         self._to_s = to_s
         self._to_idx = int(self.to_s * self.fs)
@@ -79,8 +77,7 @@ class Waveform:
         if high_pass == "":
             self._high_pass = None
         else:
-            _ = ParamChecker(high_pass, "high_pass").number.positive
-            self._high_pass = int(float(high_pass))
+            self._high_pass = int(ParamChecker(high_pass, "high_pass").number.positive.value)
 
     @property
     def low_pass(self):
@@ -91,11 +88,11 @@ class Waveform:
         if low_pass == "":
             self._low_pass = None
         else:
-            _ = ParamChecker(low_pass, "low_pass").number.positive
-            if self.high_pass and int(float(low_pass)) < self.high_pass:
-                raise ValueError('"Low pass" should be greater than High pass')
+            low_pass_checked = ParamChecker(low_pass, "low_pass").number.positive.value
+            if self.high_pass and int(low_pass_checked) < self.high_pass:
+                raise ValueError('Parameter "Low pass" should be greater than parameter "High pass"')
 
-            self._low_pass = int(float(low_pass))
+            self._low_pass = int(low_pass_checked)
 
     @property
     def _from_idx(self):

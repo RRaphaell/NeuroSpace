@@ -3,7 +3,7 @@ from PyQt5 import QtWidgets
 from Widgets.default_widgets import (line_edit_with_label,
                                      create_group_dead_time_threshold,
                                      merge_widgets)
-from Widgets.utils import get_default_params
+from Widgets.utils import get_default_params, clear_qlines
 
 
 class SpikeWidget(WaveformWidget):
@@ -42,7 +42,11 @@ class SpikeWidget(WaveformWidget):
          self.stimulus_threshold_to, self.stimulus_group_box) = create_group_dead_time_threshold("Stimulus")
 
         self.burst_group_box = self._create_burst_group()
+        self.burst_group_box.toggled.connect(lambda: clear_qlines(self.burst_max_start, self.burst_max_end,
+                                                                  self.burst_between, self.burst_duration,
+                                                                  self.burst_number))
         self.pca_group_box = self._create_pca_tab()
+        self.pca_group_box.toggled.connect(lambda: clear_qlines(self.pre, self.post, self.component_number))
 
         spacer = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         layout.addWidget(self.spike_group_box, 0, 0, 1, 1)

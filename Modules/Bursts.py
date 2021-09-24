@@ -31,7 +31,7 @@ class Bursts:
     
     @burst_max_start.setter
     def burst_max_start(self, burst_max_start):
-        self._burst_max_start = ParamChecker(burst_max_start, "burst max start").not_empty.positive.value
+        self._burst_max_start = ParamChecker(burst_max_start, "burst max start").not_empty.number.positive.value
 
     @property
     def burst_max_end(self):
@@ -39,7 +39,7 @@ class Bursts:
     
     @burst_max_end.setter
     def burst_max_end(self, burst_max_end):
-        self._burst_max_end = ParamChecker(burst_max_end, "burst max end").not_empty.positive.value
+        self._burst_max_end = ParamChecker(burst_max_end, "burst max end").not_empty.number.positive.value
 
     @property
     def burst_betw(self):
@@ -47,7 +47,7 @@ class Bursts:
     
     @burst_betw.setter
     def burst_betw(self, burst_betw):
-        self._burst_betw = ParamChecker(burst_betw, "burst betw").not_empty.positive.value
+        self._burst_betw = ParamChecker(burst_betw, "burst betw").not_empty.number.positive.value
 
     @property
     def burst_dur(self):
@@ -55,7 +55,7 @@ class Bursts:
     
     @burst_dur.setter
     def burst_dur(self, burst_dur):
-        self._burst_dur = ParamChecker(burst_dur, "burst dur").not_empty.positive.value
+        self._burst_dur = ParamChecker(burst_dur, "burst dur").not_empty.number.positive.value
 
     @property
     def burst_numb(self):
@@ -63,5 +63,5 @@ class Bursts:
     
     @burst_numb.setter
     def burst_numb(self, burst_numb):
-        self._burst_numb = int(ParamChecker(burst_numb, "burst numb").positive.value)
+        self._burst_numb = int(ParamChecker(burst_numb, "burst numb").not_empty.number.positive.value)
 
