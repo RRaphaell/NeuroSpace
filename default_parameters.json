@@ -17,7 +17,7 @@
     "stimulus_dead_time": "0.003",
     "stimulus_threshold_from": "-0.001",
     "stimulus_threshold_to": "",
-    "burst_max_start": "0.001",
+    "burst_max_start": "0.01",
     "burst_max_end": "0.01",
     "burst_between": "0.01",
     "burst_duration": "0.02",

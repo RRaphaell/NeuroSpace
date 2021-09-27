@@ -15,6 +15,7 @@ class SpikeWidget(WaveformWidget):
         self.spike_threshold_to, self.stimulus_threshold_to = None, None
         self.burst_max_start, self.burst_max_end = None, None
         self.burst_between, self.burst_duration, self.burst_number = None, None, None
+        self.pre, self.post, self.component_number = None, None, None
 
         self._add_tabs()
         self._set_spike_default_params()

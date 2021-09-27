@@ -3,7 +3,6 @@ from scipy.signal import butter, sosfilt
 from functools import reduce
 import numpy as np
 from matplotlib.lines import Line2D
-import pandas as pd
 from sklearn.mixture import GaussianMixture
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
@@ -56,14 +55,13 @@ def plot_signal(signal, time_in_sec, canvas, x_label, y_label, ax_idx=0):
     canvas.draw()
 
 
-def plot_signal_with_spikes_and_bursts(signal, time_in_sec, canvas, x_label, y_label, spikes_in_range, spikes_indexes,
-                                       ax_idx=0, bursts_starts=None, bursts_ends=None):
-        
+def plot_signal_with_spikes(signal, time_in_sec, canvas, labels, x_label, y_label, spikes_indexes,
+                            ax_idx=0, indices_colors_for_bursts=[]):
     signal_in_uv = signal * 1000000
-    if not len(spikes_indexes):
-        spikes_voltage = []
-    else:    
-        spikes_voltage = signal[spikes_indexes]*1000000
+    # if not len(spikes_indexes):
+    #     spikes_voltage = []
+    # else:
+    #     spikes_voltage = signal[spikes_indexes]*1000000
 
     axes = canvas.figure.get_axes()
     ax = axes[ax_idx]
@@ -74,18 +72,24 @@ def plot_signal_with_spikes_and_bursts(signal, time_in_sec, canvas, x_label, y_l
     spike_legend = Line2D([], [], color='green', marker='o', linestyle='None',
                           markersize=5, markeredgewidth=1, label='Spike')
     ax.legend(handles=[spike_legend, burst_legend])
-    ax.plot(spikes_in_range, spikes_voltage, 'ro', ms=2,  color='green')
-    if bursts_starts and bursts_ends:
-        bursts_df = pd.DataFrame({"burst_start": bursts_starts, "burst_end": bursts_ends})
-        for idx in range(bursts_df.shape[0]):
-            temp_burst_start = bursts_df.iloc[idx].burst_start
-            temp_burst_end = bursts_df.iloc[idx].burst_end
-            ax.axvspan(temp_burst_start, temp_burst_end, facecolor='0.2', alpha=0.7, color='purple')
+
+    indices_colors_for_spikes = get_spikes_with_labels(labels, spikes_indexes)
+    for indices, colors in indices_colors_for_spikes:
+        indices_ = [ind / 25000 for ind in indices]
+        ax.plot(indices_, signal_in_uv[indices], 'ro', ms=2, color=colors)
+    if len(indices_colors_for_bursts):
+        for indices in indices_colors_for_bursts:
+            burst_starts_list = indices[0][0]
+            burst_ends_list = indices[0][1]
+            for i in range(len(burst_starts_list)):
+                temp_burst_start = burst_starts_list[i] / 25000
+                temp_burst_end = burst_ends_list[i] / 25000
+                ax.axvspan(temp_burst_start, temp_burst_end, facecolor='0.2', alpha=0.5, color=indices[1])
+
     canvas.figure.tight_layout()
     canvas.draw()
     canvas.figure.text(0.5, 0.01, x_label, ha='center')
     canvas.figure.text(0.01, 0.5, y_label, va='center', rotation='vertical')
-    return spikes_in_range
 
 
 def plot_bins(spike_in_bins, bin_ranges, bin_width, canvas, title, x_label, y_label, ax_idx=0):
@@ -260,3 +264,12 @@ def get_pca_labels(cutouts, n_components):
     transformed = pca.fit_transform(scaled_cutouts)
     gmm = GaussianMixture(n_components=int(n_components), n_init=10)
     return gmm.fit_predict(transformed)
+
+
+def get_spikes_with_labels(labels, spikes):
+    unique = np.unique(np.array(labels))
+    spikes_with_labels = []
+    for i in unique:
+        indices = [j for j, x in enumerate(labels) if x == i]
+        spikes_with_labels.append((spikes[indices], plt.rcParams['axes.prop_cycle'].by_key()['color'][i]))
+    return spikes_with_labels

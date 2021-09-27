@@ -3,8 +3,7 @@ from Modules.SpikeTogether import SpikeTogether
 import numpy as np
 import pandas as pd
 from utils import get_default_widget
-from Modules.utils import plot_signal_with_spikes_and_bursts
-from Modules.Spikes import Spikes
+from Modules.utils import plot_signal_with_spikes
 from Modules.Bursts import Bursts
 from Widgets.SpikeWidget import SpikeWidget
 
@@ -56,15 +55,17 @@ class SpikeController:
         self.view.canvas.figure.tight_layout()
 
     def plot_one_channel(self, marked_channels, ax_idx):
-        spike_obj = self._create_spike_module(marked_channels)
-        burst_starts, burst_ends = None, None
+        spike_together_obj = self._create_spiketogether_module(marked_channels)
+
+        labels = spike_together_obj.labels
+        indices_colors_for_bursts = []
         if self.view.burst_group_box.isChecked():
-            bursts_obj = Bursts(spike_obj, self.view.burst_max_start.text(), self.view.burst_max_end.text(),
+            bursts_obj = Bursts(spike_together_obj, self.view.burst_max_start.text(), self.view.burst_max_end.text(),
                                 self.view.burst_between.text(), self.view.burst_duration.text(), self.view.burst_number.text())
-            burst_starts, burst_ends = bursts_obj.bursts
-        plot_signal_with_spikes_and_bursts(spike_obj.signal, spike_obj.signal_time_range, self.view.canvas,
-                                                   "Time (seconds)", "Signal voltage", spike_obj.spikes_time_range,
-                                                   spike_obj.spikes_indexes, ax_idx, burst_starts, burst_ends)
+            indices_colors_for_bursts = bursts_obj.bursts_colored_indexes
+        plot_signal_with_spikes(spike_together_obj.signal, spike_together_obj.signal_time_range, self.view.canvas,
+                                labels, "Time (seconds)", "Signal voltage", spike_together_obj.spikes_indexes,
+                                ax_idx, indices_colors_for_bursts)
 
     @catch_exception
     def extract_clicked(self):
@@ -80,23 +81,23 @@ class SpikeController:
             else:
                 for ch in marked_channels:
                     self.extract_spike_dataframe(path, [ch])
-    
+
     def extract_spike_dataframe(self, path, marked_channels):
-        spike_obj = self._create_spike_module(marked_channels)
+        spike_together_obj = self._create_spiketogether_module(marked_channels)
         spikes_df = pd.DataFrame()
-        signal = spike_obj.signal
-        time_in_sec = spike_obj.signal_time_range
-        spikes = spike_obj.spikes_indexes
+        signal = spike_together_obj.signal
+        time_in_sec = spike_together_obj.signal_time_range
+        spikes = spike_together_obj.spikes_indexes
         spikes_df["time"] = time_in_sec
         spikes_df["signal"] = signal
-        
+
         to_be_spikes = np.zeros(len(spikes_df))
-        if len(spikes)>0:
+        if len(spikes) > 0:
             to_be_spikes[spikes] = 1
         spikes_df[f"spikes {marked_channels}"] = to_be_spikes
         if self.view.burst_group_box:
-            bursts_obj = Bursts(spike_obj, self.view.burst_max_start.text(), self.view.burst_max_end.text(),
-                                self.view.burst_between.text(), self.view.burst_duration.text(), self.view.burst_number.text())
+            bursts_obj = Bursts(spike_together_obj, self.view.burst_max_start.text(), self.view.burst_max_end.text(),
+                                self.view.burst_betw.text(), self.view.burst_dur.text(), self.view.burst_numb.text())
             bursts_starts, _ = bursts_obj.bursts_indexes
             to_be_bursts = np.zeros(len(spikes_df))
             to_be_bursts[bursts_starts] = 1
@@ -105,10 +106,11 @@ class SpikeController:
             spikes_df[f"bursts {marked_channels}"] = np.zeros(len(spikes_df))
         spikes_df.to_csv(path + "_spikes.csv", index=False)
 
-    def _create_spike_module(self, marked_channels):
-        return Spikes(self.view.spike_dead_time.text(), self.view.spike_threshold_from.text(), self.view.spike_threshold_to.text(),
-                      self.file.recordings[0].analog_streams[0], marked_channels, self.view.from_s.text(),
-                      self.view.to_s.text(), self.view.high_pass.text(), self.view.low_pass.text())
+    def _create_spiketogether_module(self, marked_channels):
+        return SpikeTogether(self.view.pre.text(), self.view.post.text(), self.view.component_number.text(),
+                             self.view.spike_dead_time.text(), self.view.spike_threshold_from.text(), self.view.spike_threshold_to.text(),
+                             self.file.recordings[0].analog_streams[0], marked_channels, self.view.from_s.text(),
+                             self.view.to_s.text(), self.view.high_pass.text(), self.view.low_pass.text())
 
     def _remove_me(self):
         del self.open_window_dict[self._key]

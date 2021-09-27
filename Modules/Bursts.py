@@ -3,10 +3,10 @@ from Modules.utils import calculate_bursts
 
 
 class Bursts:
-    def __init__(self, spikes_obj, burst_max_start="",
+    def __init__(self, spikes_together_obj, burst_max_start="",
                  burst_max_end="", burst_betw="", burst_dur="",
                  burst_numb=""):
-        self._spikes_obj = spikes_obj
+        self.spike_together_obj = spikes_together_obj
         self.burst_max_start = burst_max_start
         self.burst_max_end = burst_max_end
         self.burst_betw = burst_betw
@@ -14,15 +14,31 @@ class Bursts:
         self.burst_numb = burst_numb
     
     @property
-    def bursts(self):
-        return calculate_bursts(self._spikes_obj.spikes_time_range, self.burst_max_start, self.burst_max_end, 
-                                self.burst_betw, self.burst_dur, self.burst_numb)
+    def bursts_colored(self):
+        colored_bursts = []
+        for spikes, color in self.spike_together_obj.spike_labels:
+            bursts_starts, bursts_ends = calculate_bursts(spikes, self.burst_max_start, self.burst_max_end,
+                                                          self.burst_betw, self.burst_dur, self.burst_numb)
+            colored_bursts.append(([bursts_starts, bursts_ends], color))
+        return colored_bursts
 
+    @property
+    def bursts_colored_indexes(self):
+        colored_bursts = self.bursts_colored
+        bursts_indexes = []
+        for burst, color in colored_bursts:
+            burst_start, burst_end = burst
+            burst_start = [int(temp_start*self.spike_together_obj.fs) for temp_start in burst_start]
+            burst_end = [int(temp_end*self.spike_together_obj.fs) for temp_end in burst_end]
+            bursts_indexes.append(([burst_start, burst_end], color))
+        return bursts_indexes
+
+    # TODO:
     @property
     def bursts_indexes(self):
         bursts_start, bursts_ends = self.bursts
-        bursts_start_idx = list(map(lambda x: int(x*self._spikes_obj.fs), bursts_start))
-        bursts_end_idx = list(map(lambda x: int(x*self._spikes_obj.fs), bursts_ends))
+        bursts_start_idx = list(map(lambda x: int(x*self.spike_together_obj.fs), bursts_start))
+        bursts_end_idx = list(map(lambda x: int(x*self.spike_together_obj.fs), bursts_ends))
         return bursts_start_idx, bursts_end_idx
 
     @property

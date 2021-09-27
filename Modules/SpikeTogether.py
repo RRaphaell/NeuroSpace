@@ -1,6 +1,6 @@
 from Modules.ParamChecker import ParamChecker
 from Modules.Spikes import Spikes
-from Modules.utils import get_signal_cutouts, get_pca_labels
+from Modules.utils import get_signal_cutouts, get_pca_labels, get_spikes_with_labels
 
 
 class SpikeTogether(Spikes):
@@ -40,6 +40,7 @@ class SpikeTogether(Spikes):
     def cutouts(self):
         return self._cutouts
 
+    # TODO:
     @property
     def labels(self):
         if not len(self.cutouts):
@@ -47,3 +48,20 @@ class SpikeTogether(Spikes):
 
         labels = get_pca_labels(self.cutouts, self.component_number)
         return labels
+
+    @property
+    def spike_labels_indexes(self):
+        if not len(self.cutouts):
+            return []
+        return get_spikes_with_labels(self.labels, self.spikes_indexes)
+
+    @property
+    def spike_labels(self):
+        if not len(self.cutouts):
+            return []
+        spikes_times_labels = []
+        spikes_with_labels = get_spikes_with_labels(self.labels, self.spikes_indexes)
+        for spikes, color in spikes_with_labels:
+            spikes = [i/self.fs for i in spikes]
+            spikes_times_labels.append((spikes, color))
+        return spikes_times_labels
