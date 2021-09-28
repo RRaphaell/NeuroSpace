@@ -43,7 +43,7 @@ class Waveform:
     @from_s.setter
     def from_s(self, from_s):
         from_s = 0 if from_s == "" else from_s
-        from_s = round_to_closest(ParamChecker(from_s, "from_s").number.positive.value, 1/self.fs)
+        from_s = round_to_closest(ParamChecker(from_s, "From").number.positive.value, 1/self.fs)
 
         if not ((from_s >= 0) and (from_s < self.signal_time)):
             raise ValueError('Parameter "From" should be positive')
@@ -57,7 +57,7 @@ class Waveform:
     @to_s.setter
     def to_s(self, to_s):
         to_s = self.signal_time if to_s == "" else to_s
-        to_s = round_to_closest(ParamChecker(to_s, "to_s").number.positive.value, 1/self.fs)
+        to_s = round_to_closest(ParamChecker(to_s, "To").number.positive.value, 1/self.fs)
 
         if not ((to_s > 0) and (to_s <= self.signal_time)):
             raise ValueError('Parameter "To" should be positive')
@@ -77,7 +77,7 @@ class Waveform:
         if high_pass == "":
             self._high_pass = None
         else:
-            self._high_pass = int(ParamChecker(high_pass, "high_pass").number.positive.value)
+            self._high_pass = int(ParamChecker(high_pass, "High pass").number.positive.value)
 
     @property
     def low_pass(self):
@@ -88,7 +88,7 @@ class Waveform:
         if low_pass == "":
             self._low_pass = None
         else:
-            low_pass_checked = ParamChecker(low_pass, "low_pass").number.positive.value
+            low_pass_checked = ParamChecker(low_pass, "Low pass").number.positive.value
             if self.high_pass and int(low_pass_checked) < self.high_pass:
                 raise ValueError('Parameter "Low pass" should be greater than parameter "High pass"')
 

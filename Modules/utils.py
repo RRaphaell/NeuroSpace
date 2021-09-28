@@ -41,7 +41,7 @@ def filter_base_frequency(signal, fs, high_pass, low_pass):
     return filtered
 
 
-def plot_signal(signal, time_in_sec, canvas, x_label, y_label, ax_idx=0):
+def plot_signal(signal, time_in_sec, canvas, title, x_label, y_label, ax_idx=0):
 
     axes = canvas.figure.get_axes()
     ax = axes[ax_idx]
@@ -49,13 +49,14 @@ def plot_signal(signal, time_in_sec, canvas, x_label, y_label, ax_idx=0):
     signal_in_uv = signal*1000000
     ax.plot(time_in_sec, signal_in_uv, linewidth=0.5)
 
+    ax.set_title(title)
     canvas.figure.text(0.5, 0.01, x_label, ha='center')
     canvas.figure.text(0.01, 0.5, y_label, va='center', rotation='vertical')
 
     canvas.draw()
 
 
-def plot_signal_with_spikes(signal, time_in_sec, canvas, labels, x_label, y_label, spikes_indexes,
+def plot_signal_with_spikes(signal, time_in_sec, canvas, labels, title, x_label, y_label, spikes_indexes,
                             ax_idx=0, indices_colors_for_bursts=[]):
     signal_in_uv = signal * 1000000
     # if not len(spikes_indexes):
@@ -88,6 +89,7 @@ def plot_signal_with_spikes(signal, time_in_sec, canvas, labels, x_label, y_labe
 
     canvas.figure.tight_layout()
     canvas.draw()
+    ax.set_title(title)
     canvas.figure.text(0.5, 0.01, x_label, ha='center')
     canvas.figure.text(0.01, 0.5, y_label, va='center', rotation='vertical')
 

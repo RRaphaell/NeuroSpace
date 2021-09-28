@@ -64,7 +64,7 @@ class SpikeController:
                                 self.view.burst_between.text(), self.view.burst_duration.text(), self.view.burst_number.text())
             indices_colors_for_bursts = bursts_obj.bursts_colored_indexes
         plot_signal_with_spikes(spike_together_obj.signal, spike_together_obj.signal_time_range, self.view.canvas,
-                                labels, "Time (seconds)", "Signal voltage", spike_together_obj.spikes_indexes,
+                                labels, marked_channels, "Time (seconds)", "Signal voltage", spike_together_obj.spikes_indexes,
                                 ax_idx, indices_colors_for_bursts)
 
     @catch_exception

@@ -37,13 +37,13 @@ class WaveformController:
             waveform = self._create_waveform(marked_channels)
             filtered_signal = waveform.signal
             plot_signal(filtered_signal, waveform.signal_time_range, self.view.canvas,
-                        "Time (seconds)", "Signal (uV)", ax_idx=0)
+                        marked_channels, "Time (seconds)", "Signal (uV)", ax_idx=0)
         else:
             for i, ch in enumerate(marked_channels):
                 waveform = self._create_waveform([ch])
                 filtered_signal = waveform.signal
                 plot_signal(filtered_signal, waveform.signal_time_range, self.view.canvas,
-                            "Time (seconds)", "Signal (uV)", ax_idx=i)
+                            ch, "Time (seconds)", "Signal (uV)", ax_idx=i)
 
         self.view.plot_window.show()
         self.view.plot_widget.mousePressEvent = lambda x: self.parameters_dock.setWidget(self.view)

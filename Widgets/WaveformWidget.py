@@ -1,5 +1,4 @@
-import json
-from PyQt5 import QtWidgets
+from PyQt5 import QtWidgets, QtGui
 from Widgets.utils import move_center, calculate_row_col_adjustment, create_widget_layout, get_default_params
 from Widgets.default_widgets import (create_widget_description,
                                      create_time_range_widgets,
@@ -59,6 +58,7 @@ class WaveformWidget(QtWidgets.QMainWindow):
     def create_plot_window(self):
         if not self.plot_window:
             self.plot_window = QtWidgets.QMdiSubWindow()
+            self.plot_window.setWindowIcon(QtGui.QIcon("icons/spike.png"))
         subplot_num = 1 if self.channel_widget.is_avg else len(self.channel_widget.marked_spike_channels)
         self.plot_widget = self.create_plot_widget(subplot_num)
         self.plot_window.setWidget(self.plot_widget)
