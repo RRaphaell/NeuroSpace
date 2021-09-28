@@ -19,12 +19,12 @@ class Bin(Spikes):
 
     @bin_width.setter
     def bin_width(self, width):
-        self._bin_width = ParamChecker(width, "bin width").not_empty.number.positive.value
+        self._bin_width = ParamChecker(width, "Bin range").not_empty.number.positive.value
         self._bins = self._calculate_bins()
 
     def _calculate_bins(self):
         spike_len_in_bins = []
-        spikes_in_range = self.spikes_time_range
+        spikes_in_range = self.time_range
         if not len(spikes_in_range):  # when no spikes appear, we should return 0
             return [0]
 

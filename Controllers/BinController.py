@@ -2,7 +2,8 @@ import numpy as np
 import pandas as pd
 
 from Controllers.utils import catch_exception
-from Modules.utils import plot_bins
+from Modules.stimulus import Stimulus
+from Modules.utils import plot_bins, plot_stimulus
 from Widgets.BinWidget import BinWidget
 from Modules.Bin import Bin
 from utils import get_default_widget
@@ -42,11 +43,15 @@ class BinController:
         self.view.create_plot_window()
         self.mdi.addSubWindow(self.view.plot_window)
 
+        stimulus_time_range = self._get_stimulus_time_range()
+
         if self.view.channel_widget.is_avg:
             self.plt_bin_in_channel(marked_channels, 0)
+            plot_stimulus(stimulus_time_range, self.view.canvas, ax_idx=0)
         else:
             for i, ch in enumerate(marked_channels):
                 self.plt_bin_in_channel([ch], i)
+                plot_stimulus(stimulus_time_range, self.view.canvas, ax_idx=i)
 
         self.view.plot_window.show()
         self.view.plot_widget.mousePressEvent = lambda x: self.parameters_dock.setWidget(self.view)
@@ -92,10 +97,22 @@ class BinController:
                     bin_dataframe[f"Spikes_frequency_in_bins {ch}"] = bins
                 bin_dataframe.to_csv(path + "bins.csv", index=False)
 
+    def _get_stimulus_time_range(self):
+        stimulus_marked_channels = self.view.channel_widget.marked_stimulus_channels[0]
+        if len(stimulus_marked_channels):
+            stimulus = self._create_stimulus([stimulus_marked_channels])
+            return stimulus.time_range
+        return []
+
     def _create_bin(self, channels):
         return Bin(self.view.bin_width.text(), self.view.spike_dead_time.text(), self.view.spike_threshold_from.text(),
                    self.view.spike_threshold_to.text(), self.file.recordings[0].analog_streams[0],
                    channels, self.view.from_s.text(), self.view.to_s.text(), self.view.high_pass.text(), self.view.low_pass.text())
+
+    def _create_stimulus(self, channels):
+        return Stimulus(self.view.stimulus_dead_time.text(), self.view.stimulus_threshold_from.text(),
+                        self.view.stimulus_threshold_to.text(), self.file.recordings[0].analog_streams[0], channels,
+                        self.view.from_s.text(), self.view.to_s.text(), self.view.high_pass.text(), self.view.low_pass.text())
 
     def _remove_me(self):
         del self.open_window_dict[self._key]

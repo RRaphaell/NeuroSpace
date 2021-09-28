@@ -10,7 +10,7 @@ class SpikeTogether(Spikes):
         self.pre = pre
         self.post = post
         self.component_number = component_number
-        self._cutouts = get_signal_cutouts(self.signal*1000_000, self.fs, self.spikes_indexes, self.pre, self.post)
+        self._cutouts = get_signal_cutouts(self.signal * 1000_000, self.fs, self.indexes, self.pre, self.post)
 
     @property
     def pre(self):
@@ -18,7 +18,7 @@ class SpikeTogether(Spikes):
 
     @pre.setter
     def pre(self, value):
-        self._pre = ParamChecker(value, "pre").not_empty.number.positive.value
+        self._pre = ParamChecker(value, "Pre").not_empty.number.positive.value
 
     @property
     def post(self):
@@ -26,7 +26,7 @@ class SpikeTogether(Spikes):
 
     @post.setter
     def post(self, value):
-        self._post = ParamChecker(value, "post").not_empty.number.positive.value
+        self._post = ParamChecker(value, "Post").not_empty.number.positive.value
 
     @property
     def component_number(self):
@@ -34,7 +34,7 @@ class SpikeTogether(Spikes):
 
     @component_number.setter
     def component_number(self, value):
-        self._component_number = int(ParamChecker(value, "component number").not_empty.number.positive.value)
+        self._component_number = int(ParamChecker(value, "Component number").not_empty.number.positive.value)
 
     @property
     def cutouts(self):
@@ -53,14 +53,14 @@ class SpikeTogether(Spikes):
     def spike_labels_indexes(self):
         if not len(self.cutouts):
             return []
-        return get_spikes_with_labels(self.labels, self.spikes_indexes)
+        return get_spikes_with_labels(self.labels, self.indexes)
 
     @property
     def spike_labels(self):
         if not len(self.cutouts):
             return []
         spikes_times_labels = []
-        spikes_with_labels = get_spikes_with_labels(self.labels, self.spikes_indexes)
+        spikes_with_labels = get_spikes_with_labels(self.labels, self.indexes)
         for spikes, color in spikes_with_labels:
             spikes = [i/self.fs for i in spikes]
             spikes_times_labels.append((spikes, color))

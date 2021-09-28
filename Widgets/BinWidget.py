@@ -24,7 +24,7 @@ class BinWidget(WaveformWidget):
             self.tabs.setStyleSheet(file.read())
 
         self.tabs.addTab(self.tab1, "General")
-        self.tabs.addTab(self.tab2, "Spikes")
+        self.tabs.addTab(self.tab2, "Bin")
 
     def _create_bin_tab(self):
         layout = QtWidgets.QGridLayout()

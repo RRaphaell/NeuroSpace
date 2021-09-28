@@ -1,5 +1,4 @@
 from PyQt5 import QtWidgets, QtGui, QtCore
-
 from Controllers.SpikeTogetherController import SpikeTogetherController
 from PopupHandler import PopupHandler
 from utils import path_valid, get_default_widget

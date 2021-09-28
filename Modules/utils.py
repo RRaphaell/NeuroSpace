@@ -41,6 +41,150 @@ def filter_base_frequency(signal, fs, high_pass, low_pass):
     return filtered
 
 
+def round_to_closest(value, time_stamp):
+    if value and value > 0:
+        remainder = value % time_stamp
+        if remainder > time_stamp / 2:
+            value += time_stamp - remainder
+        else:
+            value -= remainder
+    return value
+
+
+def _get_next_minimum(signal, index, max_samples_to_search):
+    search_end_idx = min(index + max_samples_to_search, signal.shape[0])
+    min_idx = np.argmin(signal[index:search_end_idx])
+    return index + min_idx
+
+
+def _align_to_minimum(signal, threshold_crossings, fs):
+    search_range = 0.002
+    search_end = int(search_range*fs)
+    aligned_spikes = np.array([_get_next_minimum(signal, t, search_end) for t in threshold_crossings])
+    return aligned_spikes
+
+
+def get_signal_cutouts(signal, fs, spikes_idx, pre, post):
+    cutouts = []
+    pre_idx = int(pre * fs)
+    post_idx = int(post * fs)
+    if pre_idx > 0 and post_idx > 0:
+        for index in spikes_idx:
+            if index - pre_idx >= 0 and index + post_idx <= signal.shape[0]:
+                cutout = signal[(index - pre_idx):(index + post_idx)]
+                cutouts.append(cutout)
+
+        if len(cutouts) > 0:
+            return np.stack(cutouts)
+    return cutouts
+
+
+def get_pca_labels(cutouts, n_components):
+    if n_components >= len(cutouts):
+        n_components = 1
+    pca = PCA()
+    pca.n_components = int(2)
+    scaler = StandardScaler()
+    scaled_cutouts = scaler.fit_transform(abs(cutouts))
+    scaled_cutouts *= 2
+
+    transformed = pca.fit_transform(scaled_cutouts)
+    gmm = GaussianMixture(n_components=int(n_components), n_init=10)
+    return gmm.fit_predict(transformed)
+
+
+def get_spikes_with_labels(labels, spikes):
+    unique = np.unique(np.array(labels))
+    spikes_with_labels = []
+    for i in unique:
+        indices = [j for j, x in enumerate(labels) if x == i]
+        spikes_with_labels.append((spikes[indices], plt.rcParams['axes.prop_cycle'].by_key()['color'][i]))
+    return spikes_with_labels
+
+
+def calculate_spikes(signal, threshold_from, threshold_to, fs, dead_time_idx):
+    last_idx = -dead_time_idx
+    threshold_crossings = []
+    for idx in range(len(signal)):
+        if (idx > 0) and (signal[idx-1] > threshold_from) and \
+                (signal[idx] <= threshold_from) and (idx - last_idx > dead_time_idx + 1):
+            threshold_crossings.append(idx)
+            last_idx = idx
+    threshold_crossings = _align_to_minimum(signal, threshold_crossings, fs)
+    threshold_crossings = np.array(list(filter(lambda x: signal[x] >= threshold_to, threshold_crossings)))
+    return np.array(threshold_crossings)
+
+
+def calculate_stimulus(signal,  threshold, dead_time_idx):
+    threshold_crossings = np.diff((signal <= threshold)).nonzero()[0]
+    if len(threshold_crossings) == 0:
+        return np.array([])
+
+    distance_sufficient = np.insert(np.diff(threshold_crossings) >= dead_time_idx, 0, True)
+    for i in range(1, len(distance_sufficient)):
+        if distance_sufficient[i]:
+            distance_sufficient[i - 1] = True
+
+    while not np.all(distance_sufficient):
+        threshold_crossings = threshold_crossings[distance_sufficient]
+        distance_sufficient = np.insert(np.diff(threshold_crossings) >= dead_time_idx, 0, True)
+        for i in range(1, len(distance_sufficient)):
+            if distance_sufficient[i]:
+                distance_sufficient[i - 1] = True
+
+    return threshold_crossings
+
+
+def calculate_bursts(spikes_in_s, max_start, max_end, min_between, min_duration, min_number_spike):
+    spikes_in_s = np.array(spikes_in_s)
+    all_burst = []
+    i = 0
+    while i < len(spikes_in_s)-1:
+        if (spikes_in_s[i+1]-spikes_in_s[i]) <= max_start:
+            burst_start_in_s = spikes_in_s[i]
+            while (i < len(spikes_in_s)-1) and ((spikes_in_s[i+1]-spikes_in_s[i]) < max_end):
+                i += 1
+            burst_end_in_s = spikes_in_s[i]
+            all_burst.append([burst_start_in_s, burst_end_in_s])
+            i += 1
+        else:
+            i += 1
+    if not all_burst:
+        return [], []
+
+    merged_bursts = []
+    temp_burst = all_burst[0]
+    for i in range(1, len(all_burst)):
+        if (all_burst[i][0] - temp_burst[1]) < min_between:
+            temp_burst[1] = all_burst[i][1]
+        else:
+            merged_bursts.append(temp_burst)
+            temp_burst = all_burst[i]
+    merged_bursts.append(temp_burst)
+
+    bursts_starts = []
+    bursts_ends = []
+    for burst in merged_bursts:
+        num_spike_in_burst = len(spikes_in_s[(spikes_in_s >= burst[0]) & (spikes_in_s <= burst[1])])
+        if ((burst[1]-burst[0]) >= min_duration) and (num_spike_in_burst >= min_number_spike):
+            bursts_starts.append(burst[0])
+            bursts_ends.append(burst[1])
+    return bursts_starts, bursts_ends
+
+
+def calculate_threshold_based_on_signal(signal):
+    noise_std = np.std(signal)
+    noise_mad = np.median(np.absolute(signal))
+    if noise_mad <= noise_std:
+        return -5 * noise_mad
+    else:
+        return -5 * noise_std
+
+
+def calculate_min_voltage_of_signal(signal):
+    return np.min(signal)
+
+
 def plot_signal(signal, time_in_sec, canvas, title, x_label, y_label, ax_idx=0):
 
     axes = canvas.figure.get_axes()
@@ -56,13 +200,9 @@ def plot_signal(signal, time_in_sec, canvas, title, x_label, y_label, ax_idx=0):
     canvas.draw()
 
 
-def plot_signal_with_spikes(signal, time_in_sec, canvas, labels, title, x_label, y_label, spikes_indexes,
-                            ax_idx=0, indices_colors_for_bursts=[]):
+def plot_signal_with_spikes(signal, time_in_sec, canvas, title, x_label, y_label, indices_colors_for_spikes, ax_idx=0,
+                            indices_colors_for_bursts=[]):
     signal_in_uv = signal * 1000000
-    # if not len(spikes_indexes):
-    #     spikes_voltage = []
-    # else:
-    #     spikes_voltage = signal[spikes_indexes]*1000000
 
     axes = canvas.figure.get_axes()
     ax = axes[ax_idx]
@@ -74,17 +214,16 @@ def plot_signal_with_spikes(signal, time_in_sec, canvas, labels, title, x_label,
                           markersize=5, markeredgewidth=1, label='Spike')
     ax.legend(handles=[spike_legend, burst_legend])
 
-    indices_colors_for_spikes = get_spikes_with_labels(labels, spikes_indexes)
     for indices, colors in indices_colors_for_spikes:
-        indices_ = [ind / 25000 for ind in indices]
+        indices_ = [ind / 25000 + time_in_sec[0] for ind in indices]
         ax.plot(indices_, signal_in_uv[indices], 'ro', ms=2, color=colors)
     if len(indices_colors_for_bursts):
         for indices in indices_colors_for_bursts:
             burst_starts_list = indices[0][0]
             burst_ends_list = indices[0][1]
             for i in range(len(burst_starts_list)):
-                temp_burst_start = burst_starts_list[i] / 25000
-                temp_burst_end = burst_ends_list[i] / 25000
+                temp_burst_start = burst_starts_list[i] / 25000 + time_in_sec[0]
+                temp_burst_end = burst_ends_list[i] / 25000 + time_in_sec[0]
                 ax.axvspan(temp_burst_start, temp_burst_end, facecolor='0.2', alpha=0.5, color=indices[1])
 
     canvas.figure.tight_layout()
@@ -104,13 +243,6 @@ def plot_bins(spike_in_bins, bin_ranges, bin_width, canvas, title, x_label, y_la
 
     ax.bar(x, y, width=bin_width, align='edge', alpha=0.4, facecolor='blue', edgecolor='red', linewidth=2)
     ax.grid(color='#95a5a6', linestyle='--', linewidth=1, axis='y', alpha=0.7)
-
-    # for stimul in stimulus:
-    #     if not to_in_s:
-    #         to_in_s = time_in_sec[len(time_in_sec)-1]
-
-    #     if stimul>=from_in_s and stimul<=to_in_s:
-    #         ax.axvspan(stimul, stimul+5*40/1000000, facecolor='0.2', alpha=0.7, color='lime')
 
     ax.set_title(title)
     canvas.figure.text(0.5, 0.01, x_label, ha='center')
@@ -154,124 +286,11 @@ def plot_spikes_together(cutouts, labels, fs, n_components, pre, post, number_sp
     canvas.draw()
 
 
-def round_to_closest(value, time_stamp):
-    if value and value > 0:
-        remainder = value % time_stamp
-        if remainder > time_stamp / 2:
-            value += time_stamp - remainder
-        else:
-            value -= remainder
-    return value
+def plot_stimulus(stimulus, canvas, ax_idx=0):
+    axes = canvas.figure.get_axes()
+    ax = axes[ax_idx]
 
+    for s in stimulus:
+        ax.axvline(s, alpha=0.7, color='lime')
 
-def calculate_threshold_based_on_signal(signal):
-    noise_std = np.std(signal)
-    noise_mad = np.median(np.absolute(signal))
-    if noise_mad <= noise_std:
-        return -5 * noise_mad
-    else:
-        return -5 * noise_std
-
-
-def calculate_min_voltage_of_signal(signal):
-    return np.min(signal)
-
-
-def calculate_spikes(signal, threshold_from, threshold_to, fs, dead_time_idx):
-    last_idx = -dead_time_idx
-    threshold_crossings = []
-    for idx in range(len(signal)):
-        if (idx > 0) and (signal[idx-1] > threshold_from) and (signal[idx] <= threshold_from) and \
-                (signal[idx] >= threshold_to) and (idx - last_idx > dead_time_idx + 1):
-            threshold_crossings.append(idx)
-            last_idx = idx
-    threshold_crossings = _align_to_minimum(signal, threshold_crossings, fs)
-    return np.array(threshold_crossings)
-
-
-def _get_next_minimum(signal, index, max_samples_to_search):
-    search_end_idx = min(index + max_samples_to_search, signal.shape[0])
-    min_idx = np.argmin(signal[index:search_end_idx])
-    return index + min_idx
-
-
-def _align_to_minimum(signal, threshold_crossings, fs):
-    search_range = 0.002
-    search_end = int(search_range*fs)
-    aligned_spikes = np.array([_get_next_minimum(signal, t, search_end) for t in threshold_crossings])
-    return aligned_spikes
-
-
-def calculate_bursts(spikes_in_s, max_start, max_end, min_between, min_duration, min_number_spike):
-    spikes_in_s = np.array(spikes_in_s)
-    all_burst = []
-    i = 0
-    while i < len(spikes_in_s)-1:
-        if (spikes_in_s[i+1]-spikes_in_s[i]) <= max_start:
-            burst_start_in_s = spikes_in_s[i]
-            while (i < len(spikes_in_s)-1) and ((spikes_in_s[i+1]-spikes_in_s[i]) < max_end):
-                i += 1
-            burst_end_in_s = spikes_in_s[i]   
-            all_burst.append([burst_start_in_s, burst_end_in_s])
-            i += 1
-        else:
-            i += 1
-    if not all_burst:
-        return [], []
-
-    merged_bursts = []
-    temp_burst = all_burst[0]
-    for i in range(1, len(all_burst)):
-        if (all_burst[i][0] - temp_burst[1]) < min_between:
-            temp_burst[1] = all_burst[i][1]
-        else:
-            merged_bursts.append(temp_burst)
-            temp_burst = all_burst[i]
-    merged_bursts.append(temp_burst)
-
-    bursts_starts = []
-    bursts_ends = []
-    for burst in merged_bursts:
-        num_spike_in_burst = len(spikes_in_s[(spikes_in_s >= burst[0]) & (spikes_in_s <= burst[1])])
-        if ((burst[1]-burst[0]) >= min_duration) and (num_spike_in_burst >= min_number_spike):
-            bursts_starts.append(burst[0])
-            bursts_ends.append(burst[1])
-    return bursts_starts, bursts_ends
-
-
-def get_signal_cutouts(signal, fs, spikes_idx, pre, post):
-    cutouts = []
-    pre_idx = int(pre * fs)
-    post_idx = int(post * fs)
-    if pre_idx > 0 and post_idx > 0:
-        for index in spikes_idx:
-            if index - pre_idx >= 0 and index + post_idx <= signal.shape[0]:
-                cutout = signal[(index - pre_idx):(index + post_idx)]
-                cutouts.append(cutout)
-
-        if len(cutouts) > 0:
-            return np.stack(cutouts)
-    return cutouts
-
-
-def get_pca_labels(cutouts, n_components):
-    if n_components >= len(cutouts):
-        n_components = 1
-    pca = PCA()
-    pca.n_components = int(2)
-    scaler = StandardScaler()
-    scaled_cutouts = scaler.fit_transform(abs(cutouts))
-    scaled_cutouts *= 2
-
-    transformed = pca.fit_transform(scaled_cutouts)
-    gmm = GaussianMixture(n_components=int(n_components), n_init=10)
-    return gmm.fit_predict(transformed)
-
-
-def get_spikes_with_labels(labels, spikes):
-    unique = np.unique(np.array(labels))
-    spikes_with_labels = []
-    for i in unique:
-        indices = [j for j, x in enumerate(labels) if x == i]
-        spikes_with_labels.append((spikes[indices], plt.rcParams['axes.prop_cycle'].by_key()['color'][i]))
-    return spikes_with_labels
+    canvas.draw()
