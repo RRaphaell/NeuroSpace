@@ -3,7 +3,7 @@ from Modules.SpikeTogether import SpikeTogether
 import numpy as np
 import pandas as pd
 from utils import get_default_widget
-from Modules.utils import plot_signal_with_spikes
+from Modules.utils import get_spikes_with_labels, plot_signal_with_spikes
 from Modules.Bursts import Bursts
 from Widgets.SpikeWidget import SpikeWidget
 
@@ -58,13 +58,15 @@ class SpikeController:
         spike_together_obj = self._create_spiketogether_module(marked_channels)
 
         labels = spike_together_obj.labels
-        indices_colors_for_bursts = []
+        indices_colors_for_bursts = []    
+        indices_colors_for_spikes = get_spikes_with_labels(labels, spike_together_obj.spikes_indexes)
+
         if self.view.burst_group_box.isChecked():
             bursts_obj = Bursts(spike_together_obj, self.view.burst_max_start.text(), self.view.burst_max_end.text(),
                                 self.view.burst_between.text(), self.view.burst_duration.text(), self.view.burst_number.text())
             indices_colors_for_bursts = bursts_obj.bursts_colored_indexes
         plot_signal_with_spikes(spike_together_obj.signal, spike_together_obj.signal_time_range, self.view.canvas,
-                                labels, marked_channels, "Time (seconds)", "Signal voltage", spike_together_obj.spikes_indexes,
+                                marked_channels, "Time (seconds)", "Signal voltage",indices_colors_for_spikes,
                                 ax_idx, indices_colors_for_bursts)
 
     @catch_exception
@@ -87,20 +89,28 @@ class SpikeController:
         spikes_df = pd.DataFrame()
         signal = spike_together_obj.signal
         time_in_sec = spike_together_obj.signal_time_range
-        spikes = spike_together_obj.spikes_indexes
+        spikes = spike_together_obj.spike_labels_indexes
         spikes_df["time"] = time_in_sec
         spikes_df["signal"] = signal
 
         to_be_spikes = np.zeros(len(spikes_df))
         if len(spikes) > 0:
-            to_be_spikes[spikes] = 1
+            i = 1
+            for indices, colors in spikes:
+                to_be_spikes[indices] = i
+                i+= 1
         spikes_df[f"spikes {marked_channels}"] = to_be_spikes
         if self.view.burst_group_box:
             bursts_obj = Bursts(spike_together_obj, self.view.burst_max_start.text(), self.view.burst_max_end.text(),
-                                self.view.burst_betw.text(), self.view.burst_dur.text(), self.view.burst_numb.text())
-            bursts_starts, _ = bursts_obj.bursts_indexes
+                                self.view.burst_between.text(), self.view.burst_duration.text(), self.view.burst_number.text())
             to_be_bursts = np.zeros(len(spikes_df))
-            to_be_bursts[bursts_starts] = 1
+            indices_colors_for_bursts = bursts_obj.bursts_colored_indexes
+            if len(indices_colors_for_bursts):
+                i = 1
+                for indices in indices_colors_for_bursts:
+                    burst_starts_list = indices[0][0]
+                    to_be_bursts[burst_starts_list] = i
+                    i+= 1
             spikes_df[f"bursts {marked_channels}"] = to_be_bursts
         else:
             spikes_df[f"bursts {marked_channels}"] = np.zeros(len(spikes_df))
