@@ -36,13 +36,13 @@ class WaveformController:
         if self.view.channel_widget.is_avg:
             waveform = self._create_waveform(marked_channels)
             filtered_signal = waveform.signal
-            plot_signal(filtered_signal, waveform.signal_time_range, self.view.canvas,
+            plot_signal(filtered_signal, waveform.time, self.view.canvas,
                         marked_channels, "Time (seconds)", "Signal (uV)", ax_idx=0)
         else:
             for i, ch in enumerate(marked_channels):
                 waveform = self._create_waveform([ch])
                 filtered_signal = waveform.signal
-                plot_signal(filtered_signal, waveform.signal_time_range, self.view.canvas,
+                plot_signal(filtered_signal, waveform.time, self.view.canvas,
                             ch, "Time (seconds)", "Signal (uV)", ax_idx=i)
 
         self.view.plot_window.show()
@@ -62,7 +62,7 @@ class WaveformController:
             if self.view.channel_widget.is_avg:
                 waveform_dataframe = pd.DataFrame()
                 waveform = self._create_waveform(marked_channels)
-                waveform_dataframe["time"] = waveform.signal_time_range
+                waveform_dataframe["time"] = waveform.time
                 waveform_dataframe[f"Signal_{marked_channels}"] = waveform.signal
                 waveform_dataframe.to_csv(path + ".csv", index=False)
 
@@ -71,7 +71,7 @@ class WaveformController:
                 for i, ch in enumerate(marked_channels):
                     waveform = self._create_waveform([ch])
                     if i == 0:
-                        waveform_dataframe["time"] = waveform.signal_time_range
+                        waveform_dataframe["time"] = waveform.time
                     waveform_dataframe[f"signal_{ch}"] = waveform.signal
                 waveform_dataframe.to_csv(path + ".csv", index=False)
 

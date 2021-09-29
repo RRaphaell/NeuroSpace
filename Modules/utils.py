@@ -16,11 +16,10 @@ def convert_channel_label_to_id(electrode_stream, channel_label):
     return my_dict.get(int(channel_label))
 
 
-def get_signal_and_time(electrode_stream, channels, fs, from_idx, to_idx):
+def get_signal(electrode_stream, channels, from_idx, to_idx):
     signal_summed = reduce(lambda a, b: a+b, map(lambda ch: np.array(electrode_stream.get_channel_in_range(ch, from_idx, to_idx)[0]), channels))
     signal_avg = signal_summed / len(channels)
-    time_in_sec = np.array(range(from_idx, to_idx+1))/fs
-    return signal_avg, time_in_sec
+    return signal_avg
 
 
 def filter_base_frequency(signal, fs, high_pass, low_pass):

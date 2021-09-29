@@ -1,7 +1,9 @@
+import numpy as np
+
 from Modules.ParamChecker import ParamChecker
 from Modules.utils import (convert_channel_label_to_id
                            , filter_base_frequency
-                           , get_signal_and_time
+                           , get_signal
                            , round_to_closest)
 
 
@@ -16,21 +18,18 @@ class Waveform:
         self.from_s, self.to_s = from_s, to_s
         self.high_pass = high_pass
         self.low_pass = low_pass
-        self._signal_time_range = None
 
     @property
     def signal(self):
         return self._get_filtered_signal()
 
     @property
-    def _signal(self):
-        signal, time = get_signal_and_time(self._electrode_stream, self._channels, self.fs, self._from_idx, self._to_idx)
-        self._signal_time_range = time
-        return signal
+    def _signal_in_range(self):
+        return get_signal(self._electrode_stream, self._channels, self._from_idx, self._to_idx)
 
     @property
-    def signal_time_range(self):
-        return self._signal_time_range
+    def time(self):
+        return np.array(range(self._from_idx, self._to_idx + 1)) / self._fs
 
     @property
     def fs(self):
@@ -111,5 +110,5 @@ class Waveform:
         self.__to_idx = to_idx
 
     def _get_filtered_signal(self):
-        filtered_signal = filter_base_frequency(self._signal, self.fs, self.high_pass, self.low_pass)
+        filtered_signal = filter_base_frequency(self._signal_in_range, self.fs, self.high_pass, self.low_pass)
         return filtered_signal

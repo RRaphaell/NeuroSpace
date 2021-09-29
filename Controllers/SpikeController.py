@@ -70,8 +70,8 @@ class SpikeController:
             bursts_obj = Bursts(spike_together_obj, self.view.burst_max_start.text(), self.view.burst_max_end.text(),
                                 self.view.burst_between.text(), self.view.burst_duration.text(), self.view.burst_number.text())
             indices_colors_for_bursts = bursts_obj.bursts_colored_indexes
-        plot_signal_with_spikes(spike_together_obj.signal, spike_together_obj.signal_time_range, self.view.canvas,
-                                marked_channels, "Time (seconds)", "Signal voltage",indices_colors_for_spikes,
+        plot_signal_with_spikes(spike_together_obj.signal, spike_together_obj.time, self.view.canvas,
+                                marked_channels, "Time (seconds)", "Signal voltage", indices_colors_for_spikes,
                                 ax_idx, indices_colors_for_bursts)
         plot_stimulus(stimulus_time_range, self.view.canvas, ax_idx=ax_idx)
 
@@ -95,7 +95,7 @@ class SpikeController:
         spike_together_obj = self._create_spiketogether_module(marked_channels)
         spikes_df = pd.DataFrame()
         signal = spike_together_obj.signal
-        time_in_sec = spike_together_obj.signal_time_range
+        time_in_sec = spike_together_obj.time
         spikes = spike_together_obj.spike_labels_indexes
         spikes_df["time"] = time_in_sec
         spikes_df["signal"] = signal
