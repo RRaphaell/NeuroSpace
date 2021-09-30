@@ -183,6 +183,31 @@ def calculate_threshold_based_on_signal(signal):
 def calculate_min_voltage_of_signal(signal):
     return np.min(signal)
 
+def calculate_bins(spikes_in_range, from_s, bin_width):
+    spike_len_in_bins = []
+    if not len(spikes_in_range):  
+        return [0]
+
+    spikes_last_index = len(spikes_in_range)-1
+    bin_start_second = from_s
+    counter = 0
+    idx = 0
+
+    while True:
+        if idx > spikes_last_index:
+            spike_len_in_bins.append(counter)
+            break
+        if spikes_in_range[idx] < (bin_start_second + bin_width):
+            counter += 1
+            idx += 1
+        else:
+            spike_len_in_bins.append(counter)
+            bin_start_second += bin_width
+            counter = 0
+
+    spike_len_in_bins = list(map(lambda x: int(x / bin_width), spike_len_in_bins))
+    return spike_len_in_bins
+
 
 def plot_signal(signal, time_in_sec, canvas, title, x_label, y_label, ax_idx=0):
 

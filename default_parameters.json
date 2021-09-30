@@ -14,7 +14,7 @@
     "spike_dead_time": "0.003",
     "spike_threshold_from": "-0.0001",
     "spike_threshold_to": "",
-    "stimulus_dead_time": "0.003",
+    "stimulus_dead_time": "0.02",
     "stimulus_threshold_from": "-0.001",
     "stimulus_threshold_to": "",
     "burst_max_start": "0.01",
