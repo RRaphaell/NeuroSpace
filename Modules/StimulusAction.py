@@ -5,12 +5,11 @@ from Modules.utils import calculate_bins
 
 
 class StimulusAction(Spikes):
-    def __init__(self, pre, post, bin_number, stimulus, *args, **kwargs):
+    def __init__(self, pre, post, bin_width, stimulus, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.pre = pre
         self.post = post 
-        self.bin_number = bin_number
-        self.bin_width = pre/bin_number
+        self.bin_width = bin_width
         self.stimulus_indexes = stimulus
 
     @property
@@ -30,24 +29,24 @@ class StimulusAction(Spikes):
         self._post = ParamChecker(value, "Post").not_empty.number.positive.value
 
     @property
-    def bin_number(self):
-        return self.bin_number
+    def bin_width(self):
+        return self._bin_width
 
-    @bin_number.setter
-    def bin_number(self, width):
-        self.bin_number = ParamChecker(width, "Bin width").not_empty.number.positive.value
+    @bin_width.setter
+    def bin_width(self, width):
+        self._bin_width = ParamChecker(width, "Bin width").not_empty.number.positive.value
     
     def get_stimulus_bins(self):
         spikes = self.indexes
-        stimulus_starts = [y for x,y in enumerate(self.stimulus) if x%2 != 0]
-        stimulus_ends = [y for x,y in enumerate(self.stimulus) if x%2 == 0]
-        bin_width = self.pre/self.bin_number
-        bin_list = np.zeros(len(2*self.bin_number))
+        stimulus_starts = [y for x,y in enumerate(self.stimulus) if x % 2 != 0]
+        stimulus_ends = [y for x,y in enumerate(self.stimulus) if x % 2 == 0]
+        bin_width = self.pre/self.bin_width
+        bin_list = np.zeros(len(2 * self.bin_width))
         for i in range(0,len(stimulus_starts)):
             start = stimulus_starts[i]
             end = stimulus_ends[i]
-            from_ = start - int(self.bin_number*self.fs)
-            to_ = end + int(self.bin_number*self.fs)
+            from_ = start - int(self.bin_width * self.fs)
+            to_ = end + int(self.bin_width * self.fs)
             pre_spikes = spikes[from_:start]
             pre_bins = calculate_bins(pre_spikes, self.from_s, bin_width)
             post_spikes = spikes[start:to_]
