@@ -98,9 +98,9 @@ class BinController:
                 bin_dataframe.to_csv(path + "bins.csv", index=False)
 
     def _get_stimulus_time_range(self):
-        stimulus_marked_channels = self.view.channel_widget.marked_stimulus_channels[0]
+        stimulus_marked_channels = self.view.channel_widget.marked_stimulus_channels
         if len(stimulus_marked_channels):
-            stimulus = self._create_stimulus([stimulus_marked_channels])
+            stimulus = self._create_stimulus(stimulus_marked_channels)
             return stimulus.time_range
         return []
 

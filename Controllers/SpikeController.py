@@ -42,12 +42,12 @@ class SpikeController:
 
         self.view.create_plot_window()
         self.mdi.addSubWindow(self.view.plot_window)
-        stimulus_marked_channels = self.view.channel_widget.marked_stimulus_channels[0]
+        stimulus_marked_channels = self.view.channel_widget.marked_stimulus_channels
         if self.view.channel_widget.is_avg:
-            self.plot_one_channel(marked_channels, [stimulus_marked_channels], 0)
+            self.plot_one_channel(marked_channels, stimulus_marked_channels, 0)
         else:
             for i, ch in enumerate(marked_channels):
-                self.plot_one_channel([ch], [stimulus_marked_channels], i)
+                self.plot_one_channel([ch], stimulus_marked_channels, i)
 
         self.view.plot_window.show()
         self.view.plot_widget.mousePressEvent = lambda x: self.parameters_dock.setWidget(self.view)
@@ -83,13 +83,13 @@ class SpikeController:
             marked_channels = self.view.channel_widget.marked_spike_channels
             if len(marked_channels) == 0:
                 raise ValueError("At least one channel should be marked")   
-            stimulus_marked_channels = self.view.channel_widget.marked_stimulus_channels[0]
+            stimulus_marked_channels = self.view.channel_widget.marked_stimulus_channels
             if self.view.channel_widget.is_avg:
-                self.extract_spike_dataframe(path,marked_channels, [stimulus_marked_channels])
+                self.extract_spike_dataframe(path, marked_channels, stimulus_marked_channels)
 
             else:
                 for ch in marked_channels:
-                    self.extract_spike_dataframe(path, [ch], [stimulus_marked_channels])
+                    self.extract_spike_dataframe(path, [ch], stimulus_marked_channels)
 
     def extract_spike_dataframe(self, path, marked_channels, stimulus_marked_channels):
         spike_together_obj = self._create_spiketogether_module(marked_channels)
@@ -105,7 +105,7 @@ class SpikeController:
             i = 1
             for indices, colors in spikes:
                 to_be_spikes[indices] = i
-                i+= 1
+                i += 1
         spikes_df[f"spikes {marked_channels}"] = to_be_spikes
         if self.view.burst_group_box:
             bursts_obj = Bursts(spike_together_obj, self.view.burst_max_start.text(), self.view.burst_max_end.text(),
@@ -117,11 +117,11 @@ class SpikeController:
                 for indices in indices_colors_for_bursts:
                     burst_starts_list = indices[0][0]
                     to_be_bursts[burst_starts_list] = i
-                    i+= 1
+                    i += 1
             spikes_df[f"bursts {marked_channels}"] = to_be_bursts
         else:
             spikes_df[f"bursts {marked_channels}"] = np.zeros(len(spikes_df))
-        if stimulus_marked_channels:
+        if len(stimulus_marked_channels):
             stimulus = self._create_stimulus(stimulus_marked_channels)
             stimulus_indexes = stimulus.indexes
             to_be_stimulus = np.zeros(len(spikes_df))

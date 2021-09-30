@@ -24,8 +24,8 @@ class StimulusActionController:
 
         marked_channels = self.view.channel_widget.marked_spike_channels
         stimulus_marked_channels = self.view.channel_widget.marked_stimulus_channels
-        if stimulus_marked_channels:
-            stimulus = self._create_stimulus([stimulus_marked_channels[0]])
+        if len(stimulus_marked_channels):
+            stimulus = self._create_stimulus(stimulus_marked_channels)
             stimulus_time_range = stimulus.time_range
             stimulus_indexes = stimulus.indexes
         else:

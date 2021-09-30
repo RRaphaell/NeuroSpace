@@ -14,8 +14,9 @@ class ChannelIdsWidget(QtWidgets.QGroupBox):
         layout = QtWidgets.QVBoxLayout()
         self._check_all_butt = None
         self._average_butt = None
-        self._buttons = []
+        self._buttons = {}
         self.button_positions = [GRAY, GREEN, RED] if stimulus_option else [GRAY, GREEN]
+        self._is_stimulus_selected = False
 
         channel_widget = QtWidgets.QWidget()
         self._channel_layout = QtWidgets.QGridLayout()
@@ -41,7 +42,6 @@ class ChannelIdsWidget(QtWidgets.QGroupBox):
         if not ChannelIdsWidget.is_square(channel_num):
             raise ValueError("Channel quantity should be square")
 
-        button_idx = 0
         root = int(channel_num**0.5)
         corner_buttons = [(1, 1), (1, root), (root, 1), (root, root)]
         for row in range(1, root+1):
@@ -49,15 +49,15 @@ class ChannelIdsWidget(QtWidgets.QGroupBox):
                 if (col, row) not in corner_buttons:
                     button = QtWidgets.QPushButton(f"{col}{row}")
                     button.setFixedSize(30, 30)
-                    button.clicked.connect(partial(self._change_color, button_idx))
+                    button.clicked.connect(partial(self._change_color, button))
                     self._channel_layout.addWidget(button, row - 1, col - 1)
-                    self._buttons.append([button, 0])
-                    button_idx += 1
+                    self._buttons[button] = 0
 
     def _check_all(self, on):
-        for i in range(len(self._buttons)):
-            self._buttons[i][1] = on
-            self._buttons[i][0].setStyleSheet(self.button_positions[on])
+        for button in self._buttons.keys():
+            self._buttons[button] = on
+            button.setStyleSheet(self.button_positions[on])
+        self._is_stimulus_selected = False
 
     @ property
     def is_avg(self):
@@ -73,18 +73,26 @@ class ChannelIdsWidget(QtWidgets.QGroupBox):
 
     def _get_channel_based_on_color(self, color):
         marked_buttons = []
-        for i in range(len(self._buttons)):
-            button = self._buttons[i][0]
-            position = self._buttons[i][1]
+        for button, position in self._buttons.items():
             if self.button_positions[position] == color:
                 marked_buttons.append(button.text())
         return marked_buttons
 
-    def _change_color(self, button_idx):
-        button, position = self._buttons[button_idx]
+    def _change_color(self, button_key):
+        position = self._buttons[button_key]
+        # when stimulus channel is unchecked
+        if self.button_positions[position] == RED:
+            self._is_stimulus_selected = False
+
         position = (position + 1) % len(self.button_positions)
-        button.setStyleSheet(self.button_positions[position])
-        self._buttons[button_idx][1] = position
+        if self.button_positions[position] == RED:
+            if self._is_stimulus_selected:
+                position = (position + 1) % len(self.button_positions)
+            else:
+                self._is_stimulus_selected = True
+
+        button_key.setStyleSheet(self.button_positions[position])
+        self._buttons[button_key] = position
 
     @staticmethod
     def is_square(num):
