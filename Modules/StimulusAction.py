@@ -35,7 +35,7 @@ class StimulusAction(Spikes):
 
     @bin_number.setter
     def bin_number(self, width):
-        self.bin_number = ParamChecker(width, "Bin number").not_empty.number.positive.value
+        self.bin_number = ParamChecker(width, "Bin width").not_empty.number.positive.value
     
     def get_stimulus_bins(self):
         spikes = self.indexes

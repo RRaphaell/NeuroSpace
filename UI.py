@@ -1,4 +1,6 @@
 from PyQt5 import QtWidgets, QtGui, QtCore
+
+from Controllers.StimulusActionController import StimulusActionController
 from Controllers.SpikeTogetherController import SpikeTogetherController
 from PopupHandler import PopupHandler
 from utils import path_valid, get_default_widget
@@ -65,6 +67,8 @@ class NeuroSpace(QtWidgets.QMainWindow):
         bin_.triggered.connect(self._on_bin_icon_clicked)
         spike_together = QtWidgets.QAction(QtGui.QIcon("icons/spike_together.jpg"), "Spike Together", self)
         spike_together.triggered.connect(self._on_spike_together_icon_clicked)
+        stimulus_action = QtWidgets.QAction(QtGui.QIcon("icons/stimulus_action.png"), "Stimulus Action", self)
+        stimulus_action.triggered.connect(self._on_stimulus_action_icon_clicked)
 
         spacer = QtWidgets.QWidget()
         spacer.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Preferred)
@@ -73,6 +77,7 @@ class NeuroSpace(QtWidgets.QMainWindow):
         self.toolbar.addAction(spike)
         self.toolbar.addAction(bin_)
         self.toolbar.addAction(spike_together)
+        self.toolbar.addAction(stimulus_action)
         self.toolbar.addWidget(spacer)
         self.toolbar.setDisabled(True)
         self.addToolBar(self.toolbar)
@@ -149,3 +154,8 @@ class NeuroSpace(QtWidgets.QMainWindow):
         spike_together = partial(SpikeTogetherController, self._file, self.window_key, self.open_windows_dict,
                                  self.mdi, self.parameters_dock, PopupHandler(self))
         self._on_icon_clicked(spike_together, dialog_title="SpikeTogether")
+
+    def _on_stimulus_action_icon_clicked(self):
+        stimulus_action = partial(StimulusActionController, self._file, self.window_key, self.open_windows_dict,
+                                  self.mdi, self.parameters_dock, PopupHandler(self))
+        self._on_icon_clicked(stimulus_action, dialog_title="StimulusAction")
