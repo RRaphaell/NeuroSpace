@@ -21,7 +21,7 @@ class Spikes(Waveform):
     @property
     def time_range(self):
         indexes = self.indexes
-        if len(indexes) > 1:
+        if len(indexes) > 0:
             time_range = indexes/self.fs + self.from_s
             return time_range
         return indexes

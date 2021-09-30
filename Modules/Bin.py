@@ -6,7 +6,6 @@ from Modules.utils import calculate_bins
 class Bin(Spikes):
     def __init__(self, bin_width, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        print(bin_width)
         self._plot_func = None
         self.bin_width = bin_width
         
