@@ -1,5 +1,6 @@
 from Controllers.utils import catch_exception
 from Modules.SpikeTogether import SpikeTogether
+from Modules.Spikes import Spikes
 from Modules.utils import plot_spikes_together
 from Widgets.SpikeTogetherWidget import SpikeTogetherWidget
 from utils import get_default_widget
@@ -39,6 +40,7 @@ class SpikeTogetherController:
         else:
             for i, ch in enumerate(marked_channels):
                 spike_obj = self._create_spiketogether_module([ch])
+                print("THIS IS SPIKES SPIKES", spike_obj.spike_labels)
                 plot_spikes_together(spike_obj.cutouts, spike_obj.labels, spike_obj.fs,
                                      spike_obj.component_number, spike_obj.pre, spike_obj.post, number_spikes=None,
                                      canvas=self.view.canvas, title=ch, ax_idx=i)

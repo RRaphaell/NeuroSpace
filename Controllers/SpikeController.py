@@ -1,3 +1,4 @@
+from Modules.Spikes import Spikes
 from Modules.stimulus import Stimulus
 from Controllers.utils import catch_exception
 from Modules.SpikeTogether import SpikeTogether
@@ -70,6 +71,7 @@ class SpikeController:
             bursts_obj = Bursts(spike_together_obj, self.view.burst_max_start.text(), self.view.burst_max_end.text(),
                                 self.view.burst_between.text(), self.view.burst_duration.text(), self.view.burst_number.text())
             indices_colors_for_bursts = bursts_obj.bursts_colored_indexes
+        print("HERE ARE SPIKES FROM SPIKE TAB ", spike_together_obj.spike_labels_indexes)
         plot_signal_with_spikes(spike_together_obj.signal, spike_together_obj.time, self.view.canvas,
                                 marked_channels, "Time (seconds)", "Signal voltage", indices_colors_for_spikes,
                                 ax_idx, indices_colors_for_bursts)

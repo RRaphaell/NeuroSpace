@@ -44,11 +44,9 @@ class StimulusActionController:
 
         if self.view.channel_widget.is_avg:
             self.plt_bin_in_channel(marked_channels, stimulus_indexes, 0)
-            plot_stimulus(stimulus_time_range, self.view.canvas, ax_idx=0)
         else:
             for i, ch in enumerate(marked_channels):
                 self.plt_bin_in_channel([ch], stimulus_indexes, i)
-                plot_stimulus(stimulus_time_range, self.view.canvas, ax_idx=i)
 
         self.view.plot_window.show()
         self.view.plot_widget.mousePressEvent = lambda x: self.parameters_dock.setWidget(self.view)
@@ -59,8 +57,8 @@ class StimulusActionController:
     def plt_bin_in_channel(self, ch, stimulus_indexes, i):
         _stimulusAction_obj = self._create_stimulus_action(ch, stimulus_indexes)
         bin_range = np.arange(_stimulusAction_obj.from_s, _stimulusAction_obj.to_s, _stimulusAction_obj.bin_width)
-        pad_len = len(bin_range) - len(_stimulusAction_obj.bins)
-        bins = np.concatenate([_stimulusAction_obj.bins, [0] * pad_len])
+        pad_len = len(bin_range) - len(_stimulusAction_obj.stimulus_bins)
+        bins = np.concatenate([_stimulusAction_obj.stimulus_bins, [0] * pad_len])
         plot_bins(bins, bin_range, _stimulusAction_obj.bin_width, self.view.canvas, ch, "Bin Timestamp (s)", "Bin Freq (hz)", ax_idx=i)
 
     def _create_stimulus(self, channels):
@@ -69,7 +67,7 @@ class StimulusActionController:
                         self.view.from_s.text(), self.view.to_s.text(), self.view.high_pass.text(), self.view.low_pass.text())
     
     def _create_stimulus_action(self, channels, stimulus_indexes):
-        return StimulusAction(self.view.pre.text(), self.view.post.text(),self.view.bin_number.text()
-                            ,stimulus_indexes,self.view.spike_dead_time.text(), self.view.spike_threshold_from.text()
+        return StimulusAction(self.view.pre.text(), self.view.post.text(),self.view.bin_width.text()
+                            ,stimulus_indexes, self.view.spike_dead_time.text(), self.view.spike_threshold_from.text()
                             ,self.view.spike_threshold_to.text(), self.file.recordings[0].analog_streams[0], channels
                             ,self.view.from_s.text(), self.view.to_s.text(), self.view.high_pass.text(), self.view.low_pass.text())
