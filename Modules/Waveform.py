@@ -1,5 +1,4 @@
 import numpy as np
-
 from Modules.ParamChecker import ParamChecker
 from Modules.utils import (convert_channel_label_to_id
                            , filter_base_frequency
@@ -8,7 +7,6 @@ from Modules.utils import (convert_channel_label_to_id
 
 
 class Waveform:
-
     def __init__(self, electrode_stream, channels, from_s="", to_s="", high_pass="", low_pass=""):
         self._electrode_stream = electrode_stream
         self._channels = list(map(lambda ch: convert_channel_label_to_id(electrode_stream, ch), channels))

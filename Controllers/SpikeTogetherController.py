@@ -1,22 +1,16 @@
+from Controllers.Controller import Controller
 from Controllers.utils import catch_exception
 from Modules.SpikeTogether import SpikeTogether
-from Modules.Spikes import Spikes
 from Modules.utils import plot_spikes_together
 from Widgets.SpikeTogetherWidget import SpikeTogetherWidget
 from utils import get_default_widget
 
 
-class SpikeTogetherController:
-    def __init__(self, file, key, open_window_dict, mdi, parameters_dock, popup_handler, dialog):
-        self.file = file
-        self._key = key
-        self.open_window_dict = open_window_dict
-        self.parameters_dock = parameters_dock
-        self._dialog = dialog
-        self.mdi = mdi
-        self.popup_handler = popup_handler
-
+class SpikeTogetherController(Controller):
+    def __init__(self, *args):
         self.view = SpikeTogetherWidget()
+        super().__init__(*args, self.view)
+
         self.view.set_plot_func(self.plot_clicked)
 
     @catch_exception
@@ -40,7 +34,6 @@ class SpikeTogetherController:
         else:
             for i, ch in enumerate(marked_channels):
                 spike_obj = self._create_spiketogether_module([ch])
-                print("THIS IS SPIKES SPIKES", spike_obj.spike_labels)
                 plot_spikes_together(spike_obj.cutouts, spike_obj.labels, spike_obj.fs,
                                      spike_obj.component_number, spike_obj.pre, spike_obj.post, number_spikes=None,
                                      canvas=self.view.canvas, title=ch, ax_idx=i)

@@ -1,35 +1,23 @@
-from Modules.Spikes import Spikes
+from Controllers.Controller import Controller
 from Modules.stimulus import Stimulus
 from Controllers.utils import catch_exception
 from Modules.SpikeTogether import SpikeTogether
 import numpy as np
 import pandas as pd
-from utils import get_default_widget
 from Modules.utils import get_spikes_with_labels, plot_signal_with_spikes, plot_stimulus
 from Modules.Bursts import Bursts
 from Widgets.SpikeWidget import SpikeWidget
 
 
-class SpikeController:
-    def __init__(self, file, key, open_window_dict, mdi, parameters_dock, popup_handler, dialog):
-        self.file = file
-        self._key = key
-        self.open_window_dict = open_window_dict
-        self.parameters_dock = parameters_dock
-        self._dialog = dialog
-        self.mdi = mdi
-        self.popup_handler = popup_handler
-
+class SpikeController(Controller):
+    def __init__(self, *args):
         self.view = SpikeWidget()
+        super().__init__(*args, self.view)
+
         self.view.tabs.currentChanged.connect(self._enable_stimulus_if_checked)
         self.view.set_plot_func(self.plot_clicked)
         self.view.set_extract_func(self.extract_clicked)
 
-    def _enable_stimulus_if_checked(self):
-        if len(self.view.channel_widget.marked_stimulus_channels):
-            self.view.stimulus_group_box.setEnabled(True)
-        else:
-            self.view.stimulus_group_box.setDisabled(True)
 
     @catch_exception
     def plot_clicked(self):
@@ -71,7 +59,7 @@ class SpikeController:
             bursts_obj = Bursts(spike_together_obj, self.view.burst_max_start.text(), self.view.burst_max_end.text(),
                                 self.view.burst_between.text(), self.view.burst_duration.text(), self.view.burst_number.text())
             indices_colors_for_bursts = bursts_obj.bursts_colored_indexes
-        print("HERE ARE SPIKES FROM SPIKE TAB ", spike_together_obj.spike_labels_indexes)
+
         plot_signal_with_spikes(spike_together_obj.signal, spike_together_obj.time, self.view.canvas,
                                 marked_channels, "Time (seconds)", "Signal voltage", indices_colors_for_spikes,
                                 ax_idx, indices_colors_for_bursts)
@@ -141,7 +129,3 @@ class SpikeController:
         return Stimulus(self.view.stimulus_dead_time.text(), self.view.stimulus_threshold_from.text(),
                         self.view.stimulus_threshold_to.text(), self.file.recordings[0].analog_streams[0], channels,
                         self.view.from_s.text(), self.view.to_s.text(), self.view.high_pass.text(), self.view.low_pass.text())
-
-    def _remove_me(self):
-        del self.open_window_dict[self._key]
-        self.parameters_dock.setWidget(get_default_widget())

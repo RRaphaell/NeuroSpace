@@ -120,6 +120,7 @@ def calculate_stimulus(signal,  threshold, dead_time_idx):
         return np.array([])
 
     distance_sufficient = np.insert(np.diff(threshold_crossings) >= dead_time_idx, 0, True)
+    last_stimulus_index = threshold_crossings[-1]
     for i in range(1, len(distance_sufficient)):
         if distance_sufficient[i]:
             distance_sufficient[i - 1] = True
@@ -131,6 +132,8 @@ def calculate_stimulus(signal,  threshold, dead_time_idx):
             if distance_sufficient[i]:
                 distance_sufficient[i - 1] = True
 
+    if len(threshold_crossings) % 2 == 1:
+        threshold_crossings = np.insert(threshold_crossings, len(threshold_crossings), last_stimulus_index)
     return threshold_crossings
 
 
@@ -182,6 +185,7 @@ def calculate_threshold_based_on_signal(signal):
 
 def calculate_min_voltage_of_signal(signal):
     return np.min(signal)
+
 
 def calculate_bins(spikes_in_range, from_s, bin_width):
     spike_len_in_bins = []
@@ -259,7 +263,7 @@ def plot_signal_with_spikes(signal, time_in_sec, canvas, title, x_label, y_label
 
 def plot_bins(spike_in_bins, bin_ranges, bin_width, canvas, title, x_label, y_label, ax_idx=0):
     x = bin_ranges
-    y = [int(value) for value in spike_in_bins]
+    y = [value for value in spike_in_bins]
 
     axes = canvas.figure.get_axes()
     ax = axes[ax_idx]

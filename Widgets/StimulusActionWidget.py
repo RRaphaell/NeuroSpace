@@ -7,9 +7,6 @@ class StimulusActionWidget(BinWidget):
     def __init__(self):
         super().__init__()
 
-        # self.pre = None
-        # self.post = None
-        # self.bin_width = None
         self.tabs.setTabText(1, "Stimulus Action")
 
     def _create_bin_group(self):

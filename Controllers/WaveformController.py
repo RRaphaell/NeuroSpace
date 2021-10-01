@@ -1,22 +1,16 @@
 import pandas as pd
+from Controllers.Controller import Controller
 from Controllers.utils import catch_exception
 from Modules.Waveform import Waveform
 from Widgets.WaveformWidget import WaveformWidget
-from utils import get_default_widget
 from Modules.utils import plot_signal
 
 
-class WaveformController:
-    def __init__(self, file, key, open_window_dict, mdi, parameters_dock, popup_handler, dialog):
-        self.file = file
-        self._key = key
-        self.open_window_dict = open_window_dict
-        self.parameters_dock = parameters_dock
-        self._dialog = dialog
-        self.mdi = mdi
-        self.popup_handler = popup_handler
-
+class WaveformController(Controller):
+    def __init__(self, *args):
         self.view = WaveformWidget(title="Waveform")
+        super().__init__(*args, self.view)
+
         self.view.set_plot_func(self.plot_clicked)
         self.view.set_extract_func(self.extract_clicked)
 
@@ -78,7 +72,3 @@ class WaveformController:
     def _create_waveform(self, channels):
         return Waveform(self.file.recordings[0].analog_streams[0], channels, self.view.from_s.text(),
                         self.view.to_s.text(), self.view.high_pass.text(), self.view.low_pass.text())
-
-    def _remove_me(self):
-        del self.open_window_dict[self._key]
-        self.parameters_dock.setWidget(get_default_widget())

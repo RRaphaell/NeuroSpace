@@ -1,34 +1,21 @@
 import numpy as np
 import pandas as pd
-
+from Controllers.Controller import Controller
 from Controllers.utils import catch_exception
 from Modules.stimulus import Stimulus
 from Modules.utils import plot_bins, plot_stimulus
 from Widgets.BinWidget import BinWidget
 from Modules.Bin import Bin
-from utils import get_default_widget
 
 
-class BinController:
-    def __init__(self, file, key, open_window_dict, mdi, parameters_dock, popup_handler, dialog):
-        self.file = file
-        self._key = key
-        self.open_window_dict = open_window_dict
-        self.parameters_dock = parameters_dock
-        self._dialog = dialog
-        self.mdi = mdi
-        self.popup_handler = popup_handler
-
+class BinController(Controller):
+    def __init__(self, *args):
         self.view = BinWidget()
+        super().__init__(*args, self.view)
+
         self.view.tabs.currentChanged.connect(self._enable_stimulus_if_checked)
         self.view.set_plot_func(self.plot_clicked)
         self.view.set_extract_func(self.extract_clicked)
-
-    def _enable_stimulus_if_checked(self):
-        if len(self.view.channel_widget.marked_stimulus_channels):
-            self.view.stimulus_group_box.setEnabled(True)
-        else:
-            self.view.stimulus_group_box.setDisabled(True)
 
     @catch_exception
     def plot_clicked(self):
@@ -113,7 +100,3 @@ class BinController:
         return Stimulus(self.view.stimulus_dead_time.text(), self.view.stimulus_threshold_from.text(),
                         self.view.stimulus_threshold_to.text(), self.file.recordings[0].analog_streams[0], channels,
                         self.view.from_s.text(), self.view.to_s.text(), self.view.high_pass.text(), self.view.low_pass.text())
-
-    def _remove_me(self):
-        del self.open_window_dict[self._key]
-        self.parameters_dock.setWidget(get_default_widget())

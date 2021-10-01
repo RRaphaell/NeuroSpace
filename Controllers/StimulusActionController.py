@@ -1,23 +1,17 @@
-
 import numpy as np
+from Controllers.Controller import Controller
 from Modules.stimulus import Stimulus
-from Modules.utils import plot_bins, plot_stimulus
+from Modules.utils import plot_bins
 from Widgets.StimulusActionWidget import StimulusActionWidget
 from Modules.StimulusAction import StimulusAction
 
 
-class StimulusActionController:
-    def __init__(self, file, key, open_window_dict, mdi, parameters_dock, popup_handler, dialog):
-        self.file = file
-        self._key = key
-        self.open_window_dict = open_window_dict
-        self.parameters_dock = parameters_dock
-        self._dialog = dialog
-        self.mdi = mdi
-        self.popup_handler = popup_handler
-
-
+class StimulusActionController(Controller):
+    def __init__(self, *args):
         self.view = StimulusActionWidget()
+        super().__init__(*args, self.view)
+
+        self.view.tabs.currentChanged.connect(self._enable_stimulus_if_checked)
         self.view.set_plot_func(self.plot_clicked)
 
     def plot_clicked(self):
@@ -26,10 +20,8 @@ class StimulusActionController:
         stimulus_marked_channels = self.view.channel_widget.marked_stimulus_channels
         if len(stimulus_marked_channels):
             stimulus = self._create_stimulus(stimulus_marked_channels)
-            stimulus_time_range = stimulus.time_range
             stimulus_indexes = stimulus.indexes
         else:
-            stimulus_time_range = []
             stimulus_indexes = []
 
         if len(marked_channels) == 0:
@@ -56,9 +48,8 @@ class StimulusActionController:
 
     def plt_bin_in_channel(self, ch, stimulus_indexes, i):
         _stimulusAction_obj = self._create_stimulus_action(ch, stimulus_indexes)
-        bin_range = np.arange(_stimulusAction_obj.from_s, _stimulusAction_obj.to_s, _stimulusAction_obj.bin_width)
-        pad_len = len(bin_range) - len(_stimulusAction_obj.stimulus_bins)
-        bins = np.concatenate([_stimulusAction_obj.stimulus_bins, [0] * pad_len])
+        bins = _stimulusAction_obj.stimulus_bins
+        bin_range = np.arange(0-_stimulusAction_obj.pre, _stimulusAction_obj.post, _stimulusAction_obj.bin_width)
         plot_bins(bins, bin_range, _stimulusAction_obj.bin_width, self.view.canvas, ch, "Bin Timestamp (s)", "Bin Freq (hz)", ax_idx=i)
 
     def _create_stimulus(self, channels):
@@ -67,7 +58,7 @@ class StimulusActionController:
                         self.view.from_s.text(), self.view.to_s.text(), self.view.high_pass.text(), self.view.low_pass.text())
     
     def _create_stimulus_action(self, channels, stimulus_indexes):
-        return StimulusAction(self.view.pre.text(), self.view.post.text(),self.view.bin_width.text()
-                            ,stimulus_indexes, self.view.spike_dead_time.text(), self.view.spike_threshold_from.text()
-                            ,self.view.spike_threshold_to.text(), self.file.recordings[0].analog_streams[0], channels
-                            ,self.view.from_s.text(), self.view.to_s.text(), self.view.high_pass.text(), self.view.low_pass.text())
+        return StimulusAction(self.view.pre.text(), self.view.post.text(),self.view.bin_width.text(),
+                              stimulus_indexes, self.view.spike_dead_time.text(), self.view.spike_threshold_from.text(),
+                              self.view.spike_threshold_to.text(), self.file.recordings[0].analog_streams[0], channels,
+                              self.view.from_s.text(), self.view.to_s.text(), self.view.high_pass.text(), self.view.low_pass.text())
