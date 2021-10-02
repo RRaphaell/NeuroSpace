@@ -1,5 +1,6 @@
 import numpy as np
 from Controllers.Controller import Controller
+from Controllers.utils import catch_exception
 from Modules.stimulus import Stimulus
 from Modules.utils import plot_bins
 from Widgets.StimulusActionWidget import StimulusActionWidget
@@ -14,6 +15,7 @@ class StimulusActionController(Controller):
         self.view.tabs.currentChanged.connect(self._enable_stimulus_if_checked)
         self.view.set_plot_func(self.plot_clicked)
 
+    @catch_exception
     def plot_clicked(self):
 
         marked_channels = self.view.channel_widget.marked_spike_channels
