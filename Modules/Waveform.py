@@ -17,9 +17,11 @@ class Waveform:
         self.high_pass = high_pass
         self.low_pass = low_pass
 
+        self._signal = self._get_filtered_signal()
+
     @property
     def signal(self):
-        return self._get_filtered_signal()
+        return self._signal
 
     @property
     def _signal_in_range(self):
