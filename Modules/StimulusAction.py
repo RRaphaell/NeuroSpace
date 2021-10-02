@@ -47,7 +47,8 @@ class StimulusAction(Spikes):
         stimulus_len = len(stimulus_starts) if len(stimulus_starts) <= len(stimulus_ends) else len(stimulus_ends)
         pre_bin_list_size = int(self.pre/self.bin_width)
         post_bin_list_size = int(self.post/self.bin_width)
-        bin_list = np.zeros(pre_bin_list_size + post_bin_list_size)
+        pre_bin_list = np.array([])
+        post_bin_list = np.array([])
         for i in range(0, stimulus_len):
             start = stimulus_starts[i]  # index
             end = stimulus_ends[i]  # index
@@ -65,9 +66,17 @@ class StimulusAction(Spikes):
             post_bins = calculate_bins(post_spikes, end/self.fs+self.from_s, self.bin_width)
             pad_len = post_bin_list_size - len(post_bins)
             post_bins = np.concatenate((post_bins, [0] * pad_len))
+            
+            if not len(pre_bin_list):
+                pre_bin_list = np.append(pre_bin_list, pre_bins)
+            else:
+                pre_bin_list += pre_bins
 
-            bins_together = np.concatenate((pre_bins, post_bins))
-            bin_list += bins_together
+            if not len(post_bin_list):
+                post_bin_list = np.append(post_bin_list, post_bins)
+            else:
+                post_bin_list += post_bins
 
-        bin_list = [b/stimulus_len for b in bin_list]
-        return bin_list
+        pre_bin_list = [b/stimulus_len for b in pre_bin_list]
+        post_bin_list = [b/stimulus_len for b in post_bin_list]
+        return pre_bin_list, post_bin_list

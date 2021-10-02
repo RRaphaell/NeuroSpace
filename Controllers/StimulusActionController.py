@@ -50,9 +50,12 @@ class StimulusActionController(Controller):
 
     def plt_bin_in_channel(self, ch, stimulus_indexes, i):
         _stimulusAction_obj = self._create_stimulus_action(ch, stimulus_indexes)
-        bins = _stimulusAction_obj.stimulus_bins
-        bin_range = np.arange(0-_stimulusAction_obj.pre, _stimulusAction_obj.post, _stimulusAction_obj.bin_width)
-        plot_bins(bins, bin_range, _stimulusAction_obj.bin_width, self.view.canvas, ch, "Bin Timestamp (s)", "Bin Freq (hz)", ax_idx=i)
+        pre_bin_list, post_bin_list = _stimulusAction_obj.stimulus_bins
+        pre_bins_x = np.arange(-len(pre_bin_list), 0) * _stimulusAction_obj.bin_width
+        post_bins_x = np.arange(0, len(post_bin_list)) * _stimulusAction_obj.bin_width
+        bin_list = np.concatenate((pre_bin_list, post_bin_list))
+        bin_list_x = np.concatenate((pre_bins_x, post_bins_x))
+        plot_bins(bin_list, bin_list_x, _stimulusAction_obj.bin_width, self.view.canvas, ch, "Bin Timestamp (s)", "Bin Freq (hz)", ax_idx=i)
 
     def _create_stimulus(self, channels):
         return Stimulus(self.view.stimulus_dead_time.text(), self.view.stimulus_threshold_from.text(),

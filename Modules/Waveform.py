@@ -58,7 +58,7 @@ class Waveform:
         to_s = self.signal_time if to_s == "" else to_s
         to_s = round_to_closest(ParamChecker(to_s, "To").number.positive.value, 1/self.fs)
 
-        if not ((to_s > 0) and (to_s < self.signal_time)):
+        if not ((to_s > 0) and (to_s <= self.signal_time)):
             raise ValueError('Parameter "To" should be less than length of signal')
 
         if to_s <= self.from_s:
