@@ -244,7 +244,7 @@ def plot_signal_with_spikes(signal, time_in_sec, canvas, title, x_label, y_label
 
     for indices, colors in indices_colors_for_spikes:
         indices_ = [ind / 25000 + time_in_sec[0] for ind in indices]
-        ax.plot(indices_, signal_in_uv[indices], 'ro', ms=2, color=colors)
+        ax.plot(indices_, signal_in_uv[indices], 'ro', ms=2, color=colors, zorder = 1)
     if len(indices_colors_for_bursts):
         for indices in indices_colors_for_bursts:
             burst_starts_list = indices[0][0]
