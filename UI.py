@@ -64,9 +64,9 @@ class NeuroSpace(QtWidgets.QMainWindow):
         spike.triggered.connect(self._on_spike_icon_clicked)
         bin_ = QtWidgets.QAction(QtGui.QIcon("icons/bin.png"), "Bin", self)
         bin_.triggered.connect(self._on_bin_icon_clicked)
-        spike_together = QtWidgets.QAction(QtGui.QIcon("icons/spike_together.jpg"), "Spike Together", self)
+        spike_together = QtWidgets.QAction(QtGui.QIcon("icons/spike_together.png"), "Spike Together", self)
         spike_together.triggered.connect(self._on_spike_together_icon_clicked)
-        stimulus_action = QtWidgets.QAction(QtGui.QIcon("icons/stimulus_action.png"), "Stimulus Action", self)
+        stimulus_action = QtWidgets.QAction(QtGui.QIcon("icons/stimulus_action.jpg"), "Stimulus Action", self)
         stimulus_action.triggered.connect(self._on_stimulus_action_icon_clicked)
 
         spacer = QtWidgets.QWidget()

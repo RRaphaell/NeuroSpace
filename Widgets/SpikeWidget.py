@@ -60,7 +60,6 @@ class SpikeWidget(WaveformWidget):
 
     def _create_pca_tab(self):
         group_box = QtWidgets.QGroupBox("Spike separation params")
-        group_box.setCheckable(True)
         with open("styles/style.qss", "r") as file:
             group_box.setStyleSheet(file.read())
 
