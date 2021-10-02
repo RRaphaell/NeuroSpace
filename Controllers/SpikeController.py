@@ -84,6 +84,8 @@ class SpikeController(Controller):
                 for ch in marked_channels:
                     self.extract_spike_dataframe(path, [ch], stimulus_marked_channels)
 
+            self.popup_handler.info_popup("Success", "Data Created successfully")
+
     def extract_spike_dataframe(self, path, marked_channels, stimulus_marked_channels):
         spike_together_obj = self._create_spiketogether_module(marked_channels)
         spikes_df = pd.DataFrame()

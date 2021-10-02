@@ -71,6 +71,8 @@ class WaveformController(Controller):
                     waveform_dataframe[f"signal_{ch}"] = waveform.signal
                 waveform_dataframe.to_csv(path + ".csv", index=False)
 
+            self.popup_handler.info_popup("Success", "Data Created successfully")
+
     def _create_waveform(self, channels):
         return Waveform(self.file.recordings[0].analog_streams[0], channels, self.view.from_s.text(),
                         self.view.to_s.text(), self.view.high_pass.text(), self.view.low_pass.text())

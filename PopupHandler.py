@@ -7,3 +7,6 @@ class PopupHandler:
 
     def warning_popup(self, title, text):
         QMessageBox.critical(self._ui_main, str(title), str(text))
+
+    def info_popup(self, title, text):
+        QMessageBox.information(self._ui_main, str(title), str(text))

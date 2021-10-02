@@ -86,6 +86,8 @@ class BinController(Controller):
                     bin_dataframe[f"Spikes_frequency_in_bins {ch}"] = bins
                 bin_dataframe.to_csv(path + "bins.csv", index=False)
 
+            self.popup_handler.info_popup("Success", "Data Created successfully")
+
     def _get_stimulus_time_range(self):
         stimulus_marked_channels = self.view.channel_widget.marked_stimulus_channels
         if len(stimulus_marked_channels):
