@@ -115,9 +115,10 @@ class SpikeController(Controller):
             stimulus = self._create_stimulus(stimulus_marked_channels)
             stimulus_indexes = stimulus.indexes
             to_be_stimulus = np.zeros(len(spikes_df))
-            to_be_stimulus[stimulus_indexes] = 1
+            if len(stimulus_indexes):
+                to_be_stimulus[stimulus_indexes] = 1
             spikes_df["Stimulus"] = to_be_stimulus
-        spikes_df.to_csv(path + "_spikes.csv", index=False)
+        spikes_df.to_csv(path +f" {marked_channels} "+"_spikes.csv", index=False)
 
     def _create_spiketogether_module(self, marked_channels):
         return SpikeTogether(self.view.pre.text(), self.view.post.text(), self.view.component_number.text(),
