@@ -45,7 +45,8 @@ class SpikeTogether(Spikes):
     def labels(self):
         if not len(self.cutouts):
             return []
-
+        elif len(self.cutouts) == 1:
+            return [0]
         labels = get_pca_labels(self.cutouts, self.component_number)
         return labels
 

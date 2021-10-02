@@ -301,8 +301,8 @@ def plot_spikes_together(cutouts, labels, fs, n_components, pre, post, number_sp
     axes = canvas.figure.get_axes()
     ax = axes[ax_idx]
     ax.clear()
-
-    if len(cutouts) < 2:
+    labels = np.array(labels)
+    if len(cutouts) < 1:
         ax.set_title('No Spike')
         canvas.draw()
         return
