@@ -51,10 +51,10 @@ class SpikeWidget(WaveformWidget):
 
         spacer = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         layout.addWidget(self.spike_group_box, 0, 0, 1, 1)
-        layout.addWidget(self.stimulus_group_box, 0, 1, 1, 1)
-        layout.addWidget(self.burst_group_box, 1, 0, 1, 2)
-        layout.addWidget(self.pca_group_box, 2, 0, 1, 2)
-        layout.addItem(spacer, 3, 0, 1, 2)
+        layout.addWidget(self.stimulus_group_box, 1, 0, 1, 1)
+        layout.addWidget(self.burst_group_box, 2, 0, 1, 1)
+        layout.addWidget(self.pca_group_box, 3, 0, 1, 1)
+        layout.addItem(spacer, 4, 0, 1, 1)
         widget.setLayout(layout)
         return widget
 
@@ -64,15 +64,17 @@ class SpikeWidget(WaveformWidget):
         with open("styles/style.qss", "r") as file:
             group_box.setStyleSheet(file.read())
 
-        group_box_layout = QtWidgets.QHBoxLayout()
+        group_box_layout = QtWidgets.QGridLayout()
         self.pre, pre_label = line_edit_with_label("Pre", "Select time parameter")
         self.post, post_label = line_edit_with_label("Post", "Select time parameter")
         self.component_number, spike_comp_num_label = line_edit_with_label("Comp num", "Select Component number")
         spacer = QtWidgets.QSpacerItem(20, 10, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
 
-        widget = merge_widgets(pre_label, self.pre, spacer, post_label, self.post, spacer, spike_comp_num_label, self.component_number, vertical=False)
-       
-        group_box_layout.addWidget(widget)
+        pre_post_widget = merge_widgets(pre_label, self.pre, spacer, post_label, self.post, spacer, spike_comp_num_label, vertical=False)
+        component_number_widget = merge_widgets(spike_comp_num_label, self.component_number, vertical=False)
+
+        group_box_layout.addWidget(pre_post_widget, 0, 0, 1, 1)
+        group_box_layout.addWidget(component_number_widget, 1, 0, 1, 1)
         group_box.setLayout(group_box_layout)
         return group_box
 
@@ -89,14 +91,14 @@ class SpikeWidget(WaveformWidget):
         self.burst_duration, duration_label = line_edit_with_label("Min Duration", "Select burst parameter")
         self.burst_number, numb_label = line_edit_with_label("Min Number Spike", "Select burst parameter")
 
-        start_end = merge_widgets(start_label, self.burst_max_start, end_label, self.burst_max_end)
-        between_dur_number = merge_widgets(between_label, self.burst_between, duration_label,
-                                           self.burst_duration, numb_label, self.burst_number)
+        start_end_widget = merge_widgets(start_label, self.burst_max_start, end_label, self.burst_max_end)
+        between_dur_widget = merge_widgets(between_label, self.burst_between, duration_label, self.burst_duration)
+        number_widget = merge_widgets(numb_label, self.burst_number)
 
         spacer = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Minimum)
-        group_box_layout.addWidget(start_end, 0, 0, 1, 2)
-        group_box_layout.addItem(spacer, 0, 1, 1, 1)
-        group_box_layout.addWidget(between_dur_number, 1, 0, 1, 3)
+        group_box_layout.addWidget(start_end_widget, 0, 0, 1, 1)
+        group_box_layout.addWidget(between_dur_widget, 1, 0, 1, 1)
+        group_box_layout.addWidget(number_widget, 2, 0, 1, 1)
         group_box.setLayout(group_box_layout)
         return group_box
 

@@ -40,9 +40,9 @@ class BinWidget(WaveformWidget):
 
         spacer = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         layout.addWidget(self.spike_group_box, 0, 0, 1, 1)
-        layout.addWidget(self.stimulus_group_box, 0, 1, 1, 1)
-        layout.addWidget(bin_group_box, 1, 0, 1, 1)
-        layout.addItem(spacer, 3, 0, 1, 2)
+        layout.addWidget(self.stimulus_group_box, 1, 0, 1, 1)
+        layout.addWidget(bin_group_box, 2, 0, 1, 1)
+        layout.addItem(spacer, 3, 0, 1, 1)
         widget.setLayout(layout)
         return widget
 
