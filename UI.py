@@ -1,5 +1,4 @@
 from PyQt5 import QtWidgets, QtGui, QtCore
-
 from Controllers.StimulusActionController import StimulusActionController
 from Controllers.SpikeTogetherController import SpikeTogetherController
 from PopupHandler import PopupHandler

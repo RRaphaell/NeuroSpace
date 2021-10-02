@@ -1,6 +1,7 @@
 from PyQt5 import QtWidgets
 from Widgets.BinWidget import BinWidget
 from Widgets.default_widgets import line_edit_with_label
+from Widgets.utils import get_default_params
 
 
 class StimulusActionWidget(BinWidget):
@@ -8,6 +9,7 @@ class StimulusActionWidget(BinWidget):
         super().__init__(window_description)
 
         self.tabs.setTabText(1, "Stimulus Action")
+        self._set_stimulus_action_default_params()
 
     def _create_bin_group(self):
         print("create_bin_group")
@@ -28,3 +30,12 @@ class StimulusActionWidget(BinWidget):
         group_box_layout.addWidget(self.bin_width)
         group_box.setLayout(group_box_layout)
         return group_box
+
+    def _set_stimulus_action_default_params(self):
+        params = get_default_params()
+        for key, value in params["StimulusAction"].items():
+            att = getattr(self, str(key), None)
+            if att is not None:
+                att.setText(value)
+
+

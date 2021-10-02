@@ -2,7 +2,7 @@ import numpy as np
 from Controllers.Controller import Controller
 from Controllers.utils import catch_exception
 from Modules.stimulus import Stimulus
-from Modules.utils import plot_bins
+from Modules.utils import plot_bins, plot_stimulus
 from Widgets.StimulusActionWidget import StimulusActionWidget
 from Modules.StimulusAction import StimulusAction
 
@@ -59,6 +59,9 @@ class StimulusActionController(Controller):
         bin_list = np.concatenate((pre_bin_list, post_bin_list))
         bin_list_x = np.concatenate((pre_bins_x, post_bins_x))
         plot_bins(bin_list, bin_list_x, _stimulusAction_obj.bin_width, self.view.canvas, ch, "Bin Timestamp (s)", "Bin Freq (hz)", ax_idx=i)
+        plot_stimulus([0], self.view.canvas, ax_idx=i)
+
+
 
     def _create_stimulus(self, channels):
         return Stimulus(self.view.stimulus_dead_time.text(), self.view.stimulus_threshold_from.text(),
@@ -66,7 +69,7 @@ class StimulusActionController(Controller):
                         self.view.from_s.text(), self.view.to_s.text(), self.view.high_pass.text(), self.view.low_pass.text())
     
     def _create_stimulus_action(self, channels, stimulus_indexes):
-        return StimulusAction(self.view.pre.text(), self.view.post.text(),self.view.bin_width.text(),
+        return StimulusAction(self.view.pre.text(), self.view.post.text(), self.view.bin_width.text(),
                               stimulus_indexes, self.view.spike_dead_time.text(), self.view.spike_threshold_from.text(),
                               self.view.spike_threshold_to.text(), self.file.recordings[0].analog_streams[0], channels,
                               self.view.from_s.text(), self.view.to_s.text(), self.view.high_pass.text(), self.view.low_pass.text())

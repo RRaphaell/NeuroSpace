@@ -52,5 +52,12 @@
     "component_number": "1",
     "pre": "0.001",
     "post": "0.001"
-  }
+  },
+
+  "StimulusAction": {
+    "stimulus_dead_time": "1",
+    "pre": "1",
+    "post": "1",
+    "bin_width": "0.2"
+    }
 }
