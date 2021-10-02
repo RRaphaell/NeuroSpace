@@ -5,8 +5,8 @@ from Widgets.utils import merge_widgets, get_default_params
 
 
 class SpikeTogetherWidget(WaveformWidget):
-    def __init__(self):
-        super().__init__(title="SpikeTogether", stimulus_option=False)
+    def __init__(self, window_description):
+        super().__init__(window_description, title="SpikeTogether", stimulus_option=False)
 
         self.dead_time = None
         self.threshold_from, self.threshold_to = None, None

@@ -12,14 +12,14 @@ from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as Navigatio
 
 class WaveformWidget(QtWidgets.QMainWindow):
 
-    def __init__(self, title="Waveform", stimulus_option=False):
+    def __init__(self, window_description, title="Waveform", stimulus_option=False):
         super().__init__()
 
         self.plot_widget = None
         self.plot_window = None
         self.canvas = None
 
-        waveform_text = create_widget_description("აღწერა \n აქ შეგიძლიათ აირჩიოთ სხვადასხვა არხი და ააგოთ სიგნალი. ააგოთ როგორც არხების საშუალო ასევე სხვადასხვა არხებიც ცალ-ცალკე")
+        waveform_text = create_widget_description(window_description)
         self.channel_widget = ChannelIdsWidget(stimulus_option=stimulus_option)
         self.from_s, self.to_s, time_range_widget = create_time_range_widgets()
         self.high_pass, self.low_pass, filter_widget = create_filter_widgets()
@@ -55,14 +55,14 @@ class WaveformWidget(QtWidgets.QMainWindow):
         plot_widget.setLayout(layout)
         return plot_widget
 
-    def create_plot_window(self):
+    def create_plot_window(self, window_title):
         if not self.plot_window:
             self.plot_window = QtWidgets.QMdiSubWindow()
             self.plot_window.setWindowIcon(QtGui.QIcon("icons/spike.png"))
         subplot_num = 1 if self.channel_widget.is_avg else len(self.channel_widget.marked_spike_channels)
         self.plot_widget = self.create_plot_widget(subplot_num)
         self.plot_window.setWidget(self.plot_widget)
-        self.plot_window.setWindowTitle("Waveform")
+        self.plot_window.setWindowTitle(window_title)
 
     def _set_waveform_default_params(self):
         params = get_default_params()

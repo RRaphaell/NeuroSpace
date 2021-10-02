@@ -9,7 +9,10 @@ from Modules.StimulusAction import StimulusAction
 
 class StimulusActionController(Controller):
     def __init__(self, *args):
-        self.view = StimulusActionWidget()
+        self.view = StimulusActionWidget("Description\n On the given tab we are observing the distribution of spikes "
+                                         "around stimulus. choose time range so that there is the same type of "
+                                         "stimulus. you can analyze several channels or an average of them by "
+                                         "selecting average check box. choose stimulus channel with double ")
         super().__init__(*args, self.view)
 
         self.view.tabs.currentChanged.connect(self._enable_stimulus_if_checked)
@@ -33,7 +36,7 @@ class StimulusActionController(Controller):
             self._dialog.accept()
             self._dialog = None
 
-        self.view.create_plot_window()
+        self.view.create_plot_window("Stimulus Action")
         self.mdi.addSubWindow(self.view.plot_window)
 
         if self.view.channel_widget.is_avg:

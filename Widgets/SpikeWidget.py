@@ -7,8 +7,8 @@ from Widgets.utils import get_default_params, clear_qlines
 
 
 class SpikeWidget(WaveformWidget):
-    def __init__(self):
-        super().__init__(title="Spike", stimulus_option=True)
+    def __init__(self, window_description):
+        super().__init__(window_description, title="Spike", stimulus_option=True)
 
         self.spike_dead_time, self.stimulus_dead_time = None, None
         self.spike_threshold_from, self.stimulus_threshold_from = None, None

@@ -4,8 +4,8 @@ from Widgets.default_widgets import line_edit_with_label
 
 
 class StimulusActionWidget(BinWidget):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, window_description):
+        super().__init__(window_description)
 
         self.tabs.setTabText(1, "Stimulus Action")
 

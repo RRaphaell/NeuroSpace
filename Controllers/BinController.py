@@ -10,7 +10,9 @@ from Modules.Bin import Bin
 
 class BinController(Controller):
     def __init__(self, *args):
-        self.view = BinWidget()
+        self.view = BinWidget("Description\n On the given tab we are observing the distribution of spikes in bin range. "
+                              "you can analyze several channels or an average of them by selecting average check box. "
+                              "choose stimulus channel with double click on channel id")
         super().__init__(*args, self.view)
 
         self.view.tabs.currentChanged.connect(self._enable_stimulus_if_checked)
@@ -27,7 +29,7 @@ class BinController(Controller):
             self._dialog.accept()
             self._dialog = None
 
-        self.view.create_plot_window()
+        self.view.create_plot_window("Bin")
         self.mdi.addSubWindow(self.view.plot_window)
 
         stimulus_time_range = self._get_stimulus_time_range()

@@ -8,7 +8,9 @@ from Modules.utils import plot_signal
 
 class WaveformController(Controller):
     def __init__(self, *args):
-        self.view = WaveformWidget(title="Waveform")
+        self.view = WaveformWidget("Description\n On the given tab we are observing the behavior of the selected "
+                                   "signals. You can analyze several channels or an average of them by selecting "
+                                   "average check box.", title="Waveform")
         super().__init__(*args, self.view)
 
         self.view.set_plot_func(self.plot_clicked)
@@ -24,7 +26,7 @@ class WaveformController(Controller):
             self._dialog.accept()
             self._dialog = None
 
-        self.view.create_plot_window()
+        self.view.create_plot_window("Waveform")
         self.mdi.addSubWindow(self.view.plot_window)
 
         if self.view.channel_widget.is_avg:

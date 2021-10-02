@@ -11,7 +11,10 @@ from Widgets.SpikeWidget import SpikeWidget
 
 class SpikeController(Controller):
     def __init__(self, *args):
-        self.view = SpikeWidget()
+        self.view = SpikeWidget("Description\n On the given tab we are observing activity of the signal referring to "
+                                "spikes bursts and stimulus, for unit or multi-neural activities "
+                                "you can analyze several channels or an average of them by "
+                                "selecting average check box. choose stimulus channel with double click on channel id")
         super().__init__(*args, self.view)
 
         self.view.tabs.currentChanged.connect(self._enable_stimulus_if_checked)
@@ -29,7 +32,7 @@ class SpikeController(Controller):
             self._dialog.accept()
             self._dialog = None
 
-        self.view.create_plot_window()
+        self.view.create_plot_window("Spike")
         self.mdi.addSubWindow(self.view.plot_window)
         stimulus_marked_channels = self.view.channel_widget.marked_stimulus_channels
         if self.view.channel_widget.is_avg:

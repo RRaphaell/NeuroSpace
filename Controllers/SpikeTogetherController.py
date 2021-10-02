@@ -8,7 +8,9 @@ from utils import get_default_widget
 
 class SpikeTogetherController(Controller):
     def __init__(self, *args):
-        self.view = SpikeTogetherWidget()
+        self.view = SpikeTogetherWidget("Description\n On the given tab we are observing the shape of signal around "
+                                        "spikes. which helps to analyse unit or multi-neural activities. you can "
+                                        "choose several channels or an average of them by selecting average check box.")
         super().__init__(*args, self.view)
 
         self.view.set_plot_func(self.plot_clicked)
@@ -23,7 +25,7 @@ class SpikeTogetherController(Controller):
             self._dialog.accept()
             self._dialog = None
 
-        self.view.create_plot_window()
+        self.view.create_plot_window("Spike together")
         self.mdi.addSubWindow(self.view.plot_window)
 
         if self.view.channel_widget.is_avg:

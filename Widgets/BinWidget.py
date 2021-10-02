@@ -5,8 +5,8 @@ from Widgets.utils import get_default_params
 
 
 class BinWidget(WaveformWidget):
-    def __init__(self):
-        super().__init__(title="Bin", stimulus_option=True)
+    def __init__(self, window_description):
+        super().__init__(window_description, title="Bin", stimulus_option=True)
 
         self.plot_func = None
 
