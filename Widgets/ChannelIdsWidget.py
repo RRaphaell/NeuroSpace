@@ -27,7 +27,7 @@ class ChannelIdsWidget(QtWidgets.QGroupBox):
         layout.addWidget(channel_widget)
         layout.addWidget(button_widget)
         self.setLayout(layout)
-        self.setFixedSize(300, 400)
+        # self.setFixedSize(300, 400)
 
     def _create_checkable_buttons(self):
         self._check_all_butt = QtWidgets.QCheckBox("Clear")
