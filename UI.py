@@ -28,6 +28,11 @@ class NeuroSpace(QtWidgets.QMainWindow):
         self._add_parameters_dock()
         self._add_properties_dock()
 
+        self.statusBar = QtWidgets.QStatusBar()
+        self.setStatusBar(self.statusBar)
+
+        self.setWindowIcon(QtGui.QIcon("icons/logo.png"))
+
         self._set_geometry()
         self.setWindowTitle("NeuroSpace")
         self.showMaximized()

@@ -55,10 +55,10 @@ class WaveformWidget(QtWidgets.QMainWindow):
         plot_widget.setLayout(layout)
         return plot_widget
 
-    def create_plot_window(self, window_title):
+    def create_plot_window(self, window_title, icon_path):
         if not self.plot_window:
             self.plot_window = QtWidgets.QMdiSubWindow()
-            self.plot_window.setWindowIcon(QtGui.QIcon("icons/spike.png"))
+            self.plot_window.setWindowIcon(QtGui.QIcon(icon_path))
         subplot_num = 1 if self.channel_widget.is_avg else len(self.channel_widget.marked_spike_channels)
         self.plot_widget = self.create_plot_widget(subplot_num)
         self.plot_window.setWidget(self.plot_widget)

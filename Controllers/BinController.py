@@ -29,7 +29,7 @@ class BinController(Controller):
             self._dialog.accept()
             self._dialog = None
 
-        self.view.create_plot_window("Bin")
+        self.view.create_plot_window("Bin", "icons/bin.png")
         self.mdi.addSubWindow(self.view.plot_window)
 
         stimulus_time_range = self._get_stimulus_time_range()

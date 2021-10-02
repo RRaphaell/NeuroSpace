@@ -32,7 +32,7 @@ class SpikeController(Controller):
             self._dialog.accept()
             self._dialog = None
 
-        self.view.create_plot_window("Spike")
+        self.view.create_plot_window("Spike", "icons/spike.png")
         self.mdi.addSubWindow(self.view.plot_window)
         stimulus_marked_channels = self.view.channel_widget.marked_stimulus_channels
         if self.view.channel_widget.is_avg:
