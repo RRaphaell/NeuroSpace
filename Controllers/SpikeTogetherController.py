@@ -25,7 +25,7 @@ class SpikeTogetherController(Controller):
             self._dialog.accept()
             self._dialog = None
 
-        self.view.create_plot_window("Spike together")
+        self.view.create_plot_window("Spike together", "icons/spike_together.png")
         self.mdi.addSubWindow(self.view.plot_window)
 
         if self.view.channel_widget.is_avg:
