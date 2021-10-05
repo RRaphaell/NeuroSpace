@@ -261,7 +261,7 @@ def plot_signal_with_spikes(signal, time_in_sec, canvas, title, x_label, y_label
     canvas.figure.text(0.01, 0.5, y_label, va='center', rotation='vertical')
 
 
-def plot_bins(spike_in_bins, bin_ranges, bin_width, canvas, title, x_label, y_label, ax_idx=0):
+def plot_bins(spike_in_bins, bin_ranges, bin_width, canvas, title, x_label, y_label, ax_idx=0, **kwargs):
     x = bin_ranges
     y = [value for value in spike_in_bins]
 
@@ -269,7 +269,7 @@ def plot_bins(spike_in_bins, bin_ranges, bin_width, canvas, title, x_label, y_la
     ax = axes[ax_idx]
     ax.clear()
 
-    ax.bar(x, y, width=bin_width, align='edge', alpha=0.4, facecolor='blue', edgecolor='red', linewidth=2)
+    ax.bar(x, y, width=bin_width, align='edge', alpha=0.4, facecolor='blue', edgecolor='red', linewidth=2, **kwargs)
     ax.grid(color='#95a5a6', linestyle='--', linewidth=1, axis='y', alpha=0.7)
 
     ax.set_title(title)

@@ -2,15 +2,17 @@ import numpy as np
 from Modules.ParamChecker import ParamChecker
 from Modules.Spikes import Spikes
 from Modules.utils import calculate_bins
+from functools import reduce
 
 
 class StimulusAction(Spikes):
-    def __init__(self, pre, post, bin_width, stimulus, *args, **kwargs):
+    def __init__(self, pre, post, bin_width, stimulus, useless_stimulus_ranges, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.pre = pre
         self.post = post 
         self.bin_width = bin_width
         self.stimulus_indexes = stimulus
+        self._useless_stimulus_ranges = useless_stimulus_ranges
         self.stimulus_bins = self.get_stimulus_bins()
 
     @property
@@ -47,8 +49,7 @@ class StimulusAction(Spikes):
         stimulus_len = len(stimulus_starts) if len(stimulus_starts) <= len(stimulus_ends) else len(stimulus_ends)
         pre_bin_list_size = int(self.pre/self.bin_width)
         post_bin_list_size = int(self.post/self.bin_width)
-        pre_bin_list = np.array([])
-        post_bin_list = np.array([])
+        pre_bin_list, post_bin_list = [], []
         for i in range(0, stimulus_len):
             start = stimulus_starts[i]  # index
             end = stimulus_ends[i]  # index
@@ -66,17 +67,18 @@ class StimulusAction(Spikes):
             post_bins = calculate_bins(post_spikes, end/self.fs+self.from_s, self.bin_width)
             pad_len = post_bin_list_size - len(post_bins)
             post_bins = np.concatenate((post_bins, [0] * pad_len))
-            
-            if not len(pre_bin_list):
-                pre_bin_list = np.append(pre_bin_list, pre_bins)
-            else:
-                pre_bin_list += pre_bins
 
-            if not len(post_bin_list):
-                post_bin_list = np.append(post_bin_list, post_bins)
-            else:
-                post_bin_list += post_bins
+            pre_bin_list.append(list(pre_bins))
+            post_bin_list.append(list(post_bins))
 
-        pre_bin_list = [b/stimulus_len for b in pre_bin_list]
-        post_bin_list = [b/stimulus_len for b in post_bin_list]
-        return pre_bin_list, post_bin_list
+        pre_bin_list, post_bin_list = np.array(pre_bin_list), np.array(post_bin_list)
+        pre_bin_list_sum, pre_bin_list_std = np.sum(pre_bin_list, axis=0), np.std(pre_bin_list, axis=0)
+
+        pre_bin_list_stde = pre_bin_list_std / np.sqrt(pre_bin_list.shape[0])
+
+        post_bin_list_sum, post_bin_list_std = np.sum(post_bin_list, axis=0), np.std(post_bin_list, axis=0)
+        post_bin_list_stde = post_bin_list_std / np.sqrt(post_bin_list.shape[0])
+
+        pre_bin_list = pre_bin_list_sum / stimulus_len
+        post_bin_list = post_bin_list_sum / stimulus_len
+        return pre_bin_list, post_bin_list, pre_bin_list_stde, post_bin_list_stde

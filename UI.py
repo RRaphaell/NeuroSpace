@@ -2,7 +2,7 @@ from PyQt5 import QtWidgets, QtGui, QtCore
 from Controllers.StimulusActionController import StimulusActionController
 from Controllers.SpikeTogetherController import SpikeTogetherController
 from PopupHandler import PopupHandler
-from utils import path_valid, get_default_widget
+from utils import path_valid, get_default_widget, merge_files
 from functools import partial
 from Controllers.WaveformController import WaveformController
 from Controllers.SpikeController import SpikeController
@@ -28,6 +28,7 @@ class NeuroSpace(QtWidgets.QMainWindow):
         self._add_parameters_dock()
         self._add_properties_dock()
 
+        self.statusBar()
         self.statusBar = QtWidgets.QStatusBar()
         self.setStatusBar(self.statusBar)
 
@@ -56,10 +57,15 @@ class NeuroSpace(QtWidgets.QMainWindow):
 
     def _add_menubar(self):
         menu_bar = self.menuBar()
-        file_menu = menu_bar.addMenu("&File")
-        open_action = QtWidgets.QAction("&Open", self)
+        file_menu = menu_bar.addMenu("File")
+        open_action = QtWidgets.QAction("Open", self)
         open_action.triggered.connect(self._get_file_for_open)
+
+        merge_files_action = QtWidgets.QAction("Merge Files", self)
+        merge_files_action.triggered.connect(self._merge_files)
+
         file_menu.addAction(open_action)
+        file_menu.addAction(merge_files_action)
 
     def _add_toolbar(self):
         self.toolbar = QtWidgets.QToolBar(self)
@@ -122,6 +128,13 @@ class NeuroSpace(QtWidgets.QMainWindow):
         self._set_properties(property_dct)
         self.toolbar.setEnabled(True)
 
+        self.statusBar.addPermanentWidget(QtWidgets.QLabel(property_dct['file name']))
+        self.statusBar.showMessage("asdasd")
+
+    def _merge_files(self):
+        dir_name = QtWidgets.QFileDialog.getExistingDirectory(self, "Select Directory")
+        merge_files(dir_name)
+
     def _on_icon_clicked(self, obj, dialog_title):
         self.setDisabled(True)
         dialog = QtWidgets.QDialog()
@@ -163,3 +176,6 @@ class NeuroSpace(QtWidgets.QMainWindow):
         stimulus_action = partial(StimulusActionController, self._file, self.window_key, self.open_windows_dict,
                                   self.mdi, self.parameters_dock, PopupHandler(self))
         self._on_icon_clicked(stimulus_action, dialog_title="StimulusAction")
+
+    def error_popup(self, txt, title_text):
+        QtWidgets.QMessageBox.critical(self, title_text, txt)

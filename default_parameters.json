@@ -12,10 +12,10 @@
     "high_pass": "200",
     "low_pass": "",
     "spike_dead_time": "0.003",
-    "spike_threshold_from": "-0.0001",
-    "spike_threshold_to": "",
+    "spike_threshold_from": "-0.00002",
+    "spike_threshold_to": "-0.0003",
     "stimulus_dead_time": "0.02",
-    "stimulus_threshold_from": "-0.001",
+    "stimulus_threshold_from": "-0.0005",
     "stimulus_threshold_to": "",
     "burst_max_start": "0.01",
     "burst_max_end": "0.01",
@@ -33,11 +33,11 @@
     "high_pass": "200",
     "low_pass": "",
     "spike_dead_time": "0.003",
-    "spike_threshold_from": "-0.0001",
-    "spike_threshold_to": "",
     "stimulus_dead_time": "0.003",
-    "stimulus_threshold_from": "-0.001",
+    "stimulus_threshold_from": "-0.0005",
     "stimulus_threshold_to": "",
+    "spike_threshold_from": "-0.00002",
+    "spike_threshold_to": "-0.0003",
     "bin_range": ""
   },
 
@@ -47,8 +47,8 @@
     "high_pass": "200",
     "low_pass": "",
     "dead_time": "0.003",
-    "threshold_from": "-0.0001",
-    "threshold_to": "",
+    "threshold_from": "-0.00002",
+    "threshold_to": "-0.0003",
     "component_number": "1",
     "pre": "0.001",
     "post": "0.001"
@@ -58,6 +58,6 @@
     "stimulus_dead_time": "1",
     "pre": "1",
     "post": "1",
-    "bin_width": "0.2"
-    }
+    "bin_width": "0.1"
+  }
 }

@@ -16,20 +16,26 @@ class StimulusActionWidget(BinWidget):
         group_box = QtWidgets.QGroupBox("Stimulus Action")
         with open("styles/style.qss", "r") as file:
             group_box.setStyleSheet(file.read())
-        group_box_layout = QtWidgets.QHBoxLayout()
+        group_box_layout = QtWidgets.QGridLayout()
 
         self.pre, pre_label = line_edit_with_label("Pre", "Select time parameter")
         self.post, post_label = line_edit_with_label("Post", "Select time parameter")
         self.bin_width, bin_width_label = line_edit_with_label("Bin width", "Select Bin range")
 
-        group_box_layout.addWidget(pre_label)
-        group_box_layout.addWidget(self.pre)
-        group_box_layout.addWidget(post_label)
-        group_box_layout.addWidget(self.post)
-        group_box_layout.addWidget(bin_width_label)
-        group_box_layout.addWidget(self.bin_width)
+        self.useless_stimulus_ranges, stimulus_ranges_label = line_edit_with_label("Stimulus ranges", "Choose stimulus range which you don't want to use in calculation")
+        self.useless_stimulus_ranges.setMaximumWidth(500)
+
+        group_box_layout.addWidget(pre_label, 0, 0, 1, 1)
+        group_box_layout.addWidget(self.pre, 0, 1, 1, 1)
+        group_box_layout.addWidget(post_label, 0, 2, 1, 1)
+        group_box_layout.addWidget(self.post, 0, 3, 1, 1)
+        group_box_layout.addWidget(bin_width_label, 0, 4, 1, 1)
+        group_box_layout.addWidget(self.bin_width, 0, 5, 1, 1)
+        group_box_layout.addWidget(stimulus_ranges_label, 1, 0, 1, 3)
+        group_box_layout.addWidget(self.useless_stimulus_ranges, 1, 3, 1, 3)
         group_box.setLayout(group_box_layout)
         return group_box
+
 
     def _set_stimulus_action_default_params(self):
         params = get_default_params()
