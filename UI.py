@@ -1,3 +1,4 @@
+import os
 from PyQt5 import QtWidgets, QtGui, QtCore
 from Controllers.StimulusActionController import StimulusActionController
 from Controllers.SpikeTogetherController import SpikeTogetherController
@@ -28,10 +29,6 @@ class NeuroSpace(QtWidgets.QMainWindow):
         self._add_parameters_dock()
         self._add_properties_dock()
 
-        self.statusBar()
-        self.statusBar = QtWidgets.QStatusBar()
-        self.setStatusBar(self.statusBar)
-
         self.setWindowIcon(QtGui.QIcon("icons/logo.png"))
 
         self._set_geometry()
@@ -52,7 +49,7 @@ class NeuroSpace(QtWidgets.QMainWindow):
         self.mdi.setBackground(brush)
 
     def resizeEvent(self, event):
-        self._properties_dock.setFixedSize(int(self.width()*0.2), int(self.height()*0.4))
+        self._properties_dock.setFixedSize(int(self.width()*0.2), int(self.height()*0.1))
         self.parameters_dock.setFixedWidth(int(self.width()*0.2))
 
     def _add_menubar(self):
@@ -107,6 +104,7 @@ class NeuroSpace(QtWidgets.QMainWindow):
         self.addDockWidget(QtCore.Qt.DockWidgetArea(1), self._properties_dock)
 
     def _set_properties(self, properties: dict):
+        self._properties_view.clear()
         for key, value in properties.items():
             item = QtWidgets.QTreeWidgetItem([str(key), str(value)])
             self._properties_view.addTopLevelItem(item)
@@ -122,14 +120,11 @@ class NeuroSpace(QtWidgets.QMainWindow):
             return
 
         property_dct = dict()
-        property_dct['file name'] = self._file.__dict__["raw_data_path"]
-        property_dct["clr date"] = self._file.__dict__["clr_date"]
-        property_dct["duration"] = self._file.recordings[0].__dict__["duration"]
+        property_dct['file name'] = os.path.basename(self._file.__dict__["raw_data_path"])
+        # property_dct["clr date"] = self._file.__dict__["clr_date"]
+        # property_dct["duration"] = self._file.recordings[0].__dict__["duration"]
         self._set_properties(property_dct)
         self.toolbar.setEnabled(True)
-
-        self.statusBar.addPermanentWidget(QtWidgets.QLabel(property_dct['file name']))
-        self.statusBar.showMessage("asdasd")
 
     def _merge_files(self):
         dir_name = QtWidgets.QFileDialog.getExistingDirectory(self, "Select Directory")
