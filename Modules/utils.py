@@ -43,10 +43,7 @@ def filter_base_frequency(signal, fs, high_pass, low_pass):
 def round_to_closest(value, time_stamp):
     if value and value > 0:
         remainder = value % time_stamp
-        if remainder > time_stamp / 2:
-            value += time_stamp - remainder
-        else:
-            value -= remainder
+        value -= remainder
     return value
 
 
