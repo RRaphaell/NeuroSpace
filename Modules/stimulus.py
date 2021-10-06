@@ -1,18 +1,22 @@
 from Modules.ParamChecker import ParamChecker
 from Modules.Waveform import Waveform
-from Modules.utils import calculate_min_voltage_of_signal, calculate_stimulus
+from Modules.utils import calculate_min_voltage_of_signal, calculate_stimulus, filter_stimuluses
 
 
 class Stimulus(Waveform):
-    def __init__(self,  dead_time, threshold_from, threshold_to, *args, **kwargs):
+    def __init__(self,  dead_time, threshold_from, threshold_to, useless_stimulus = "", *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.dead_time = dead_time
         self.threshold_from = threshold_from
         self.threshold_to = threshold_to
+        self.useless_stimulus = useless_stimulus
 
     @property
     def indexes(self):
-        return calculate_stimulus(self.signal, self.threshold_from, self.dead_time_idx)
+        if not(self.useless_stimulus and len(self.useless_stimulus) >0):
+            return calculate_stimulus(self.signal, self.threshold_from, self.dead_time_idx)
+        stimuluses = calculate_stimulus(self.signal, self.threshold_from, self.dead_time_idx)
+        return filter_stimuluses(stimuluses, self.useless_stimulus, self.from_s, self.fs)
 
     @property
     def time_range(self):
@@ -39,6 +43,27 @@ class Stimulus(Waveform):
 
         self._dead_time = float(dead_time)
         self._dead_time_idx = int(self.dead_time * self.fs)
+
+    @property
+    def useless_stimulus(self):
+        return self._useless_stimulus
+
+    @useless_stimulus.setter
+    def useless_stimulus(self, useless_stimulus):
+        if useless_stimulus == "":
+            self._useless_stimulus = "" 
+            return
+        useless_stimulus_int = []
+        for i in range(0,len(useless_stimulus)):
+            useless_stimulus_temp = useless_stimulus[i]
+            _ = ParamChecker(useless_stimulus_temp[0], "Useless Stimulus").number.positive
+            _ = ParamChecker(useless_stimulus_temp[1], "Useless Stimulus").number.positive
+            temp_from = float(useless_stimulus_temp[0])
+            temp_to = float(useless_stimulus_temp[1])
+            if float(temp_from) >= self.signal_time or float(temp_to) >= self.signal_time:
+                raise ValueError('"useless stimulus times" should be less than signal time')
+            useless_stimulus_int.append((temp_from, temp_to))
+        self._useless_stimulus = useless_stimulus_int
 
     @property
     def threshold_from(self):

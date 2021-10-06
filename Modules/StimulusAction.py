@@ -6,13 +6,12 @@ from functools import reduce
 
 
 class StimulusAction(Spikes):
-    def __init__(self, pre, post, bin_width, stimulus, useless_stimulus_ranges, *args, **kwargs):
+    def __init__(self, pre, post, bin_width, stimulus, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.pre = pre
         self.post = post 
         self.bin_width = bin_width
         self.stimulus_indexes = stimulus
-        self._useless_stimulus_ranges = useless_stimulus_ranges
         self.stimulus_bins = self.get_stimulus_bins()
 
     @property
@@ -73,12 +72,19 @@ class StimulusAction(Spikes):
 
         pre_bin_list, post_bin_list = np.array(pre_bin_list), np.array(post_bin_list)
         pre_bin_list_sum, pre_bin_list_std = np.sum(pre_bin_list, axis=0), np.std(pre_bin_list, axis=0)
+        print(pre_bin_list)
+        print(post_bin_list)
 
         pre_bin_list_stde = pre_bin_list_std / np.sqrt(pre_bin_list.shape[0])
 
         post_bin_list_sum, post_bin_list_std = np.sum(post_bin_list, axis=0), np.std(post_bin_list, axis=0)
         post_bin_list_stde = post_bin_list_std / np.sqrt(post_bin_list.shape[0])
 
-        pre_bin_list = pre_bin_list_sum / stimulus_len
+        pre_bin_list = pre_bin_list_sum / stimulus_len 
         post_bin_list = post_bin_list_sum / stimulus_len
+
+        print(pre_bin_list)
+        print(post_bin_list)
+        print(pre_bin_list_sum)
+        print(post_bin_list_sum)
         return pre_bin_list, post_bin_list, pre_bin_list_stde, post_bin_list_stde

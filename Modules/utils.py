@@ -322,3 +322,10 @@ def plot_stimulus(stimulus, canvas, ax_idx=0):
         ax.axvline(s, alpha=0.7, color='lime')
 
     canvas.draw()
+
+def filter_stimuluses(stimuluses, useless_stimuluses, from_s, fs):
+    for i in range(0, len(useless_stimuluses)):
+        stimuluses = [st for st in stimuluses 
+                     if not((st/fs + from_s) > useless_stimuluses[i][0] 
+                     and (st/fs + from_s) < useless_stimuluses[i][1])]
+    return stimuluses
