@@ -91,7 +91,7 @@ class StimulusActionController(Controller):
                 self._dialog = None
 
             if self.view.channel_widget.is_avg:
-                _stimulusAction_obj = self._create_stimulus_action(marked_channels, stimulus_indexes)              
+                _stimulusAction_obj = self._create_stimulus_action(marked_channels, stimulus_indexes)
                 bin_list, bin_list_x, bin_list_stde = self.get_bin_df(_stimulusAction_obj)
                 stimulus_action_df = pd.DataFrame()
                 stimulus_action_df["range"] = bin_list_x
@@ -106,8 +106,8 @@ class StimulusActionController(Controller):
                     bin_list, bin_list_x, bin_list_stde = self.get_bin_df(_stimulusAction_obj)
                     if i == 0:
                         stimulus_action_df["range"] = bin_list_x
-                    stimulus_action_df["bin_freq {ch}"] = bin_list
-                    stimulus_action_df["bin_freq_std {ch}"] = bin_list_stde              
+                    stimulus_action_df[f"bin_freq {ch}"] = bin_list
+                    stimulus_action_df[f"bin_freq_std {ch}"] = bin_list_stde
                 stimulus_action_df.to_csv(path + "_stimulus_action.csv", index=False)
 
             self.popup_handler.info_popup("Success", "Data Created successfully")
