@@ -12,7 +12,7 @@ class StimulusAction(Spikes):
         self.post = post 
         self.bin_width = bin_width
         self.stimulus_indexes = stimulus
-        self.stimulus_bins = self.get_stimulus_bins()
+        self.get_stimulus_bins()
 
     @property
     def pre(self):
@@ -80,4 +80,4 @@ class StimulusAction(Spikes):
 
         pre_bin_list = pre_bin_list_sum / stimulus_len 
         post_bin_list = post_bin_list_sum / stimulus_len
-        return pre_bin_list, post_bin_list, pre_bin_list_stde, post_bin_list_stde
+        self.stimulus_bins = pre_bin_list, post_bin_list, pre_bin_list_stde, post_bin_list_stde

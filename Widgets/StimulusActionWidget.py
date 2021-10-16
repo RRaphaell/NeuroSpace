@@ -35,6 +35,8 @@ class StimulusActionWidget(BinWidget):
         group_box.setLayout(group_box_layout)
         return group_box
 
+    def set_extract_func(self, func):
+        self._extract_btn.clicked.connect(func)
 
     def _set_stimulus_action_default_params(self):
         params = get_default_params()
