@@ -102,5 +102,5 @@ class BinController(Controller):
 
     def _create_stimulus(self, channels):
         return Stimulus(self.view.stimulus_dead_time.text(), self.view.stimulus_threshold_from.text(),
-                        self.view.stimulus_threshold_to.text(), self.file.recordings[0].analog_streams[0], channels,
+                        self.view.stimulus_threshold_to.text(), "", self.file.recordings[0].analog_streams[0], channels,
                         self.view.from_s.text(), self.view.to_s.text(), self.view.high_pass.text(), self.view.low_pass.text())
