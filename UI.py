@@ -26,21 +26,23 @@ class NeuroSpace(QtWidgets.QMainWindow):
         self._add_menubar()
         self._add_toolbar()
         self._add_mdi()
+        # self._add_properties_dock()
         self._add_parameters_dock()
-        self._add_properties_dock()
 
+        self.file_name_menu = None
+    
         self.setWindowIcon(QtGui.QIcon("icons/logo.png"))
 
         self._set_geometry()
-        self.setWindowTitle("NeuroSpace")
         self.showMaximized()
+        self.setWindowTitle("NeuroSpace")
         self.setCentralWidget(self.mdi)
 
     def _set_geometry(self):
         desktop = QtWidgets.QApplication.desktop()
         screen_rect = desktop.screenGeometry()
-        height, width = screen_rect.height(), screen_rect.width()
-        self.setGeometry(0, 30, width, height - 30)
+        self.height, self.width = screen_rect.height(), screen_rect.width()
+        self.setGeometry(0, 30, self.width, self.height-40)
 
     def _add_mdi(self):
         brush = QtGui.QBrush(QtGui.QColor(159, 159, 159))
@@ -49,8 +51,8 @@ class NeuroSpace(QtWidgets.QMainWindow):
         self.mdi.setBackground(brush)
 
     def resizeEvent(self, event):
-        self._properties_dock.setFixedSize(int(self.width()*0.2), int(self.height()*0.1))
-        self.parameters_dock.setFixedWidth(int(self.width()*0.2))
+        # self._properties_dock.setFixedSize(int(self.width*0.2), int(self.height*0.1))
+        self.parameters_dock.setFixedWidth(int(self.width*0.2))
 
     def _add_menubar(self):
         menu_bar = self.menuBar()
@@ -74,7 +76,7 @@ class NeuroSpace(QtWidgets.QMainWindow):
         bin_.triggered.connect(self._on_bin_icon_clicked)
         spike_together = QtWidgets.QAction(QtGui.QIcon("icons/spike_together.png"), "Spike Together", self)
         spike_together.triggered.connect(self._on_spike_together_icon_clicked)
-        stimulus_action = QtWidgets.QAction(QtGui.QIcon("icons/stimulus_action.jpg"), "Stimulus Action", self)
+        stimulus_action = QtWidgets.QAction(QtGui.QIcon("icons/stimulus_action.png"), "Stimulus Action", self)
         stimulus_action.triggered.connect(self._on_stimulus_action_icon_clicked)
 
         spacer = QtWidgets.QWidget()
@@ -123,7 +125,12 @@ class NeuroSpace(QtWidgets.QMainWindow):
         property_dct['file name'] = os.path.basename(self._file.__dict__["raw_data_path"])
         # property_dct["clr date"] = self._file.__dict__["clr_date"]
         # property_dct["duration"] = self._file.recordings[0].__dict__["duration"]
-        self._set_properties(property_dct)
+        # self._set_properties(property_dct)
+        menu_bar = self.menuBar()
+        if self.file_name_menu:
+            menu_bar.removeAction(self.file_name_menu.menuAction())
+
+        self.file_name_menu = menu_bar.addMenu(property_dct['file name'])
         self.toolbar.setEnabled(True)
 
     def _merge_files(self):
@@ -134,7 +141,7 @@ class NeuroSpace(QtWidgets.QMainWindow):
         self.setDisabled(True)
         dialog = QtWidgets.QDialog()
         dialog.setWindowTitle(dialog_title)
-        dialog.setMinimumSize(700, 800)
+        dialog.setMinimumSize(self.width/3, self.height*0.8)
         controller = obj(dialog)
         self.open_windows_dict[self.window_key] = controller
         self.window_key += 1

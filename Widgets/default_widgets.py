@@ -47,12 +47,12 @@ def create_widget_description(txt):
 def create_plot_extract_buttons():
     plot_btn = QtWidgets.QPushButton()
     plot_btn.setText("Plot")
-    plot_btn.setMinimumSize(60, 40)
+    plot_btn.setMinimumSize(60, 30)
     plot_btn.setStyleSheet("border: 1px solid black;border-radius: 10px;")
 
     extract_btn = QtWidgets.QPushButton()
     extract_btn.setText("Extract")
-    extract_btn.setMinimumSize(60, 40)
+    extract_btn.setMinimumSize(60, 30)
     extract_btn.setStyleSheet("border: 1px solid black;border-radius: 10px;")
     buttons_widget = merge_widgets(plot_btn, QtWidgets.QSpacerItem(60, 20, QtWidgets.QSizePolicy.Expanding),
                                    extract_btn, vertical=False, stretches=[2, 1, 1])

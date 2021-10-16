@@ -12,7 +12,6 @@ class StimulusActionWidget(BinWidget):
         self._set_stimulus_action_default_params()
 
     def _create_bin_group(self):
-        print("create_bin_group")
         group_box = QtWidgets.QGroupBox("Stimulus Action")
         with open("styles/style.qss", "r") as file:
             group_box.setStyleSheet(file.read())

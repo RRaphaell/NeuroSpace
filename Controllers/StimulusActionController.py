@@ -36,7 +36,7 @@ class StimulusActionController(Controller):
             self._dialog.accept()
             self._dialog = None
 
-        self.view.create_plot_window("Stimulus Action", "icons/stimulus_action.jpg")
+        self.view.create_plot_window("Stimulus Action", "icons/stimulus_action.png")
         self.mdi.addSubWindow(self.view.plot_window)
 
         if self.view.channel_widget.is_avg:

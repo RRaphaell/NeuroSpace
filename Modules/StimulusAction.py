@@ -72,8 +72,6 @@ class StimulusAction(Spikes):
 
         pre_bin_list, post_bin_list = np.array(pre_bin_list), np.array(post_bin_list)
         pre_bin_list_sum, pre_bin_list_std = np.sum(pre_bin_list, axis=0), np.std(pre_bin_list, axis=0)
-        print(pre_bin_list)
-        print(post_bin_list)
 
         pre_bin_list_stde = pre_bin_list_std / np.sqrt(pre_bin_list.shape[0])
 
@@ -82,9 +80,4 @@ class StimulusAction(Spikes):
 
         pre_bin_list = pre_bin_list_sum / stimulus_len 
         post_bin_list = post_bin_list_sum / stimulus_len
-
-        print(pre_bin_list)
-        print(post_bin_list)
-        print(pre_bin_list_sum)
-        print(post_bin_list_sum)
         return pre_bin_list, post_bin_list, pre_bin_list_stde, post_bin_list_stde
