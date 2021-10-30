@@ -49,8 +49,8 @@ class Spikes(Waveform):
             self._threshold_from = calculate_threshold_based_on_signal(self.signal)
         else:
             _ = ParamChecker(threshold_from, "Spike threshold from").number
-
-        self._threshold_from = float(threshold_from)
+            
+            self._threshold_from = float(threshold_from)
 
     @property
     def threshold_to(self):
@@ -59,7 +59,11 @@ class Spikes(Waveform):
     @threshold_to.setter
     def threshold_to(self, threshold_to):
         if threshold_to == "":
-            self._threshold_to = calculate_min_voltage_of_signal(self.signal)
+            min_signal_voltage = calculate_min_voltage_of_signal(self.signal)
+            if self.threshold_from > 0 :
+                self.threshold_to = min_signal_voltage * (-1)
+            else:
+                self._threshold_to = min_signal_voltage
         else:
             self._threshold_to = float(ParamChecker(threshold_to, "Spike threshold to").number.value)
 

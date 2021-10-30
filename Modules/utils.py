@@ -99,6 +99,12 @@ def get_spikes_with_labels(labels, spikes):
 
 
 def calculate_spikes(signal, threshold_from, threshold_to, fs, dead_time_idx):
+
+    if threshold_from > 0 and threshold_to >0 :
+        threshold_from = threshold_from * (-1)
+        threshold_to = threshold_to * (-1)
+        signal = signal * (-1)
+    
     last_idx = -dead_time_idx
     threshold_crossings = []
     for idx in range(len(signal)):
