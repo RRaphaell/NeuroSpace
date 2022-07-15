@@ -1,6 +1,6 @@
 from Modules.ParamChecker import ParamChecker
 from Modules.Waveform import Waveform
-from Modules.utils import calculate_min_voltage_of_signal, calculate_stimulus, filter_stimuluses
+from Modules.utils import calculate_min_voltage_of_signal, calculate_stimulus, filter_stimulus
 
 
 class Stimulus(Waveform):
@@ -16,7 +16,7 @@ class Stimulus(Waveform):
         if not(self.useless_stimulus and len(self.useless_stimulus) >0):
             return calculate_stimulus(self.signal, self.threshold_from, self.dead_time_idx)
         stimuluses = calculate_stimulus(self.signal, self.threshold_from, self.dead_time_idx)
-        return filter_stimuluses(stimuluses, self.useless_stimulus, self.from_s, self.fs)
+        return filter_stimulus(stimuluses, self.useless_stimulus, self.from_s, self.fs)
 
     @property
     def time_range(self):

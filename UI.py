@@ -9,15 +9,25 @@ from Controllers.WaveformController import WaveformController
 from Controllers.SpikeController import SpikeController
 from Controllers.BinController import BinController
 
-
+"""  TODO : this class needs comments for the property functions"""
 class NeuroSpace(QtWidgets.QMainWindow):
+    """
+    This is the main UI class for NeuroSpace app
 
+    Attributes:
+        parameters_dock (QtWidgets.QDockWidget):
+        toolbar (QtWidgets.QToolBar): here is the icons placed of the main functionalities of the app
+        mdi (QtWidgets.QMdiArea): the area where can be window objects displayed
+        file_name_menu (QtWidgets.QMainWindow.menuBar): the menubar object in the top of app
+        window_key (int): controls which window is now current
+        open_windows_dict (dict): active windows dict, the key - window id(int), the value - appropriate window object
+    """
     def __init__(self):
         super().__init__()
 
         self._file = None
         self.parameters_dock = None
-        self.parameters_widget = None
+        # self.parameters_widget = None
         self.toolbar = None
         self.mdi = None
         self.window_key = 0
