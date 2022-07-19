@@ -9,6 +9,13 @@ from Modules.StimulusAction import StimulusAction
 
 
 class StimulusActionController(Controller):
+    """
+    StimulusActionController class is for UI and module relationship while displaying the stimulus action widget
+    On the given widget we are observing the distribution of spikes around stimulus.
+    choose time range so that there is the same type of stimulus
+
+    Note that, Arguments are documented in parent class
+    """
     def __init__(self, *args):
         self.view = StimulusActionWidget("Description\n On the given tab we are observing the distribution of spikes "
                                          "around stimulus. choose time range so that there is the same type of "
@@ -21,8 +28,11 @@ class StimulusActionController(Controller):
         self.view.set_extract_func(self.extract_clicked)
 
     @catch_exception
-    def plot_clicked(self):
-
+    def plot_clicked(self) -> None:
+        """
+        This function firstly makes the stimulus action module object, which makes calculations
+        based on the users desired inputs. After that it plots the appropriate graphs
+        """
         marked_channels = self.view.channel_widget.marked_spike_channels
         stimulus_marked_channels = self.view.channel_widget.marked_stimulus_channels
         if len(stimulus_marked_channels):
@@ -53,7 +63,16 @@ class StimulusActionController(Controller):
         self.view.canvas.mousePressEvent = lambda x: self.parameters_dock.setWidget(self.view)
         self.view.canvas.figure.tight_layout()
 
-    def plt_bin_in_channel(self, ch, stimulus_indexes, i):
+    def plt_bin_in_channel(self, ch: list, stimulus_indexes: list, i: int) -> None:
+        """
+        This function draws one particular channels stimulus action
+        if the ch contains more than one channel, it will average the signal
+
+        Args:
+            ch (list): user chosen channels
+            stimulus_indexes (list): indexes of user chosen stimulus
+            i (int): index to draw in axes
+        """
         if len(stimulus_indexes):
             _stimulusAction_obj = self._create_stimulus_action(ch, stimulus_indexes)
             bin_list, bin_list_x, bin_list_stde = self.get_bin_df(_stimulusAction_obj)
@@ -61,7 +80,17 @@ class StimulusActionController(Controller):
                     "Bin Freq (hz)", ax_idx=i, yerr=bin_list_stde)
         plot_stimulus([0], self.view.canvas, ax_idx=i)
     
-    def get_bin_df(self, _stimulusAction_obj):
+    def get_bin_df(self, _stimulusAction_obj: StimulusAction) -> (list, list, list):
+        """
+        get_bin_df
+
+        Args:
+
+        Returns:
+            bin_list (list):
+            bin_list_x (list):
+            bin_list_stde (list):
+        """
         pre_bin_list, post_bin_list, pre_bin_list_stde, post_bin_list_stde = _stimulusAction_obj.stimulus_bins
 
         pre_bins_x = np.arange(-len(pre_bin_list), 0) * _stimulusAction_obj.bin_width
@@ -112,15 +141,29 @@ class StimulusActionController(Controller):
 
             self.popup_handler.info_popup("Success", "Data Created successfully")
 
-    def _create_stimulus(self, channels):
+    def _create_stimulus(self, channels: list) -> Stimulus:
+        """
+        firstly changes the users input useless stimulus ranges' format.
+        Creates stimulus class object
+
+        Args:
+            channels (list): chosen channels
+
+        Returns:
+
+        """
         useless_stimulus_ranges = list(map(lambda x: x.split("-"), self.view.useless_stimulus_ranges.text().split(",")))
         useless_stimulus_ranges = "" if not useless_stimulus_ranges[0][0] else useless_stimulus_ranges
         return Stimulus(self.view.stimulus_dead_time.text(), self.view.stimulus_threshold_from.text(),
                         self.view.stimulus_threshold_to.text(),useless_stimulus_ranges, self.file.recordings[0].analog_streams[0], channels,
                         self.view.from_s.text(), self.view.to_s.text(), self.view.high_pass.text(), self.view.low_pass.text())
     
-    def _create_stimulus_action(self, channels, stimulus_indexes):
+    def _create_stimulus_action(self, channels: list, stimulus_indexes: list) -> StimulusAction:
+        """
+        Creates stimulus action class object
+        """
         return StimulusAction(self.view.pre.text(), self.view.post.text(), self.view.bin_width.text(), stimulus_indexes,
                               self.view.spike_dead_time.text(), self.view.spike_threshold_from.text(),
                               self.view.spike_threshold_to.text(), self.file.recordings[0].analog_streams[0], channels,
-                              self.view.from_s.text(), self.view.to_s.text(), self.view.high_pass.text(), self.view.low_pass.text())
+                              self.view.from_s.text(), self.view.to_s.text(), self.view.high_pass.text(),
+                              self.view.low_pass.text())

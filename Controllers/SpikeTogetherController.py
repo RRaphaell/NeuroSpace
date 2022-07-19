@@ -7,6 +7,13 @@ from utils import get_default_widget
 
 
 class SpikeTogetherController(Controller):
+    """
+    SpikeTogetherController class is for UI and module relationship while displaying the spiketogether widget
+    On the given widget we are observing activity of the signal referring to
+    spikes bursts and stimulus, for unit or multi-neural activities
+
+    Note that, Arguments are documented in parent class
+    """
     def __init__(self, *args):
         self.view = SpikeTogetherWidget("Description\n On the given tab we are observing the shape of signal around "
                                         "spikes. which helps to analyse unit or multi-neural activities. you can "
@@ -17,6 +24,10 @@ class SpikeTogetherController(Controller):
 
     @catch_exception
     def plot_clicked(self):
+        """
+        This function firstly makes the spiketogether module object, preprocesses signal and then
+        uses plot function from utils to plot the calculated waveforms of spikes.
+        """
         marked_channels = self.view.channel_widget.marked_spike_channels
         if len(marked_channels) == 0:
             raise ValueError("At least one channel should be marked")
@@ -45,12 +56,18 @@ class SpikeTogetherController(Controller):
         self.view.canvas.mousePressEvent = lambda x: self.parameters_dock.setWidget(self.view)
         self.view.canvas.figure.tight_layout()
 
-    def _create_spiketogether_module(self, marked_channels):
+    def _create_spiketogether_module(self, marked_channels: list) -> SpikeTogether:
+        """
+        Creates spiketogether object
+        """
         return SpikeTogether(self.view.pre.text(), self.view.post.text(), self.view.component_number.text(),
                              self.view.dead_time.text(), self.view.threshold_from.text(), self.view.threshold_to.text(),
                              self.file.recordings[0].analog_streams[0], marked_channels, self.view.from_s.text(),
                              self.view.to_s.text(), self.view.high_pass.text(), self.view.low_pass.text())
 
-    def _remove_me(self):
+    def _remove_me(self) -> None:
+        """
+        Removes the desired window from open_window_dict
+        """
         del self.open_window_dict[self._key]
         self.parameters_dock.setWidget(get_default_widget())

@@ -9,9 +9,15 @@ from Modules.Bin import Bin
 
 
 class BinController(Controller):
+    """
+    BinController class is for UI and module relationship while displaying the bin widget
+    On the given widget we are observing the distribution of spikes in bin range.
+
+    Note that, Arguments are documented in parent class
+    """
     def __init__(self, *args):
-        self.view = BinWidget("Description\n On the given tab we are observing the distribution of spikes in bin range. "
-                              "you can analyze several channels or an average of them by selecting average check box. "
+        self.view = BinWidget("Description\n On the given tab we are observing the distribution of spikes in bin range."
+                              " you can analyze several channels or an average of them by selecting average check box. "
                               "choose stimulus channel with double click on channel id")
         super().__init__(*args, self.view)
 
@@ -20,7 +26,11 @@ class BinController(Controller):
         self.view.set_extract_func(self.extract_clicked)
 
     @catch_exception
-    def plot_clicked(self):
+    def plot_clicked(self) -> None:
+        """
+        This function firstly makes the bin module object, preprocesses signal and then uses
+        bin plot function from utils to plot the calculated bins.
+        """
         marked_channels = self.view.channel_widget.marked_spike_channels
         if len(marked_channels) == 0:
             raise ValueError("At least one channel should be marked")
@@ -48,7 +58,15 @@ class BinController(Controller):
         self.view.canvas.mousePressEvent = lambda x: self.parameters_dock.setWidget(self.view)
         self.view.canvas.figure.tight_layout()
 
-    def plt_bin_in_channel(self, ch, i):
+    def plt_bin_in_channel(self, ch, i) -> None:
+        """
+        This function firstly makes the waveform module object, preprocesses signal and then uses
+        waveform plot function from utils to plot the desired signal.
+
+        Args:
+            ch (list -> str): user's chosen channels list
+            i (int): ax index to draw
+        """
         _bin = self._create_bin(ch)
         bin_range = np.arange(_bin.from_s, _bin.to_s, _bin.bin_width)
         pad_len = len(bin_range) - len(_bin.bins)
@@ -57,6 +75,10 @@ class BinController(Controller):
 
     @catch_exception
     def extract_clicked(self):
+        """
+        This function firstly makes the bin module object, preprocesses signal, calculates bins
+        and then extracts desired signals bins into the user's desired input path
+        """
         path = self.view.get_path_for_save()
         if path:
             marked_channels = self.view.channel_widget.marked_spike_channels
@@ -88,19 +110,34 @@ class BinController(Controller):
 
             self.popup_handler.info_popup("Success", "Data Created successfully")
 
-    def _get_stimulus_time_range(self):
+    def _get_stimulus_time_range(self) -> list:
+        """
+        This function creates stimulus object and then returns the current signal's stimulus times as a list
+
+        Returns:
+            stimulus time range (list): corresponding stimulus's times
+        """
         stimulus_marked_channels = self.view.channel_widget.marked_stimulus_channels
         if len(stimulus_marked_channels):
             stimulus = self._create_stimulus(stimulus_marked_channels)
             return stimulus.time_range
         return []
 
-    def _create_bin(self, channels):
+    def _create_bin(self, channels: list) -> Bin:
+        """
+        This function creates stimulus object and then returns the current signal's stimulus times as a list
+
+        Returns:
+            stimulus time range (list): corresponding stimulus's times
+        """
         return Bin(self.view.bin_width.text(), self.view.spike_dead_time.text(), self.view.spike_threshold_from.text(),
                    self.view.spike_threshold_to.text(), self.file.recordings[0].analog_streams[0],
                    channels, self.view.from_s.text(), self.view.to_s.text(), self.view.high_pass.text(), self.view.low_pass.text())
 
-    def _create_stimulus(self, channels):
+    def _create_stimulus(self, channels: list) -> Stimulus:
+        """
+        Creates stimulus class object
+        """
         return Stimulus(self.view.stimulus_dead_time.text(), self.view.stimulus_threshold_from.text(),
                         self.view.stimulus_threshold_to.text(), "", self.file.recordings[0].analog_streams[0], channels,
                         self.view.from_s.text(), self.view.to_s.text(), self.view.high_pass.text(), self.view.low_pass.text())

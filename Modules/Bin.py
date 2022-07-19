@@ -18,7 +18,7 @@ class Bin(Spikes):
         return self._bin_width
 
     @bin_width.setter
-    def bin_width(self, width):
+    def bin_width(self, width: str) -> None:
         self._bin_width = ParamChecker(width, "Bin range").not_empty.number.positive.value
         self._bins = self._calculate_bins()
 

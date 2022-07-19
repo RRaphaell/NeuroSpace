@@ -10,6 +10,13 @@ from Widgets.SpikeWidget import SpikeWidget
 
 
 class SpikeController(Controller):
+    """
+    BinController class is for UI and module relationship while displaying the spike controller widget
+    On the given tab we are observing activity of the signal referring to
+    spikes bursts and stimulus, for unit or multi-neural activities
+
+    Note that, Arguments are documented in parent class
+    """
     def __init__(self, *args):
         self.view = SpikeWidget("Description\n On the given tab we are observing activity of the signal referring to "
                                 "spikes bursts and stimulus, for unit or multi-neural activities "
@@ -24,6 +31,10 @@ class SpikeController(Controller):
 
     @catch_exception
     def plot_clicked(self):
+        """
+        This function firstly makes the spike module object, preprocesses signal and then uses
+        plot_one_channel function to plot the calculated spikes.
+        """
         marked_channels = self.view.channel_widget.marked_spike_channels
         if len(marked_channels) == 0:
             raise ValueError("At least one channel should be marked")
@@ -47,7 +58,16 @@ class SpikeController(Controller):
         self.view.canvas.mousePressEvent = lambda x: self.parameters_dock.setWidget(self.view)
         self.view.canvas.figure.tight_layout()
 
-    def plot_one_channel(self, marked_channels, stimulus_marked_channels, ax_idx):
+    def plot_one_channel(self, marked_channels: list, stimulus_marked_channels: list, ax_idx: int):
+        """
+        This function plots one particular channels spikes and stimulus if the length of the
+        marked_channels is 1, if not, then it averages the signal and plots the above mentioned things so.
+
+        Args:
+            marked_channels (list): user's chosen channels list
+            stimulus_marked_channels (list): user's chosen stimulus channels list
+            ax_idx (int): the index to plot
+        """
         spike_together_obj = self._create_spiketogether_module(marked_channels)
 
         labels = spike_together_obj.labels
@@ -71,6 +91,9 @@ class SpikeController(Controller):
 
     @catch_exception
     def extract_clicked(self):
+        """
+        This function helps us extract spikes into the desired dataframe
+        """
         path = self.view.get_path_for_save()
         if path:
             marked_channels = self.view.channel_widget.marked_spike_channels
@@ -86,7 +109,16 @@ class SpikeController(Controller):
 
             self.popup_handler.info_popup("Success", "Data Created successfully")
 
-    def extract_spike_dataframe(self, path, marked_channels, stimulus_marked_channels):
+    def extract_spike_dataframe(self, path: str, marked_channels: list, stimulus_marked_channels: list) -> None:
+        """
+        This function firstly makes the spike module object, preprocesses signal, calculates spikes
+        with appropriate parameters and then extracts those spikes into the user's desired input path
+
+        Args:
+            path (str): path to save the dataframe
+            marked_channels (list): marked spike channels
+            stimulus_marked_channels (list): marked stimulus channels
+        """
         spike_together_obj = self._create_spiketogether_module(marked_channels)
         spikes_df = pd.DataFrame()
         signal = spike_together_obj.signal
@@ -125,13 +157,19 @@ class SpikeController(Controller):
             spikes_df["Stimulus"] = to_be_stimulus
         spikes_df.to_csv(path +f" {marked_channels} "+"_spikes.csv", index=False)
 
-    def _create_spiketogether_module(self, marked_channels):
+    def _create_spiketogether_module(self, marked_channels: list) -> SpikeTogether:
+        """
+        Creates spiketogether class object
+        """
         return SpikeTogether(self.view.pre.text(), self.view.post.text(), self.view.component_number.text(),
                              self.view.spike_dead_time.text(), self.view.spike_threshold_from.text(), self.view.spike_threshold_to.text(),
                              self.file.recordings[0].analog_streams[0], marked_channels, self.view.from_s.text(),
                              self.view.to_s.text(), self.view.high_pass.text(), self.view.low_pass.text())
 
-    def _create_stimulus(self, channels):
+    def _create_stimulus(self, channels: list) -> Stimulus:
+        """
+        Creates stimulus class object
+        """
         return Stimulus(self.view.stimulus_dead_time.text(), self.view.stimulus_threshold_from.text(),
                         self.view.stimulus_threshold_to.text(), self.file.recordings[0].analog_streams[0], channels,
                         self.view.from_s.text(), self.view.to_s.text(), self.view.high_pass.text(), self.view.low_pass.text())

@@ -7,6 +7,12 @@ from Modules.utils import plot_signal
 
 
 class WaveformController(Controller):
+    """
+    WaveformController class is for UI and module relationship while displaying the waveform widget
+    On the given widget we are observing the behavior of the selected signals.
+
+    Note that, Arguments are documented in parent class
+    """
     def __init__(self, *args):
         self.view = WaveformWidget("Description\n On the given tab we are observing the behavior of the selected "
                                    "signals. You can analyze several channels or an average of them by selecting "
@@ -17,7 +23,11 @@ class WaveformController(Controller):
         self.view.set_extract_func(self.extract_clicked)
 
     @catch_exception
-    def plot_clicked(self):
+    def plot_clicked(self) -> None:
+        """
+        This function firstly makes the waveform module object, preprocesses signal and then uses
+        waveform plot function from utils to plot the desired signal.
+        """
         marked_channels = self.view.channel_widget.marked_spike_channels
         if len(marked_channels) == 0:
             raise ValueError("At least one channel should be marked")
@@ -49,6 +59,10 @@ class WaveformController(Controller):
 
     @catch_exception
     def extract_clicked(self):
+        """
+        This function firstly makes the waveform module object, preprocesses signal and then uses
+        extracts that desired signal into the user's desired input path
+        """
         path = self.view.get_path_for_save()
         if path:
             marked_channels = self.view.channel_widget.marked_spike_channels
@@ -73,6 +87,9 @@ class WaveformController(Controller):
 
             self.popup_handler.info_popup("Success", "Data Created successfully")
 
-    def _create_waveform(self, channels):
+    def _create_waveform(self, channels: list) -> Waveform:
+        """
+        Creates waveform class object
+        """
         return Waveform(self.file.recordings[0].analog_streams[0], channels, self.view.from_s.text(),
                         self.view.to_s.text(), self.view.high_pass.text(), self.view.low_pass.text())

@@ -6,7 +6,7 @@ from functools import reduce
 
 
 class StimulusAction(Spikes):
-    def __init__(self, pre, post, bin_width, stimulus, *args, **kwargs):
+    def __init__(self, pre: str, post: str, bin_width: str, stimulus, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.pre = pre
         self.post = post 
@@ -15,30 +15,30 @@ class StimulusAction(Spikes):
         self.get_stimulus_bins()
 
     @property
-    def pre(self):
+    def pre(self) -> float:
         return self._pre
 
     @pre.setter
-    def pre(self, value):
+    def pre(self, value: str) -> None:
         self._pre = ParamChecker(value, "Pre").not_empty.number.positive.value
 
     @property
-    def post(self):
+    def post(self) -> float:
         return self._post
 
     @post.setter
-    def post(self, value):
+    def post(self, value: str) -> None:
         self._post = ParamChecker(value, "Post").not_empty.number.positive.value
 
     @property
-    def bin_width(self):
+    def bin_width(self) -> float:
         return self._bin_width
 
     @bin_width.setter
-    def bin_width(self, width):
+    def bin_width(self, width: str) -> None:
         self._bin_width = ParamChecker(width, "Bin width").not_empty.number.positive.value
     
-    def get_stimulus_bins(self):
+    def get_stimulus_bins(self) -> None:
         spikes = self.indexes  # This spikes are just indexes, from_in_s IS NOT added here
         # here are stimulus indexes which also DOES NOT include from_in_s here
         stimulus_starts = [y for x, y in enumerate(self.stimulus_indexes) if x % 2 != 0]
@@ -81,3 +81,4 @@ class StimulusAction(Spikes):
         pre_bin_list = pre_bin_list_sum / stimulus_len 
         post_bin_list = post_bin_list_sum / stimulus_len
         self.stimulus_bins = pre_bin_list, post_bin_list, pre_bin_list_stde, post_bin_list_stde
+

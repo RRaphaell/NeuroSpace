@@ -15,8 +15,8 @@ class Stimulus(Waveform):
     def indexes(self):
         if not(self.useless_stimulus and len(self.useless_stimulus) >0):
             return calculate_stimulus(self.signal, self.threshold_from, self.dead_time_idx)
-        stimuluses = calculate_stimulus(self.signal, self.threshold_from, self.dead_time_idx)
-        return filter_stimulus(stimuluses, self.useless_stimulus, self.from_s, self.fs)
+        stimulus = calculate_stimulus(self.signal, self.threshold_from, self.dead_time_idx)
+        return filter_stimulus(stimulus, self.useless_stimulus, self.from_s, self.fs)
 
     @property
     def time_range(self):

@@ -1,6 +1,10 @@
+import matplotlib.backends.backend_qt5agg
+import numpy
+from McsPy import McsData
 from matplotlib import pyplot as plt
 from scipy.signal import butter, sosfilt
 from functools import reduce
+from typing import List
 import numpy as np
 from matplotlib.lines import Line2D
 from sklearn.mixture import GaussianMixture
@@ -8,7 +12,7 @@ from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 
 
-def convert_channel_label_to_id(electrode_stream, channel_label):
+def convert_channel_label_to_id(electrode_stream, channel_label: str) -> int:
     """
     convert_channel_label_to_id
     channel labels are the labels for particular electrode stream system
@@ -36,7 +40,8 @@ def convert_channel_label_to_id(electrode_stream, channel_label):
     return my_dict.get(int(channel_label))
 
 
-def get_signal(electrode_stream, channels, from_idx, to_idx):
+def get_signal(electrode_stream: McsData.AnalogStream, channels: List[int], from_idx: int,
+               to_idx: int) -> numpy.ndarray:
     """
     get_signal uses Mcspy's method for getting signal in particular range and averaging if it's needed
 
@@ -51,12 +56,14 @@ def get_signal(electrode_stream, channels, from_idx, to_idx):
                                                          (if multiple channels averaged, else signal itself)
 
     """
-    signal_summed = reduce(lambda a, b: a+b, map(lambda ch: np.array(electrode_stream.get_channel_in_range(ch, from_idx, to_idx)[0]), channels))
+    signal_summed = reduce(lambda a, b: a + b,
+                           map(lambda ch: np.array(electrode_stream.get_channel_in_range(ch, from_idx, to_idx)[0]),
+                               channels))
     signal_avg = signal_summed / len(channels)
     return signal_avg
 
 
-def filter_base_frequency(signal, fs, high_pass, low_pass):
+def filter_base_frequency(signal: numpy.ndarray, fs: int, high_pass: int, low_pass: int) -> numpy.ndarray:
     """
     filter_base_frequency filters signal with corresponding frequency filters, uses scipy butter library
 
@@ -73,7 +80,7 @@ def filter_base_frequency(signal, fs, high_pass, low_pass):
     butter_range = 2
 
     if (high_pass and high_pass >= fs / 2) or (low_pass and low_pass >= fs / 2):
-        return signal*0
+        return signal * 0
     if high_pass and low_pass:
         sos = butter(N=butter_range, Wn=[high_pass, low_pass], fs=fs, btype='band', output='sos')
     elif high_pass:
@@ -87,7 +94,7 @@ def filter_base_frequency(signal, fs, high_pass, low_pass):
     return filtered
 
 
-def round_to_closest(value, time_stamp):
+def round_to_closest(value: float, time_stamp: float) -> float:
     """
     we have the recordings in every time_stamp seconds , so we need to round the user's values to those time_stamps
 
@@ -110,7 +117,7 @@ def round_to_closest(value, time_stamp):
     return value
 
 
-def _get_next_minimum(signal, index, max_samples_to_search):
+def _get_next_minimum(signal: numpy.ndarray, index: int, max_samples_to_search: int) -> float:
     """
     _get_next_minimum searches for next minimum value in the corresponding indexes
 
@@ -127,7 +134,8 @@ def _get_next_minimum(signal, index, max_samples_to_search):
     return index + min_idx
 
 
-def _align_to_minimum(signal, threshold_crossings, fs):
+def _align_to_minimum(signal: numpy.ndarray, threshold_crossings: List[int], fs: int) \
+        -> numpy.ndarray:
     """
 
     _align_to_minimum aligns the detected threshold crossings to minimum value in the search range to get spikes
@@ -141,12 +149,13 @@ def _align_to_minimum(signal, threshold_crossings, fs):
             aligned_spikes (numpy.ndarray -> numpy.int64): indexes of aligned spikes
     """
     search_range = 0.002
-    search_end = int(search_range*fs)
+    search_end = int(search_range * fs)
     aligned_spikes = np.array([_get_next_minimum(signal, t, search_end) for t in threshold_crossings])
     return aligned_spikes
 
 
-def get_signal_cutouts(signal, fs, spikes_idx, pre, post):
+def get_signal_cutouts(signal: numpy.ndarray, fs: int, spikes_idx: numpy.ndarray,
+                       pre: float, post: float) -> List:
     """
     get_signal_cutouts takes existing spikes, and cuts the signal around each of the spikes (pre-spike, spike-post)
 
@@ -174,7 +183,7 @@ def get_signal_cutouts(signal, fs, spikes_idx, pre, post):
     return cutouts
 
 
-def get_pca_labels(cutouts, n_components):
+def get_pca_labels(cutouts: List, n_components: int) -> numpy.ndarray:
     """
     get_pca_labels uses pca to calculate which cutouts are from the same neuron groups and which aren't
 
@@ -200,7 +209,7 @@ def get_pca_labels(cutouts, n_components):
     return gmm.fit_predict(transformed)
 
 
-def get_spikes_with_labels(labels, spikes):
+def get_spikes_with_labels(labels: numpy.ndarray, spikes: numpy.ndarray) -> List[tuple]:
     """
     we need this function to attribute the spikes to corresponding neurons and colors.
 
@@ -219,7 +228,8 @@ def get_spikes_with_labels(labels, spikes):
     return spikes_with_labels
 
 
-def calculate_spikes(signal, threshold_from, threshold_to, fs, dead_time_idx):
+def calculate_spikes(signal: numpy.ndarray, threshold_from: float, threshold_to: float, fs: int
+                     , dead_time_idx: int) -> List[int]:
     """
     spikes are a representation of neural activity, for the calculation methodology,
     we take user's thresholds and dead_time_idx and move on the signal,
@@ -239,11 +249,11 @@ def calculate_spikes(signal, threshold_from, threshold_to, fs, dead_time_idx):
         threshold_from = threshold_from * (-1)
         threshold_to = threshold_to * (-1)
         signal = signal * (-1)
-    
+
     last_idx = -dead_time_idx
     threshold_crossings = []
     for idx in range(len(signal)):
-        if (idx > 0) and (signal[idx-1] > threshold_from) and \
+        if (idx > 0) and (signal[idx - 1] > threshold_from) and \
                 (signal[idx] <= threshold_from) and (idx - last_idx > dead_time_idx + 1):
             threshold_crossings.append(idx)
             last_idx = idx
@@ -252,7 +262,7 @@ def calculate_spikes(signal, threshold_from, threshold_to, fs, dead_time_idx):
     return np.array(threshold_crossings)
 
 
-def calculate_stimulus(signal,  threshold, dead_time_idx):
+def calculate_stimulus(signal: numpy.ndarray, threshold: float, dead_time_idx: int) -> List[int]:
     """
     stimulus are artificially made, and calculating them is necessary because
     unfortunately in our recordings, we don't have the information about the stimulus.
@@ -289,17 +299,18 @@ def calculate_stimulus(signal,  threshold, dead_time_idx):
     return threshold_crossings
 
 
-def calculate_bursts(spikes_in_s, max_start, max_end, min_between, min_duration, min_number_spike):
+def calculate_bursts(spikes_in_s: List[numpy.float64], max_start: float
+                     , max_end: float, min_between: float, min_duration: float, min_number_spike: int):
     """
     TODO
 
     Args:
-            spikes_in_s ():
-            max_start ():
-            max_end ():
-            min_between ():
-            min_duration ():
-            min_number_spike ():
+            spikes_in_s (list -> numpy.float64): calculated spikes in second
+            max_start (float):
+            max_end (float):
+            min_between (float):
+            min_duration (float):
+            min_number_spike (int):
     Returns:
             bursts_starts ():
             bursts_starts ():
@@ -307,10 +318,10 @@ def calculate_bursts(spikes_in_s, max_start, max_end, min_between, min_duration,
     spikes_in_s = np.array(spikes_in_s)
     all_burst = []
     i = 0
-    while i < len(spikes_in_s)-1:
-        if (spikes_in_s[i+1]-spikes_in_s[i]) <= max_start:
+    while i < len(spikes_in_s) - 1:
+        if (spikes_in_s[i + 1] - spikes_in_s[i]) <= max_start:
             burst_start_in_s = spikes_in_s[i]
-            while (i < len(spikes_in_s)-1) and ((spikes_in_s[i+1]-spikes_in_s[i]) < max_end):
+            while (i < len(spikes_in_s) - 1) and ((spikes_in_s[i + 1] - spikes_in_s[i]) < max_end):
                 i += 1
             burst_end_in_s = spikes_in_s[i]
             all_burst.append([burst_start_in_s, burst_end_in_s])
@@ -334,13 +345,15 @@ def calculate_bursts(spikes_in_s, max_start, max_end, min_between, min_duration,
     bursts_ends = []
     for burst in merged_bursts:
         num_spike_in_burst = len(spikes_in_s[(spikes_in_s >= burst[0]) & (spikes_in_s <= burst[1])])
-        if ((burst[1]-burst[0]) >= min_duration) and (num_spike_in_burst >= min_number_spike):
+        if ((burst[1] - burst[0]) >= min_duration) and (num_spike_in_burst >= min_number_spike):
             bursts_starts.append(burst[0])
             bursts_ends.append(burst[1])
+    print("bursts_starts", type(bursts_starts), bursts_starts)
+    print("bursts_ends", type(bursts_ends), bursts_ends)
     return bursts_starts, bursts_ends
 
 
-def calculate_threshold_based_on_signal(signal):
+def calculate_threshold_based_on_signal(signal: numpy.ndarray) -> float:
     """
     if user didn't specify the threshold, we calculate it based on the signal values (standard deviation)
 
@@ -358,7 +371,7 @@ def calculate_threshold_based_on_signal(signal):
         return -5 * noise_std
 
 
-def calculate_min_voltage_of_signal(signal):
+def calculate_min_voltage_of_signal(signal: numpy.ndarray) -> numpy.float64:
     """
     This function calculates the minimum value of the numpy array
 
@@ -371,7 +384,7 @@ def calculate_min_voltage_of_signal(signal):
     return np.min(signal)
 
 
-def calculate_bins(spikes_in_range, from_s, bin_width):
+def calculate_bins(spikes_in_range, from_s: float, bin_width: int):
     """
 
 
@@ -385,10 +398,10 @@ def calculate_bins(spikes_in_range, from_s, bin_width):
                 spike_len_in_bins ():
     """
     spike_len_in_bins = []
-    if not len(spikes_in_range):  
+    if not len(spikes_in_range):
         return [0]
 
-    spikes_last_index = len(spikes_in_range)-1
+    spikes_last_index = len(spikes_in_range) - 1
     bin_start_second = from_s
     counter = 0
     idx = 0
@@ -409,7 +422,9 @@ def calculate_bins(spikes_in_range, from_s, bin_width):
     return spike_len_in_bins
 
 
-def plot_signal(signal, time_in_sec, canvas, title, x_label, y_label, ax_idx=0):
+def plot_signal(signal: numpy.ndarray, time_in_sec: numpy.ndarray
+                , canvas: matplotlib.backends.backend_qt5agg.FigureCanvasQTAgg
+                , title: str, x_label: str, y_label: str, ax_idx=0) -> None:
     """
     this function only plots the signal in the canvas
 
@@ -426,7 +441,7 @@ def plot_signal(signal, time_in_sec, canvas, title, x_label, y_label, ax_idx=0):
     axes = canvas.figure.get_axes()
     ax = axes[ax_idx]
     ax.clear()
-    signal_in_uv = signal*1000000
+    signal_in_uv = signal * 1000000
     ax.plot(time_in_sec, signal_in_uv, linewidth=0.5)
 
     ax.set_title(title)
@@ -436,8 +451,12 @@ def plot_signal(signal, time_in_sec, canvas, title, x_label, y_label, ax_idx=0):
     canvas.draw()
 
 
-def plot_signal_with_spikes(signal, time_in_sec, canvas, title, x_label, y_label, indices_colors_for_spikes, ax_idx=0,
-                            indices_colors_for_bursts=[]):
+def plot_signal_with_spikes(signal: numpy.ndarray,
+                            time_in_sec: numpy.ndarray,
+                            canvas: matplotlib.backends.backend_qt5agg.FigureCanvasQTAgg,
+                            title: str, x_label: str, y_label: str,
+                            indices_colors_for_spikes: List[tuple], ax_idx: int = 0,
+                            indices_colors_for_bursts: List[tuple] = []) -> None:
     """
     this function plots both spikes and signal together in the one canvas window
 
@@ -466,7 +485,7 @@ def plot_signal_with_spikes(signal, time_in_sec, canvas, title, x_label, y_label
 
     for indices, colors in indices_colors_for_spikes:
         indices_ = [ind / 25000 + time_in_sec[0] for ind in indices]
-        ax.plot(indices_, signal_in_uv[indices], 'ro', ms=2, color=colors, zorder = 1)
+        ax.plot(indices_, signal_in_uv[indices], 'ro', ms=2, color=colors, zorder=1)
     if len(indices_colors_for_bursts):
         for indices in indices_colors_for_bursts:
             burst_starts_list = indices[0][0]
@@ -483,7 +502,9 @@ def plot_signal_with_spikes(signal, time_in_sec, canvas, title, x_label, y_label
     canvas.figure.text(0.01, 0.5, y_label, va='center', rotation='vertical')
 
 
-def plot_bins(spike_in_bins, bin_ranges, bin_width, canvas, title, x_label, y_label, ax_idx=0, **kwargs):
+def plot_bins(spike_in_bins, bin_ranges, bin_width: int
+              , canvas: matplotlib.backends.backend_qt5agg.FigureCanvasQTAgg
+              , title: str, x_label: str, y_label: str, ax_idx: int = 0, **kwargs) -> None:
     """
     what to do with kwargs TODO
 
@@ -504,7 +525,8 @@ def plot_bins(spike_in_bins, bin_ranges, bin_width, canvas, title, x_label, y_la
     canvas.draw()
 
 
-def _plot_each_spike(ax, cutouts, fs, pre, post, n=100, color='k', title=""):
+def _plot_each_spike(ax, cutouts: numpy.ndarray, fs: int, pre: float, post: float, n: int = 100
+                     , color: str = 'k', title: str = "") -> None:
     """
     this function plots each spike cutout
 
@@ -530,14 +552,17 @@ def _plot_each_spike(ax, cutouts, fs, pre, post, n=100, color='k', title=""):
     time_in_us = np.arange(-pre * 1000, post * 1000, 1e3 / fs)
 
     for i in range(n):
-        ax.plot(time_in_us, cutouts[i]*1e6, color, linewidth=1, alpha=0.3)
+        ax.plot(time_in_us, cutouts[i] * 1e6, color, linewidth=1, alpha=0.3)
 
     ax.set_xlabel('Time (s)')
     ax.set_ylabel('Voltage (uV)')
     ax.set_title(title)
 
 
-def plot_spikes_together(cutouts, labels, fs, n_components, pre, post, number_spikes, canvas, title, ax_idx):
+def plot_spikes_together(cutouts: numpy.ndarray, labels: numpy.ndarray
+                         , fs: int, n_components: int, pre: float, post: float, number_spikes: int
+                         , canvas: matplotlib.backends.backend_qt5agg.FigureCanvasQTAgg
+                         , title: str, ax_idx: int) -> None:
     """
     this function plots spike cutouts in the canvas
 
@@ -569,7 +594,8 @@ def plot_spikes_together(cutouts, labels, fs, n_components, pre, post, number_sp
     canvas.draw()
 
 
-def plot_stimulus(stimulus, canvas, ax_idx=0):
+def plot_stimulus(stimulus: List[int], canvas: matplotlib.backends.backend_qt5agg.FigureCanvasQTAgg
+                  , ax_idx: int = 0) -> None:
     """
     this function plots lines to show stimulus in canvas, in particular window using matplotlib axvline function
 
@@ -587,7 +613,8 @@ def plot_stimulus(stimulus, canvas, ax_idx=0):
     canvas.draw()
 
 
-def filter_stimulus(stimulus, useless_stimulus, from_s, fs):
+def filter_stimulus(stimulus: numpy.ndarray, useless_stimulus: List[tuple], from_s: float, fs: int) \
+        -> List[numpy.int64]:
     """
     we need this function to clear stimulus which are in the useless_stimulus chosen by the user
 
@@ -602,5 +629,5 @@ def filter_stimulus(stimulus, useless_stimulus, from_s, fs):
                 stimulus (list -> numpy.int64): indexes of filtered stimulus
     """
     for i in range(0, len(useless_stimulus)):
-        stimulus = [st for st in stimulus if not(useless_stimulus[i][0] < (st / fs + from_s) < useless_stimulus[i][1])]
+        stimulus = [st for st in stimulus if not (useless_stimulus[i][0] < (st / fs + from_s) < useless_stimulus[i][1])]
     return stimulus
