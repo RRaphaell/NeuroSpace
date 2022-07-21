@@ -6,12 +6,33 @@ from functools import reduce
 
 
 class StimulusAction(Spikes):
+    """
+        stimulusAction module is to perform custom calculations for spike frequency in stimulus ranges.
+        the idea of this analysis is that we want to determine
+        how neural networks spike before stimulus and after stimulus.
+
+    Attributes:
+        pre (float): user's defined time before stimulus for spike calculations
+        post (float): user's defined time after stimulus for spike calculations
+        bin_width (float): width of the bin in pre and post's signals (there are pre/bin_width + post/bin_width bins)
+        stimulus_indexes (numpy.ndarray): already detected stimulus from the signal
+        stimulus_bins (pre_bin_list: numpy.ndarray, post_bin_list: numpy.ndarray, pre_bin_list_stde: numpy.ndarray
+                        ,post_bin_list_stde: numpy.ndarray): contains main calculated stimulus analysis
+    Args:
+        pre (str): user's defined time before stimulus for spike calculations
+        post (str): user's defined time after stimulus for spike calculations
+        bin_width (str): width of the bin in pre and post's signals (there will be pre/bin_width + post/bin_width bins)
+        stimulus (numpy.ndarray): already detected stimulus from the signal
+
+    Note that *args and **kwargs are defined in the parent class
+    """
     def __init__(self, pre: str, post: str, bin_width: str, stimulus, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.pre = pre
         self.post = post 
         self.bin_width = bin_width
         self.stimulus_indexes = stimulus
+        self.stimulus_bins = [], [], [], []
         self.get_stimulus_bins()
 
     @property
@@ -39,6 +60,17 @@ class StimulusAction(Spikes):
         self._bin_width = ParamChecker(width, "Bin width").not_empty.number.positive.value
     
     def get_stimulus_bins(self) -> None:
+        """
+        get_stimulus_bins is the function which makes a complex calculations.
+        it firstly calculates spikes (with help of parent class).
+        after that, we need to get those spikes, which are in the pre or post of one of the stimulus index
+        then, we split those pre and post's intervals by bin_width-es and calculate spike quantity in each bin
+        if there is more than one stimulus, we average spikes into bins.
+        We also calculate standard deviation error for those spike quantities.
+        All of those above mentioned calculations are class attributes.
+
+        TODO: Code needs to be simplified
+        """
         spikes = self.indexes  # This spikes are just indexes, from_in_s IS NOT added here
         # here are stimulus indexes which also DOES NOT include from_in_s here
         stimulus_starts = [y for x, y in enumerate(self.stimulus_indexes) if x % 2 != 0]
@@ -81,4 +113,5 @@ class StimulusAction(Spikes):
         pre_bin_list = pre_bin_list_sum / stimulus_len 
         post_bin_list = post_bin_list_sum / stimulus_len
         self.stimulus_bins = pre_bin_list, post_bin_list, pre_bin_list_stde, post_bin_list_stde
+
 

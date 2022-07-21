@@ -11,17 +11,23 @@ from Modules.utils import (convert_channel_label_to_id
 class Waveform:
     """
     Waveform class is to make signal's main, waveform object usable
+    It firstly reads the signal (if there is more than one channel, averages it)
+    and in case of high_pass and low_pass filters, gives us filtered one.
 
     Attributes:
         signal_time (float): recording's time in seconds
+        from_s (float): user's chosen start time in seconds (None indicates zero)
+        to_s (float): user's chosen end time in seconds (None indicates the length of signal)
+        high_pass (int): user's chosen filter (every frequency higher than that number will remain)
+        low_pass (int): user's chosen filter (every frequency lower than that number will remain)
 
     Args:
         electrode_stream (McsPy.McsData.AnalogStream): the main data object of the recording
-        channels (list -> str): user's chosen channels to get signal
+        channels (list -> str): make all of the crazy calculations.user's chosen channels to get signal
         from_s (str): user's chosen start time in seconds (None indicates zero)
         to_s (str): user's chosen end time in seconds (None indicates the length of signal)
-        high_pass (str): user's chosen filter
-        low_pass (str): user's chosen filter
+        high_pass (str): user's chosen filter (every frequency higher than that number will remain)
+        low_pass (str): user's chosen filter (every frequency lower than that number will remain)
     """
     def __init__(self, electrode_stream,
                  channels: List[str], from_s: str = "", to_s: str = "", high_pass: str = "", low_pass: str = ""):
@@ -58,6 +64,12 @@ class Waveform:
 
     @from_s.setter
     def from_s(self, from_s: str) -> None:
+        """
+        Firstly checks the user's input from_s and then rounds it to the closest signal existing timestamp
+
+        Args:
+            from_s (str): signals desired start time
+        """
         from_s = 0 if from_s == "" else from_s
         from_s = round_to_closest(ParamChecker(from_s, "From").number.positive.value, 1/self.fs)
 
@@ -72,6 +84,12 @@ class Waveform:
 
     @to_s.setter
     def to_s(self, to_s: str) -> None:
+        """
+        Firstly checks the user's input to_s and then rounds it to the closest signal existing timestamp
+
+        Args:
+            to_s (str): signals desired end time
+        """
         to_s = self.signal_time if to_s == "" else to_s
         to_s = round_to_closest(ParamChecker(to_s, "To").number.positive.value, 1/self.fs)
 
@@ -90,6 +108,12 @@ class Waveform:
 
     @high_pass.setter
     def high_pass(self, high_pass: str) -> None:
+        """
+        Firstly checks the user's input and then casts it as an integer
+
+        Args:
+            high_pass (str): every frequency higher than that number will remain after filter
+        """
         if high_pass == "":
             self._high_pass = None
         else:
@@ -101,6 +125,14 @@ class Waveform:
 
     @low_pass.setter
     def low_pass(self, low_pass: str) -> None:
+        """
+        Firstly checks the user's input and then casts it as an integer, it also checks if the
+        low_pass number is greater than high pass or not. it is important because,
+        if that condition is not satisfied, zero frequency will remain in the signal.
+
+        Args:
+            low_pass (str): every frequency higher than that number will remain after filter
+        """
         if low_pass == "":
             self._low_pass = None
         else:
@@ -127,5 +159,13 @@ class Waveform:
         self.__to_idx = to_idx
 
     def _get_filtered_signal(self) -> numpy.ndarray:
+        """
+        Firstly checks the user's input and then casts it as an integer, it also checks if the
+        low_pass number is greater than high pass or not. it is important because,
+        if that condition is not satisfied, zero frequency will remain in the signal.
+
+        Returns:
+            filtered_signal (numpy.ndarray): filtered signal, if high_pass and low_pass is none, signal will remain same
+        """
         filtered_signal = filter_base_frequency(self._signal_in_range, self.fs, self.high_pass, self.low_pass)
         return filtered_signal

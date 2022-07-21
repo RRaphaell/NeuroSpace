@@ -160,7 +160,7 @@ def get_signal_cutouts(signal: numpy.ndarray, fs: int, spikes_idx: numpy.ndarray
     get_signal_cutouts takes existing spikes, and cuts the signal around each of the spikes (pre-spike, spike-post)
 
     Args:
-            signal (numpy.ndarray -> numpy.float64): signal in volts
+            signal (numpy.ndarray -> numpy.float64): signal in micro volts
             spikes_idx (numpy.ndarray -> numpy.int64): spike indexes in signals
             pre (float): seconds
             post (float): seconds
@@ -384,18 +384,18 @@ def calculate_min_voltage_of_signal(signal: numpy.ndarray) -> numpy.float64:
     return np.min(signal)
 
 
-def calculate_bins(spikes_in_range, from_s: float, bin_width: int):
+def calculate_bins(spikes_in_range, from_s: float, bin_width) -> list:
     """
+    this method counts the spikes in each bin and returns the list with that information
+
+    Args:
+        spikes_in_range (numpy.ndarray -> numpy.float64): spike times in the desired time range
+        from_s (float): the start second for bins
+        bin_width (float): the desired length (in seconds) for one bin
 
 
-        Args:
-                spikes_in_range ():
-                from_s ():
-                bin_width ():
-
-
-        Returns:
-                spike_len_in_bins ():
+    Returns:
+        spike_len_in_bins (list): the list where every element contains the quantity of spikes
     """
     spike_len_in_bins = []
     if not len(spikes_in_range):
@@ -428,14 +428,14 @@ def plot_signal(signal: numpy.ndarray, time_in_sec: numpy.ndarray
     """
     this function only plots the signal in the canvas
 
-        Args:
-                signal (numpy.ndarray -> numpy.float64): signal in volts
-                time_in_sec (numpy.ndarray -> numpy.float64): list of seconds
-                canvas (matplotlib.backends.backend_qt5agg.FigureCanvasQTAgg): canvas to draw on
-                title (str): title of the plot
-                x_label (str): x label of the plot
-                y_label (str): y label of the plot
-                ax_idx (int): the index in which axes it should be drawn
+    Args:
+            signal (numpy.ndarray -> numpy.float64): signal in volts
+            time_in_sec (numpy.ndarray -> numpy.float64): list of seconds
+            canvas (matplotlib.backends.backend_qt5agg.FigureCanvasQTAgg): canvas to draw on
+            title (str): title of the plot
+            x_label (str): x label of the plot
+            y_label (str): y label of the plot
+            ax_idx (int): the index in which axes it should be drawn
     """
 
     axes = canvas.figure.get_axes()
@@ -502,13 +502,25 @@ def plot_signal_with_spikes(signal: numpy.ndarray,
     canvas.figure.text(0.01, 0.5, y_label, va='center', rotation='vertical')
 
 
-def plot_bins(spike_in_bins, bin_ranges, bin_width: int
+def plot_bins(spike_in_bins, bin_ranges, bin_width: float
               , canvas: matplotlib.backends.backend_qt5agg.FigureCanvasQTAgg
               , title: str, x_label: str, y_label: str, ax_idx: int = 0, **kwargs) -> None:
     """
-    what to do with kwargs TODO
+    this function plots bars for bins
 
+    Args:
+        spike_in_bins (numpy.ndarray -> numpy.float64): the spikes quantity in each bin
+        bin_ranges (numpy.ndarray -> numpy.float64): the x values for plot (0-bin_width, 2*bin_width...)
+        bin_width (float): the desired length (in seconds) for one bin
+        canvas (matplotlib.backends.backend_qt5agg.FigureCanvasQTAgg): canvas to draw on
+        title (str): title of the plot
+        x_label (str): x label of the plot
+        y_label (str): y label of the plot
+        ax_idx (int): the index in which axes it should be drawn
+
+    Note that **kwargs contain Matplotlib's unchanged arguments
     """
+
     x = bin_ranges
     y = [value for value in spike_in_bins]
 

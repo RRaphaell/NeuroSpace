@@ -3,6 +3,20 @@ from Modules.utils import calculate_bursts
 
 
 class Bursts:
+    """
+    TODO (will implement after i remember the algorithm of bursts
+
+    Attributes:
+
+    Args:
+        spikes_together_obj ():
+        burst_max_start ():
+        burst_max_end ():
+        burst_betw ():
+        burst_dur ():
+        burst_numb ():
+
+    """
     def __init__(self, spikes_together_obj, burst_max_start="",
                  burst_max_end="", burst_betw="", burst_dur="",
                  burst_numb=""):
