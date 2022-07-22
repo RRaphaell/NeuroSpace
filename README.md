@@ -3,7 +3,8 @@
 ![McsPyDataTools](https://img.shields.io/badge/-McsPyDataTools-green?style=for-the-badge) 
 
 
-[![screenshot.png](https://i.postimg.cc/59nZNmh8/screenshot.png)](https://i.postimg.cc/59nZNmh8)
+https://user-images.githubusercontent.com/74569835/180431954-a4682b8d-3ec4-4ab1-af4a-3b2ebc50a792.mp4
+
 
 ## **Overview**
 NeuroSpace is an application where you can observe the brain signals, make analysis, filtering, visualization and everything related to neural signal processing.
@@ -82,9 +83,21 @@ Controllers are the ones who takes care the whole process they call Modules obje
     ├── StimulusActionWidget.py
     ├── utils.py
     └── WaveformWidget.py
+```
 
 
 ## Contact
+if you have any questions, ideas please contact us <br> 
+
+raffo.kalandadze@gmail.com
+[![LinkedIn](https://img.shields.io/badge/linkedin-%230077B5.svg?style=for-the-badge&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/raphael-kalandadze-ab9623142/)
+[![Twitter](https://img.shields.io/badge/Twitter-%231DA1F2.svg?style=for-the-badge&logo=Twitter&logoColor=white)](https://twitter.com/RaphaelKalan)
+
+
+tatiatsmindashvili@gmail.com
+[![LinkedIn](https://img.shields.io/badge/linkedin-%230077B5.svg?style=for-the-badge&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/tatia-tsmindashvili-92676614b/) 
+[![Twitter](https://img.shields.io/badge/Twitter-%231DA1F2.svg?style=for-the-badge&logo=Twitter&logoColor=white)](https://twitter.com/TatiaTsmindash1)
+
 
 ## **License**
 
