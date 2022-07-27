@@ -100,4 +100,4 @@ tatiatsmindashvili@gmail.com
 
 
 ## **License**
-
+NeuroSpace is released under a [Clear BSD License](https://raw.githubusercontent.com/RRaphaell/NeuroSpace/main/License?token=GHSAT0AAAAAABQA3BDZYGTD56EFTCXVH6JEYXBS7OA) and is intended for research/academic use only
