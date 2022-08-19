@@ -453,6 +453,7 @@ def plot_signal(signal: numpy.ndarray, time_in_sec: numpy.ndarray
 
 def plot_signal_with_spikes(signal: numpy.ndarray,
                             time_in_sec: numpy.ndarray,
+                            fs: int, 
                             canvas: matplotlib.backends.backend_qt5agg.FigureCanvasQTAgg,
                             title: str, x_label: str, y_label: str,
                             indices_colors_for_spikes: List[tuple], ax_idx: int = 0,
@@ -463,6 +464,7 @@ def plot_signal_with_spikes(signal: numpy.ndarray,
         Args:
                 signal (numpy.ndarray -> numpy.float64): signal in volts
                 time_in_sec (numpy.ndarray -> numpy.float64): list of seconds
+                fs (int) : sampling frequency of signal
                 canvas (matplotlib.backends.backend_qt5agg.FigureCanvasQTAgg): canvas to draw on
                 title (str): title of the plot
                 x_label (str): x label of the plot
@@ -484,15 +486,15 @@ def plot_signal_with_spikes(signal: numpy.ndarray,
     ax.legend(handles=[spike_legend, burst_legend])
 
     for indices, colors in indices_colors_for_spikes:
-        indices_ = [ind / 25000 + time_in_sec[0] for ind in indices]
+        indices_ = [ind / fs + time_in_sec[0] for ind in indices]
         ax.plot(indices_, signal_in_uv[indices], 'ro', ms=2, color=colors, zorder=1)
     if len(indices_colors_for_bursts):
         for indices in indices_colors_for_bursts:
             burst_starts_list = indices[0][0]
             burst_ends_list = indices[0][1]
             for i in range(len(burst_starts_list)):
-                temp_burst_start = burst_starts_list[i] / 25000 + time_in_sec[0]
-                temp_burst_end = burst_ends_list[i] / 25000 + time_in_sec[0]
+                temp_burst_start = burst_starts_list[i] / fs + time_in_sec[0]
+                temp_burst_end = burst_ends_list[i] / fs + time_in_sec[0]
                 ax.axvspan(temp_burst_start, temp_burst_end, facecolor='0.2', alpha=0.5, color=indices[1])
 
     canvas.figure.tight_layout()
